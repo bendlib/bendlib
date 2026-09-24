@@ -118,7 +118,7 @@ package; a version bump that breaks it breaks one adapter, not every tool.
    `mem` via `List.contains(~A, ~eq, xs, x)`, `sorted_by` via
    `List.all(… List.zip(xs, List.tail(xs)))` (`review2/t13a`, `sv1/s.bend`) — version-stable;
    (c) an **import from a kernel** for anything that must `match` or be a `type`.
-   `tools/lint` rejects a mathlib predicate that matches or calls a non-Base def.
+   `tools/mathlib/lint.ts` rejects a mathlib predicate that matches or calls a non-Base def.
    Trade-off, stated: Base-only encodings follow Base churn (if HOC changes `List.contains`, published
    statements change meaning/break); kernel definitions are immune to Base churn but nominal.
 1b. **Kernels** (`bendlib-kernel-list`, later `bendlib-kernel-rbtree`, …): a tiny package holding the
@@ -154,7 +154,7 @@ package; a version bump that breaks it breaks one adapter, not every tool.
 5. **Genericity and erasure.** Generic in `a: Quant, -A: Kind(a)` wherever the proof allows (F11);
    a `+xs` at generic quantity is illegal (only `&2` is `Data`), so a `&2`-specialized variant is
    allowed with a `_data` suffix and a stated reason. **Every binder the proof does not `match` on is
-   erased** (`for -y`); a matched binder cannot be (F26) — `tools/lint` compares binders with the
+   erased** (`for -y`); a matched binder cannot be (F26) — `tools/mathlib/lint.ts` compares binders with the
    proof's scrutinees. Operations/comparators are templates (`~op`, `~le`) with template hypotheses
    (`for ~le_trans: …`) (F12, F13); template arguments must be closed, so the library ships instances
    for `Nat`, `U32`, `Char`, `String`. `List.map` is a template over affine lists only
@@ -207,7 +207,7 @@ The launch-era headline is instead a structural merge sort proved sorted + permu
 
 ### 3.3 Frozen definitions: how we pick them
 Base-only predicates (rule 1b) and kernel definitions (rule 1b) are permanent. Before one is
-published: write the candidates in `research/predicates/`, prove the intended headline theorems with
+published: write the candidates in `research/candidates/predicates/`, prove the intended headline theorems with
 each, add negative fixtures (e.g. with an equality template that always answers `False`, `perm` must
 not make `[x]` a permutation of `[]` — semantic theorems carry equality soundness/completeness
 hypotheses), then the owner picks. For `perm` specifically (F27): count-based
@@ -225,7 +225,7 @@ quantities are independent: `rbtree<ak, av, -K: Kind(ak), -V: Kind(av)> is Kind(
 
 ### 3.5 Dev-mode imports (F21) and release
 - Sources always contain final import lines (`import bend-mathlib@0.2.0.0/list.bend as MList`).
-- `tools/devlib` builds repo-local `.devlib/` (git-ignored, recreated from empty each run because
+- The dev-mode helper (planned, not built; `devlib` absent, §7.1) builds repo-local `.devlib/` (git-ignored, recreated from empty each run because
   `names/` entries are never re-validated, F29): `names/<name>@<ver>` → a **deterministic fake hash**
   `"0x" + sha256("<name>@<ver>-dev")[0:32]` and `0x<hash>` → symlink to the working package. (The
   real hash changes with every edit, so it is only computed at release.) It refuses to write outside
@@ -233,7 +233,7 @@ quantities are independent: `rbtree<ak, av, -K: Kind(ak), -V: Kind(av)> is Kind(
 - CI: fails on any `../` import leaving a package (it would bundle the other package, F2, and reaching
   one file under two namespaces is a hard `one namespace per file` error).
 - Release (owner, manual — names are tied to the owner's login, F1):
-  1. `bun tools/release <pkg> <ver>`: fresh isolated `BEND_LIB`, every imported `name@version` resolves
+  1. `bun tools/mathlib/release.ts <pkgdir> <name> <version>`: fresh isolated `BEND_LIB`, every imported `name@version` resolves
      on the hub, computes the real publish hash locally (`cli_publish` algorithm: sorted paths,
      `"0x" + sha256(Σ sha256(content) + " " + path + "\n")[0:32]`), prints the commands.
   2. Owner: `bend packages/<pkg>/all.bend --publish` (anonymous; prints `0x…`, must equal step 1).
