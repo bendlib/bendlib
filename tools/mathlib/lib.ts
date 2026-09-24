@@ -91,7 +91,15 @@ export function parseModule(file: string, source?: string): Module {
 }
 
 export function packageModules(pkgDir: string): string[] {
-  return readdirSync(pkgDir).filter((f) => f.endsWith(".bend")).sort().map((f) => join(pkgDir, f));
+  const out: string[] = [];
+  const walk = (dir: string) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      if (e.isDirectory()) walk(join(dir, e.name));
+      else if (e.name.endsWith(".bend")) out.push(join(dir, e.name));
+    }
+  };
+  walk(pkgDir);
+  return out.sort();
 }
 
 // Split `{L == R : T}` at depth 0 (parens/braces/brackets). Returns null if not an equation.

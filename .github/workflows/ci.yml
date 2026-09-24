@@ -19,7 +19,7 @@ jobs:
       - run: bun tools/comments.ts
       - run: bun tools/mathlib/check.ts packages/bend-mathlib
       - name: lawcheck every mathlib module
-        run: for m in packages/bend-mathlib/*.bend; do bun tools/lawcheck/cli.ts "$m" --max-instances 100 || exit 1; done
+        run: for m in $(find packages/bend-mathlib -name '*.bend' | sort); do bun tools/lawcheck/cli.ts "$m" --max-instances 100 || exit 1; done
       - run: bun tools/mathlib/lint.ts packages/bend-mathlib --erasure
       - run: bun tools/mathlib/twins.ts packages/bend-mathlib --check
       - run: bun tools/mathlib/lock.ts packages/bend-mathlib --check
