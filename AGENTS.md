@@ -275,6 +275,7 @@ their expected output, and what not to do. Read the whole bead before starting.
    bun test tools/                 # includes a docs end-to-end test against the live hub (minutes)
    bun tools/comments.ts
    bun tools/mathlib/check.ts packages/bend-mathlib
+   for m in packages/bend-mathlib/*.bend; do bun tools/lawcheck/cli.ts "$m" --max-instances 100 || exit 1; done
    bun tools/mathlib/lint.ts packages/bend-mathlib --erasure
    bun tools/mathlib/twins.ts packages/bend-mathlib --check
    bun tools/mathlib/lock.ts packages/bend-mathlib --check

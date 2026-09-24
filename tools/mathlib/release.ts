@@ -8,8 +8,8 @@
 
 import { appendFileSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, relative } from "node:path";
-import { BEND, ROOT } from "./lib.ts";
+import { join, relative, basename } from "node:path";
+import { BEND, ROOT, packageModules } from "./lib.ts";
 import { hubHash, packageFiles } from "./hash.ts";
 
 const [pkgArg, name, version] = process.argv.slice(2).filter((a) => !a.startsWith("--"));
@@ -34,6 +34,9 @@ const gates: [string, string[]][] = [
   ["lock", [process.execPath, "tools/mathlib/lock.ts", pkg, "--check"]],
   ["index", [process.execPath, "tools/mathlib/index.ts", pkg, name, version, "--check"]],
 ];
+for (const m of packageModules(pkg)) {
+  gates.push(["lawcheck " + basename(m, ".bend"), [process.execPath, "tools/lawcheck/cli.ts", m, "--max-instances", "100"]]);
+}
 for (const [label, cmd] of gates) {
   const r = sh(cmd);
   console.log(`${r.code === 0 ? "ok  " : "FAIL"} ${label}`);
