@@ -25,6 +25,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
       - run: bun tools/install-bend.ts
+      - run: sudo apt-get install -y bubblewrap
       - uses: actions/cache@v4
         with:
           path: |

@@ -2,7 +2,10 @@
 // `bend <file> --check-only` on 2.0.27 for hub files (named in each test).
 
 import { describe, expect, test } from "bun:test";
-import { classify, crossCheck, worst } from "../src/status.ts";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
+import { BEND, checkCommand, checkFile, classify, crossCheck, worst } from "../src/status.ts";
 
 describe("classify", () => {
   test("exactly 'All terms check.' with exit 0 is checks", () => {
@@ -67,4 +70,39 @@ describe("crossCheck", () => {
     expect(fails.class).toBe("fails");
     expect(crossCheck(fails, "@unsafe\ndef f() -> Nat:\n  0n\n").class).toBe("fails");
   });
+});
+
+describe("checkCommand", () => {
+  const o = { bendLib: "/lib", timeoutSec: 20, memMb: 4096, cwd: "/pkg" };
+  test("sandboxed: bwrap with a read-only root and writable BEND_LIB, inner check unchanged", () => {
+    const argv = checkCommand("/lib/h/f.bend", o, true);
+    expect(argv[0]).toBe("bwrap");
+    expect(argv).toContain("--unshare-all");
+    expect(argv).toContain("--die-with-parent");
+    const ro = argv.indexOf("--ro-bind");
+    expect(argv.slice(ro, ro + 3)).toEqual(["--ro-bind", "/", "/"]);
+    const b = argv.indexOf("--bind");
+    expect(argv.slice(b, b + 3)).toEqual(["--bind", "/lib", "/lib"]);
+    const c = argv.indexOf("--chdir");
+    expect(argv.slice(c, c + 2)).toEqual(["--chdir", "/pkg"]);
+    expect(argv.slice(argv.indexOf("bash"))).toEqual(checkCommand("/lib/h/f.bend", o, false));
+  });
+  test("unsandboxed: today's argv, with the memory cap and no bwrap", () => {
+    const argv = checkCommand("/lib/h/f.bend", o, false);
+    expect(argv[0]).toBe("bash");
+    expect(argv).not.toContain("bwrap");
+    expect(argv[2]).toContain("ulimit -v 4194304");
+    expect(argv.slice(-2)).toEqual([BEND, "/lib/h/f.bend"]);
+  });
+});
+
+const hasBwrap = Bun.spawnSync(["bwrap", "--version"], { stdout: "ignore", stderr: "ignore" }).exitCode === 0;
+
+describe("checkFile under the sandbox", () => {
+  test.skipIf(!hasBwrap)("the good fixture checks inside bwrap", async () => {
+    const entry = join(import.meta.dir, "..", "..", "mathlib", "fixtures", "good", "list.bend");
+    const lib = mkdtempSync(join(tmpdir(), "bend-docs-sandbox-"));
+    const s = await checkFile(entry, { bendLib: lib, timeoutSec: 120, memMb: 4096, cwd: dirname(entry) });
+    expect(s.class).toBe("checks");
+  }, 180_000);
 });

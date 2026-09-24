@@ -103,10 +103,30 @@ export function crossCheck(s: FileStatus, source: string): FileStatus {
 
 export type CheckOptions = { bendLib: string; timeoutSec: number; memMb: number; cwd: string };
 
+let bwrapProbe: boolean | null = null;
+
+/** Whether per-file checks run inside bwrap; the `bwrap --version` probe runs at most once. */
+export function sandboxAvailable(): boolean {
+  if (bwrapProbe === null) {
+    try { bwrapProbe = Bun.spawnSync(["bwrap", "--version"], { stdout: "ignore", stderr: "ignore" }).exitCode === 0; }
+    catch { bwrapProbe = false; }
+  }
+  return bwrapProbe;
+}
+
+/** The argv `checkFile` spawns: the pinned compiler under the memory cap, inside bwrap when sandboxed. */
+export function checkCommand(file: string, o: CheckOptions, sandbox: boolean): string[] {
+  const cap = Math.max(256, Math.floor(o.memMb)) * 1024;
+  const inner = ["bash", "-c", `ulimit -v ${cap}; exec "$0" "$1" --check-only`, BEND, file];
+  if (!sandbox) return inner;
+  // `--dev /dev` is required: the Bun-compiled bend aborts when / is a read-only bind without a fresh /dev.
+  return ["bwrap", "--unshare-all", "--die-with-parent", "--ro-bind", "/", "/", "--tmpfs", "/tmp", "--dev", "/dev",
+    "--bind", o.bendLib, o.bendLib, "--chdir", o.cwd, ...inner];
+}
+
 export async function checkFile(file: string, o: CheckOptions): Promise<FileStatus> {
   const t0 = performance.now();
-  const cap = Math.max(256, Math.floor(o.memMb)) * 1024;
-  const proc = Bun.spawn(["bash", "-c", `ulimit -v ${cap}; exec "$0" "$1" --check-only`, BEND, file], {
+  const proc = Bun.spawn(checkCommand(file, o, sandboxAvailable()), {
     cwd: o.cwd,
     env: { ...process.env, BEND_LIB: o.bendLib, BEND_NO_TELEMETRY: "1" },
     stdout: "pipe", stderr: "pipe", stdin: "ignore",

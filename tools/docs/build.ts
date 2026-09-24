@@ -18,7 +18,7 @@ import { attachEdges, displayOrder, finishPackage, moduleHeader, namesByHash, ty
 import { renderAuthors, renderIndex, renderLemmas, renderLlms, renderModule, renderName, renderPackage, renderSearch, renderSource, modPage, pkgPage, srcPage, namePage, setBaseNamespaces } from "./src/render.ts";
 import { baseNamespaces } from "./src/status.ts";
 import { buildSearchIndex } from "./src/searchindex.ts";
-import { checkFile, compilerVersion, crossCheck, readStatusCache, statusKey, writeStatusCache, type FileClass } from "./src/status.ts";
+import { checkFile, compilerVersion, crossCheck, readStatusCache, sandboxAvailable, statusKey, writeStatusCache, type FileClass } from "./src/status.ts";
 
 const HERE = import.meta.dir;
 const ROOT = resolve(HERE, "../..");
@@ -188,7 +188,7 @@ async function main() {
     });
     writeStatusCache(statusFile, cache);
   }
-  log(`check: ${args.check ? `${checkedNew} files checked, the rest from cache` : "skipped (--no-check)"} (${secs(t)})`);
+  log(`check: ${args.check ? `${checkedNew} files checked, the rest from cache` : "skipped (--no-check)"} · sandbox: ${sandboxAvailable() ? "bwrap" : "none"} (${secs(t)})`);
 
   const pkgs: Package[] = entries.map((e, i) => {
     const manifest = manifests[i];
