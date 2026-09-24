@@ -113,7 +113,7 @@ describe("claim kinds and skips", () => {
     const st = Object.fromEntries(report.laws.map((l: any) => [l.name, l.status]));
     expect(st).toEqual({
       le_half: "pass", half_le_bad: "fail", p_holds: "skip", lt_irrefl: "pass", add_ne_bad: "fail", le_trans: "pass",
-      append_nil_r: "pass", reverse_id_bad: "fail", pair_swap: "pass", where_law: "skip", fn_binder: "skip", float_law: "skip",
+      append_nil_r: "pass", reverse_id_bad: "fail", pair_swap: "pass", where_law: "pass", fn_binder: "skip", float_law: "skip",
     });
     expect(binds(law(report, "half_le_bad"))).toEqual({ n: "1n" });
     expect(law(report, "half_le_bad").counterexample.goal).toBe("{False{} == True{} : Bool}");
@@ -123,7 +123,7 @@ describe("claim kinds and skips", () => {
     const rev = law(report, "reverse_id_bad");
     expect(rev.counterexample.types).toEqual([{ name: "A", value: "U32" }]);
     expect(binds(rev)).toEqual({ xs: "[0, 1]" });
-    expect(law(report, "where_law").reason).toMatch(/where/);
+    expect(law(report, "where_law").premise.satisfied).toBeGreaterThan(0);
     expect(law(report, "fn_binder").reason).toMatch(/function-typed binder f/);
     expect(law(report, "float_law").reason).toMatch(/F32/);
   }, T);
@@ -152,6 +152,22 @@ describe("unsafe verdict", () => {
     expect(l.status).toBe("skip");
     expect(l.status).not.toBe("pass");
     expect(l.reason).toMatch(/unsafe or foreign code/);
+  }, T);
+});
+
+describe("where premises and exs witnesses", () => {
+  test("where drops failing instances; a false where law fails; exs searches for a witness", async () => {
+    const { code, report } = await json(path.join(FX, "where_exs.bend"), "--max-instances", "40", "--jobs", "4");
+    expect(code).toBe(1);
+    expect(report.laws.map((l: any) => [l.name, l.status])).toEqual([
+      ["where_true", "pass"], ["where_false", "fail"], ["exs_found", "pass"], ["exs_missing", "skip"],
+    ]);
+    const wt = law(report, "where_true");
+    expect(wt.premise.satisfied).toBeGreaterThan(0);
+    expect(wt.premise.satisfied).toBeLessThan(wt.premise.total);
+    expect(binds(law(report, "where_false"))).toEqual({ n: "0n", m: "0n" });
+    expect(law(report, "exs_found").claim).toBe("witness");
+    expect(law(report, "exs_missing").reason).toMatch(/^no witness found in \d+ candidates$/);
   }, T);
 });
 

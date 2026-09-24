@@ -49,7 +49,7 @@ export type LawResult = {
   file: string;
   line: number;
   proved: boolean;
-  claim: "equation" | "predicate" | "refutation" | "other";
+  claim: "equation" | "predicate" | "refutation" | "witness" | "other";
   status: "pass" | "fail" | "skip" | "error";
   reason?: string;
   instances: number;
@@ -78,6 +78,7 @@ class Skip extends Error {}
 
 type Value = { name: string; ty: Ty };
 type FunBinder = { name: string; args: string[]; ret: string };
+type ExBinder = { name: string; ty: Ty };
 type Plan = {
   d: Decl;
   kind: LawResult["claim"];
@@ -86,6 +87,7 @@ type Plan = {
   quantParams: string[];
   values: Value[];
   funs: FunBinder[];
+  exs: ExBinder[];
   premises: string[];
 };
 type Inst = { vals: Val[]; types: Map<string, string>; funs: string[] };
@@ -128,6 +130,21 @@ function substSig(f: FunBinder, choice: string, typeParams: string[]): string {
   const env = new Map(typeParams.map((n) => [n, choice]));
   const sub = (s: string) => s.replace(/[A-Za-z_][A-Za-z0-9_]*/g, (id) => env.get(id) ?? id);
   return [...f.args.map(sub), sub(f.ret)].join(" -> ");
+}
+
+/** Splits a printed `&name:VALUE -> BODY` sigma (a `where` premise or an `exs` witness) at its top-level arrow. */
+function splitSigma(t: string): { name: string; value: string; body: string } | null {
+  const m = /^&([A-Za-z_]\w*):/.exec(t);
+  if (m === null) return null;
+  const rest = t.slice(m[0].length);
+  let depth = 0;
+  for (let i = 0; i + 4 <= rest.length; i++) {
+    const c = rest[i];
+    if (c === "(" || c === "{" || c === "[") depth++;
+    else if (c === ")" || c === "}" || c === "]") depth--;
+    else if (depth === 0 && rest.startsWith(" -> ", i)) return { name: m[1], value: rest.slice(0, i), body: rest.slice(i + 4) };
+  }
+  return null;
 }
 
 const TYPE_CHOICES = ["U32", "Nat"];
@@ -175,7 +192,7 @@ function universe(L: Loaded, maxNat = 30): Universe {
 
 function plan(L: Loaded, d: Decl, predicates: Set<string>, U: Universe): Plan {
   const binders = d.binders ?? [];
-  const p: Plan = { d, kind: "other", claim: "", typeParams: [], quantParams: [], values: [], funs: [], premises: [] };
+  const p: Plan = { d, kind: "other", claim: "", typeParams: [], quantParams: [], values: [], funs: [], exs: [], premises: [] };
   const premiseNames: string[] = [];
   const isPredicateApp = (s: string) => {
     const head = applicationHead(s);
@@ -191,7 +208,13 @@ function plan(L: Loaded, d: Decl, predicates: Set<string>, U: Universe): Plan {
     if (t === "Quant") p.quantParams.push(b.name);
     else if (/^(Type|Data|Kind\(.*\))$/.test(t)) p.typeParams.push(b.name);
     else if (t.startsWith("{")) { p.premises.push(t); premiseNames.push(b.name); }
-    else if (/^&[A-Za-z_]\w*:/.test(t)) throw new Skip(`\`where\` premise on ${b.name} (v0.2)`);
+    else if (/^&[A-Za-z_]\w*:/.test(t)) {
+      const sig = splitSigma(t);
+      const ty = sig === null ? null : parseTy(sig.value);
+      if (sig === null || ty === null) throw new Skip(`\`where\` premise on ${b.name}: cannot generate values of ${sig?.value ?? t} (v0.3)`);
+      p.values.push({ name: b.name, ty });
+      p.premises.push(sig.body);
+    }
     else if (t.includes("->")) throw new Skip(`function-typed binder ${b.name}: ${t} (v0.2)`);
     else if (tmpl) throw new Skip(`template binder ~${b.name}: ${t} (v0.2)`);
     else {
@@ -213,7 +236,17 @@ function plan(L: Loaded, d: Decl, predicates: Set<string>, U: Universe): Plan {
     p.kind = "predicate";
     p.claim = tip;
   } else if (/^&[A-Za-z_]\w*:/.test(tip)) {
-    throw new Skip(`\`exs\` witness claim (v0.2)`);
+    let body = tip;
+    for (;;) {
+      const sig = splitSigma(body);
+      if (sig === null) break;
+      const ty = parseTy(sig.value);
+      if (ty === null) throw new Skip(`\`exs\` witness ${sig.name}: cannot generate values of ${sig.value} (v0.3)`);
+      p.exs.push({ name: sig.name, ty });
+      body = sig.body;
+    }
+    p.kind = "witness";
+    p.claim = body;
   } else {
     throw new Skip(`claim is not an equation or a single predicate application: ${tip}`);
   }
@@ -235,6 +268,16 @@ function plan(L: Loaded, d: Decl, predicates: Set<string>, U: Universe): Plan {
     for (const choice of p.typeParams.length ? TYPE_CHOICES : [""]) {
       const sig = substSig(f, choice, p.typeParams);
       if (CATALOG[sig] === undefined) throw new Skip(`no catalog functions for ~${f.name}: ${sig}`);
+    }
+  }
+  for (const e of p.exs) {
+    for (const choice of p.typeParams.length ? TYPE_CHOICES : [""]) {
+      try {
+        U.check(substTy(e.ty, envTypes(p, choice)));
+      } catch (err) {
+        if (err instanceof Unsupported) throw new Skip(`\`exs\` witness ${e.name}: no generator for type ${err.message}`);
+        throw err;
+      }
     }
   }
   return p;
@@ -449,14 +492,16 @@ async function checkLaw(L: Loaded, d: Decl, li: number, o: Options, U: Universe,
     throw e;
   }
   let n = 0;
-  const texts = (inst: Inst) => {
+  const texts = (inst: Inst, extra: { name: string; q: string; n: string }[] = []) => {
     const env = new Map<string, string>();
     for (const q of p.quantParams) env.set(q, "&2");
     for (const [a, t] of inst.types) env.set(a, t);
     p.values.forEach((v, i) => env.set(v.name, render(inst.vals[i], qualify)));
     p.funs.forEach((f, i) => env.set(f.name, inst.funs[i]));
+    for (const e of extra) env.set(e.name, e.q);
     const denv = new Map(env);
     p.values.forEach((v, i) => denv.set(v.name, render(inst.vals[i], nameOut)));
+    for (const e of extra) denv.set(e.name, e.n);
     try {
       return {
         claim: rewrite(p.claim, env, qualify),
@@ -497,6 +542,27 @@ async function checkLaw(L: Loaded, d: Decl, li: number, o: Options, U: Universe,
     return null;
   };
 
+  // The `exs` witness space: the generated values of each witness type, in product (capped).
+  const witnessCombos = (inst: Inst): { name: string; q: string; n: string }[][] => {
+    const envTy = new Map<string, Ty>();
+    for (const [a, t] of inst.types) envTy.set(a, { t: "app", head: t, args: [], paren: false });
+    const cap = Math.min(o.maxInstances, 64);
+    const perW = p.exs.map((e) => {
+      const ty = substTy(e.ty, envTy);
+      const out = U.enumerate(ty, o.size).slice(0, cap);
+      while (out.length < cap) out.push(U.random(ty, Math.max(o.size, 3), r));
+      return out.map((v) => ({ name: e.name, q: render(v, qualify), n: render(v, nameOut) }));
+    });
+    const combos: { name: string; q: string; n: string }[][] = [];
+    const build = (i: number, acc: { name: string; q: string; n: string }[]) => {
+      if (combos.length >= cap) return;
+      if (i === perW.length) { combos.push(acc); return; }
+      for (const c of perW[i]) { build(i + 1, [...acc, c]); if (combos.length >= cap) return; }
+    };
+    build(0, []);
+    return combos;
+  };
+
   try {
     const held = await holding(insts);
     if (typeof held === "string") return { ...base, reason: held };
@@ -509,6 +575,20 @@ async function checkLaw(L: Loaded, d: Decl, li: number, o: Options, U: Universe,
     if (sat.length === 0) {
       if (tooLarge > 0 && tooLarge === insts.length) return { ...base, status: "skip", reason: "every instance was too large to evaluate (lower --max-nat)" };
       return { ...base, status: "skip", reason: `premises satisfied in 0/${insts.length} instances — law untested (vacuous in this space)` };
+    }
+    if (p.exs.length > 0) {
+      let tried = 0;
+      let missed = 0;
+      for (const inst of sat) {
+        const combos = witnessCombos(inst);
+        tried += combos.length;
+        const items = combos.map((extra) => ({ id: id(), claim: texts(inst, extra).claim }));
+        const res = await evaluateAll(E, items);
+        for (const out of res.values()) { const pr = problem(out); if (pr) return pr; }
+        if (!items.some((it) => res.get(it.id)!.r === "pass")) missed++;
+      }
+      if (missed === 0) return { ...base, status: "pass" };
+      return { ...base, status: "skip", reason: `no witness found in ${tried} candidates` };
     }
     let failing: { inst: Inst; out?: Outcome }[];
     let passed = 0;
