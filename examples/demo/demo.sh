@@ -12,7 +12,7 @@ clear
 say "# Bend 2. Goal: prove  length(reverse(xs ++ ys)) == length(ys ++ xs)"
 say "# By hand you first need lemmas about +, length and reverse:"
 run "wc -l before.bend && bend before.bend --check-only" 2
-say "# With bend-mathlib it is one import and four rewrites:"
+say "# With bend-mathlib: two imports and a four-step proof:"
 run "cat after.bend" 6
 run "bend after.bend --check-only" 2.5
 say "# import bend-mathlib@0.1.0.0  ·  github.com/bendlib/bendlib"
