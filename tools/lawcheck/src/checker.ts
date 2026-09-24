@@ -15,6 +15,7 @@ export type Outcome =
   | { r: "undecidable"; detail: string }
   | { r: "illtyped"; detail: string }
   | { r: "toolarge" }
+  | { r: "unsafe"; count: number }
   | { r: "error"; detail: string };
 
 export class ModuleError extends Error {}
@@ -91,7 +92,26 @@ function locate(out: string): Located | null {
   return { def: lines[li].slice(10).trim(), expected: field(block, "expected"), observed: field(block, "observed"), pointed, text: lines.slice(Math.max(0, errAt)).join("\n").trim() };
 }
 
-const allChecked = (out: string) => /All terms check/.test(out) || /\d+ TODOs? found/.test(out);
+/** A checked batch: exactly `All terms check.`, or only open proofs in an imported module. */
+const cleanCheck = (out: string) => {
+  const t = out.trim();
+  return t === "All terms check." || /\d+ TODOs? found/.test(t);
+};
+
+/** The "All terms check, but N defs rely on unsafe or foreign code:" verdict, with the relying defs. */
+function unsafeVerdict(out: string): { count: number; defs: string[] } | null {
+  const lines = out.split("\n");
+  const i = lines.findIndex((l) => /^All terms check, but \d+ defs? (?:rely|relies) on unsafe or foreign code:?\s*$/.test(l.trim()));
+  if (i < 0) return null;
+  const m = /\d+/.exec(lines[i].trim());
+  const defs: string[] = [];
+  for (let j = i + 1; j < lines.length; j++) {
+    const d = /^- (\S+)$/.exec(lines[j].trim());
+    if (d === null) break;
+    defs.push(d[1]);
+  }
+  return { count: m === null ? 0 : Number(m[0]), defs };
+}
 
 // A huge unary Nat can overflow either the checker's own guard or the host JS
 // stack, depending on the term (F31).
@@ -119,7 +139,14 @@ export async function evaluate(E: Engine, items: Item[], stopAtFail = false): Pr
         }
         break;
       }
-      const o: Outcome = allChecked(out) ? { r: "pass" } : { r: "error", detail: E.display(out.trim()) };
+      const unsafe = unsafeVerdict(out);
+      if (unsafe !== null) {
+        const tainted = unsafe.defs.length === 0 ? rest.map((it) => it.id) : unsafe.defs;
+        const set = new Set(tainted);
+        for (const it of rest) res.set(it.id, set.has(it.id) ? { r: "unsafe", count: unsafe.count } : { r: "pass" });
+        break;
+      }
+      const o: Outcome = cleanCheck(out) ? { r: "pass" } : { r: "error", detail: E.display(out.trim()) };
       for (const it of rest) res.set(it.id, o);
       break;
     }

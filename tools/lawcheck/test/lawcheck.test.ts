@@ -129,6 +129,23 @@ describe("claim kinds and skips", () => {
   }, T);
 });
 
+describe("unsafe verdict", () => {
+  test("a checker verdict that relies on unsafe code is not a clean pass", async () => {
+    const { code, report } = await json(path.join(FX, "unsafe_pass.bend"), "--max-instances", "3");
+    expect(code).toBe(0);
+    const l = law(report, "zero_is_zero");
+    expect(l.status).toBe("skip");
+    expect(l.status).not.toBe("pass");
+    expect(l.reason).toMatch(/unsafe or foreign code/);
+  }, T);
+
+  test("a clean module still reports pass", async () => {
+    const { code, report } = await json(path.join(FX, "correct.bend"));
+    expect(code).toBe(0);
+    expect(report.laws.every((l: any) => l.status === "pass")).toBe(true);
+  }, T);
+});
+
 describe("too-large instances and --max-nat", () => {
   test("overflowing instances are dropped, not errors; a small counterexample still fails", async () => {
     const { code, report } = await json(path.join(FX, "pow.bend"), "--max-instances", "40");

@@ -131,6 +131,9 @@ function substSig(f: FunBinder, choice: string, typeParams: string[]): string {
 
 const TYPE_CHOICES = ["U32", "Nat"];
 
+/** Human text for an unsafe-reliance count. */
+const unsafeText = (n: number) => `unsafe or foreign code (${n} def${n === 1 ? "" : "s"})`;
+
 function tipOf(L: Loaded, key: string): string {
   const B = L.bend;
   let t = B.term_lower(L.book.tlds[key].T, 0);
@@ -459,8 +462,8 @@ async function checkLaw(L: Loaded, d: Decl, li: number, o: Options, U: Universe,
     if (p.premises.length === 0) return { kept: cands, tooLarge: 0 };
     const items = cands.map((c) => texts(c).premises.map((claim) => ({ id: id(), claim })));
     const res = await evaluateAll(E, items.flat());
-    const bad = [...res.values()].find((x) => x.r === "undecidable" || x.r === "illtyped" || x.r === "error");
-    if (bad) return `premise ${bad.r === "undecidable" ? "not decidable by evaluation" : "could not be evaluated"}: ${(bad as any).detail}`;
+    const bad = [...res.values()].find((x) => x.r === "undecidable" || x.r === "illtyped" || x.r === "error" || x.r === "unsafe");
+    if (bad) return bad.r === "unsafe" ? `premise relies on ${unsafeText(bad.count)}` : `premise ${bad.r === "undecidable" ? "not decidable by evaluation" : "could not be evaluated"}: ${(bad as any).detail}`;
     let tooLarge = 0;
     const kept = cands.filter((_, i) => {
       const outs = items[i].map((it) => res.get(it.id)!);
@@ -472,6 +475,7 @@ async function checkLaw(L: Loaded, d: Decl, li: number, o: Options, U: Universe,
 
   const problem = (out: Outcome): LawResult | null => {
     if (out.r === "undecidable") return { ...base, status: "skip", reason: `not decidable by evaluation (${out.detail})` };
+    if (out.r === "unsafe") return { ...base, status: "skip", reason: `the checker's verdict relies on ${unsafeText(out.count)}` };
     if (out.r === "illtyped") return { ...base, status: "error", reason: `a generated instance does not type-check:\n${out.detail}` };
     if (out.r === "error") return { ...base, status: "error", reason: out.detail };
     return null;
