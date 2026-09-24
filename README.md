@@ -5,7 +5,7 @@ import instead of re-proving, and tools that keep laws honest.
 
 | Part | What | Status |
 |---|---|---|
-| [`bend-mathlib`](packages/bend-mathlib) | 119 lemmas about `Nat`, `Bool`, `List`, equality — generic, proved, zero `@unsafe` | **0.1.0.0 on BendHub** |
+| [`bend-mathlib`](packages/bend-mathlib) | 119 lemmas about `Nat`, `Bool`, `List`, equality — generic, proved, zero `@unsafe` | **0.1.0.1 on BendHub** |
 | [`@bendlib/reader`](tools/reader) | Reads Bend source with the official parser of your installed compiler version | working |
 | [`lawcheck`](tools/lawcheck) | Finds counterexamples to laws before you try to prove them, and shrinks them | v0.1 working |
 | Bend docs | Rendered API docs and lemma search for every BendHub package | planned |
@@ -27,7 +27,7 @@ def my_rev(xs):
 ```
 
 Every lemma with its statement: [packages/bend-mathlib/README.md](packages/bend-mathlib/README.md).
-By hash (content-pinned): `import 0xe225657a7b1852c0f87dfc66dd576f68/nat.bend as MNat`.
+By hash (content-pinned): `import 0xafc61ca8b7738a6df7f28eddf80168f8/nat.bend as MNat`.
 
 ## Principles
 
