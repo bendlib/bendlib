@@ -19,6 +19,7 @@ export type Options = {
   jobs?: number;
   timeoutMs?: number;
   tmpDir?: string;
+  maxNat?: number;
 };
 
 export type Binding = { name: string; value: string };
@@ -47,6 +48,7 @@ export type LawResult = {
   reason?: string;
   instances: number;
   failures: number;
+  tooLarge?: number;
   premise?: { satisfied: number; total: number };
   counterexample?: Counterexample;
 };
@@ -79,7 +81,7 @@ function tipOf(L: Loaded, key: string): string {
   return B.term_show(t, -1, bnd);
 }
 
-function universe(L: Loaded): Universe {
+function universe(L: Loaded, maxNat = 30): Universe {
   const B = L.bend;
   const adts = new Map<string, Adt>();
   for (const d of decls(L, { scope: "all" })) {
@@ -103,7 +105,7 @@ function universe(L: Loaded): Universe {
     });
     adts.set(d.name, { name: d.name, params, ctors });
   }
-  return new Universe(adts);
+  return new Universe(adts, maxNat);
 }
 
 function plan(L: Loaded, d: Decl, predicates: Set<string>, U: Universe): Plan {
@@ -311,7 +313,7 @@ export async function lawcheck(file: string, o: Options): Promise<Report> {
   const L = await load(root);
   const own = decls(L, { scope: "own" });
   const predicates = new Set(decls(L, { scope: "all" }).filter((d) => d.predicate).map((d) => d.name));
-  const U = universe(L);
+  const U = universe(L, o.maxNat);
   const { header, qualify, display, nameOut } = aliasMap(L);
   const E: Engine = { header, dir: tmp, bend: bendBin(), timeoutMs: o.timeoutMs ?? 120000, jobs: o.jobs ?? navigator.hardwareConcurrency, runs: 0, display };
   const all = own.filter((d) => d.kind === "law");
@@ -362,13 +364,19 @@ async function checkLaw(L: Loaded, d: Decl, li: number, o: Options, U: Universe,
   };
   const id = () => `lc_${li}_${n++}`;
 
-  async function holding(cands: Inst[]): Promise<Inst[] | string> {
-    if (p.premises.length === 0) return cands;
+  async function holding(cands: Inst[]): Promise<{ kept: Inst[]; tooLarge: number } | string> {
+    if (p.premises.length === 0) return { kept: cands, tooLarge: 0 };
     const items = cands.map((c) => texts(c).premises.map((claim) => ({ id: id(), claim })));
     const res = await evaluateAll(E, items.flat());
     const bad = [...res.values()].find((x) => x.r === "undecidable" || x.r === "illtyped" || x.r === "error");
     if (bad) return `premise ${bad.r === "undecidable" ? "not decidable by evaluation" : "could not be evaluated"}: ${(bad as any).detail}`;
-    return cands.filter((_, i) => items[i].every((it) => res.get(it.id)!.r === "pass"));
+    let tooLarge = 0;
+    const kept = cands.filter((_, i) => {
+      const outs = items[i].map((it) => res.get(it.id)!);
+      if (outs.some((o) => o.r === "toolarge")) { tooLarge++; return false; }
+      return outs.every((it) => it.r === "pass");
+    });
+    return { kept, tooLarge };
   }
 
   const problem = (out: Outcome): LawResult | null => {
@@ -379,23 +387,37 @@ async function checkLaw(L: Loaded, d: Decl, li: number, o: Options, U: Universe,
   };
 
   try {
-    const sat = await holding(insts);
-    if (typeof sat === "string") return { ...base, reason: sat };
+    const held = await holding(insts);
+    if (typeof held === "string") return { ...base, reason: held };
+    const sat = held.kept;
+    let tooLarge = held.tooLarge;
+    if (tooLarge > 0) base.tooLarge = tooLarge;
     base.instances = sat.length;
     if (p.premises.length) base.premise = { satisfied: sat.length, total: insts.length };
     if (sat.length === 0 && p.kind === "refutation") return { ...base, status: "pass", instances: insts.length };
-    if (sat.length === 0) return { ...base, status: "skip", reason: `premises satisfied in 0/${insts.length} instances — law untested (vacuous in this space)` };
+    if (sat.length === 0) {
+      if (tooLarge > 0 && tooLarge === insts.length) return { ...base, status: "skip", reason: "every instance was too large to evaluate (lower --max-nat)" };
+      return { ...base, status: "skip", reason: `premises satisfied in 0/${insts.length} instances — law untested (vacuous in this space)` };
+    }
     let failing: { inst: Inst; out?: Outcome }[];
+    let passed = 0;
     if (p.kind === "refutation") {
       failing = sat.map((inst) => ({ inst }));
     } else {
       const items = sat.map((inst) => ({ id: id(), claim: texts(inst).claim }));
       const res = await evaluateAll(E, items);
       for (const out of res.values()) { const pr = problem(out); if (pr) return pr; }
+      const outs = [...res.values()];
+      passed = outs.filter((o) => o.r === "pass").length;
+      const claimTooLarge = outs.filter((o) => o.r === "toolarge").length;
+      if (claimTooLarge > 0) { tooLarge += claimTooLarge; base.tooLarge = tooLarge; }
       failing = sat.map((inst, i) => ({ inst, out: res.get(items[i].id)! })).filter((x) => x.out.r === "fail");
     }
     base.failures = failing.length;
-    if (failing.length === 0) return { ...base, status: "pass" };
+    if (failing.length === 0) {
+      if (tooLarge > 0 && passed === 0) return { ...base, status: "skip", reason: "every instance was too large to evaluate (lower --max-nat)" };
+      return { ...base, status: "pass" };
+    }
     const size = (x: Inst) => x.vals.reduce((s, v) => s + measure(v), 0);
     failing.sort((a, b) => size(a.inst) - size(b.inst));
     const original = failing[0].inst;
@@ -413,13 +435,13 @@ async function checkLaw(L: Loaded, d: Decl, li: number, o: Options, U: Universe,
       });
       cands.sort((a, b) => size(a) - size(b));
       const ok = await holding(cands.slice(0, 300));
-      if (typeof ok === "string" || ok.length === 0) break;
-      if (p.kind === "refutation") { cur = { inst: ok[0] }; continue; }
-      const items = ok.map((inst) => ({ id: id(), claim: texts(inst).claim }));
+      if (typeof ok === "string" || ok.kept.length === 0) break;
+      if (p.kind === "refutation") { cur = { inst: ok.kept[0] }; continue; }
+      const items = ok.kept.map((inst) => ({ id: id(), claim: texts(inst).claim }));
       const res = await evaluate(E, items, true);
       const hit = items.findIndex((it) => res.get(it.id)?.r === "fail");
       if (hit < 0) break;
-      cur = { inst: ok[hit], out: res.get(items[hit].id) };
+      cur = { inst: ok.kept[hit], out: res.get(items[hit].id) };
     }
     const bind = (inst: Inst): Binding[] => p.values.map((v, i) => ({ name: v.name, value: render(inst.vals[i], nameOut) }));
     const t = texts(cur.inst);

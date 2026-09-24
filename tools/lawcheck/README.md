@@ -9,7 +9,7 @@ bun tools/lawcheck/cli.ts LAWS.bend --json           # machine output
 bun tools/lawcheck/cli.ts LAWS.bend --impl other.bend  # swap the file's local import for another implementation
 ```
 
-Options: `--size N` sets the depth of the exhaustive small-scope phase (default 3). `--max-instances N` caps the instances per law (default 200). `--seed S` seeds the random phase (default 1, so runs are reproducible, including with `--law`). `--jobs N` sets how many parallel `bend` processes run (default: all cores). `--timeout MS` sets the limit for each `bend` run.
+Options: `--size N` sets the depth of the exhaustive small-scope phase (default 3). `--max-instances N` caps the instances per law (default 200). `--max-nat N` bounds the random `Nat`s (default 30; the exhaustive small-scope phase is unchanged). `--seed S` seeds the random phase (default 1, so runs are reproducible, including with `--law`). `--jobs N` sets how many parallel `bend` processes run (default: all cores). `--timeout MS` sets the limit for each `bend` run.
 
 Exit codes: 0 means no counterexample was found. 1 means at least one counterexample was found. 2 means a usage error, a file that does not load or type-check, or a tool error.
 
@@ -44,7 +44,7 @@ Claim kinds:
 
 - Laws with a function-typed template binder (`for ~f: A -> B`) or a function-typed binder are skipped. v0.2 will add a catalog of closed functions.
 - Laws with `where` premises, `exs` witness claims, and claims that are neither an equation nor a single predicate application (such as `Either<…>`) are skipped with a reason.
-- Values are kept small because the checker evaluates unary `Nat`s: random `Nat`s stay at or below 30. Types with no generator (`F32`, `Array`, `Map`, `IO`, indexed families) make lawcheck skip the law and name the type.
+- Values are kept small because the checker evaluates unary `Nat`s: random `Nat`s are drawn from `0..min(maxNat, max(6, 3·size))`, so `--max-nat` (default 30) bounds them. An instance whose evaluation overflows the checker's unary `Nat`s (such as `Nat.pow(20n, 25n)`) is dropped as too large to evaluate and reported on the law's line; it neither passes nor fails the law, and if every instance is dropped this way the law is skipped. Types with no generator (`F32`, `Array`, `Map`, `IO`, indexed families) make lawcheck skip the law and name the type.
 - If the file, or anything it imports, fails to type-check, no instance can be evaluated, because bend re-checks imports (F8). lawcheck exits 2 and shows the checker's error. Open laws are fine.
 - Hub imports (`0x…`) are re-imported by their hash. That path has not been exercised yet.
 - Batch files are left in `$TMPDIR/lawcheck-*` (the path is printed) and are never deleted.

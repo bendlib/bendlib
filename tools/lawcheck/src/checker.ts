@@ -14,6 +14,7 @@ export type Outcome =
   | { r: "goal"; goal: string }
   | { r: "undecidable"; detail: string }
   | { r: "illtyped"; detail: string }
+  | { r: "toolarge" }
   | { r: "error"; detail: string };
 
 export class ModuleError extends Error {}
@@ -92,6 +93,10 @@ function locate(out: string): Located | null {
 
 const allChecked = (out: string) => /All terms check/.test(out) || /\d+ TODOs? found/.test(out);
 
+// A huge unary Nat can overflow either the checker's own guard or the host JS
+// stack, depending on the term (F31).
+const overflowed = (out: string) => /the machine stack overflowed|Maximum call stack size exceeded/.test(out);
+
 /** Evaluates every item; with `stopAtFail`, returns as soon as one item genuinely fails. */
 export async function evaluate(E: Engine, items: Item[], stopAtFail = false): Promise<Map<string, Outcome>> {
   const res = new Map<string, Outcome>();
@@ -104,6 +109,16 @@ export async function evaluate(E: Engine, items: Item[], stopAtFail = false): Pr
     }
     const loc = locate(out);
     if (loc === null) {
+      if (!timedOut && overflowed(out)) {
+        if (rest.length === 1) {
+          res.set(rest[0].id, { r: "toolarge" });
+        } else {
+          const mid = Math.ceil(rest.length / 2);
+          const halves = await Promise.all([evaluate(E, rest.slice(0, mid), stopAtFail), evaluate(E, rest.slice(mid), stopAtFail)]);
+          for (const m of halves) for (const [k, v] of m) res.set(k, v);
+        }
+        break;
+      }
       const o: Outcome = allChecked(out) ? { r: "pass" } : { r: "error", detail: E.display(out.trim()) };
       for (const it of rest) res.set(it.id, o);
       break;

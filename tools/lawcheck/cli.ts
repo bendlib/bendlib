@@ -2,7 +2,7 @@
 // lawcheck: search for counterexamples to the laws of a Bend 2 file before anyone
 // tries to prove them, and shrink them. Passing laws are NOT proved.
 // usage: bun tools/lawcheck/cli.ts <file.bend> [--impl <file>] [--size N]
-//          [--max-instances N] [--seed S] [--json] [--law name] [--jobs N] [--timeout MS]
+//          [--max-instances N] [--max-nat N] [--seed S] [--json] [--law name] [--jobs N] [--timeout MS]
 //   --impl  check the laws against another implementation: replaces the file's
 //           local import with the same basename (or its only local import)
 // exit: 0 no counterexample · 1 counterexample found · 2 usage, load or tool error
@@ -13,7 +13,7 @@ import { BendReadError, SourceError } from "../reader/index.ts";
 import { ModuleError } from "./src/checker.ts";
 import { lawcheck, UsageError, type LawResult, type Options, type Report } from "./src/lawcheck.ts";
 
-const USAGE = "usage: bun tools/lawcheck/cli.ts <file.bend> [--impl <file>] [--size N] [--max-instances N] [--seed S] [--json] [--law name] [--jobs N] [--timeout MS]";
+const USAGE = "usage: bun tools/lawcheck/cli.ts <file.bend> [--impl <file>] [--size N] [--max-instances N] [--max-nat N] [--seed S] [--json] [--law name] [--jobs N] [--timeout MS]";
 
 function die(msg: string): never {
   process.stderr.write(`lawcheck: ${msg}\n`);
@@ -21,7 +21,7 @@ function die(msg: string): never {
 }
 
 function parseArgs(argv: string[]) {
-  const o: Options & { file: string; json: boolean } = { file: "", json: false, size: 3, maxInstances: 200, seed: 1 };
+  const o: Options & { file: string; json: boolean } = { file: "", json: false, size: 3, maxInstances: 200, seed: 1, maxNat: 30 };
   const num = (flag: string, v: string | undefined, min: number) => {
     const n = Number(v);
     if (v === undefined || !Number.isInteger(n) || n < min) die(`${flag} needs an integer ≥ ${min}\n${USAGE}`);
@@ -32,6 +32,7 @@ function parseArgs(argv: string[]) {
     if (a === "--json") o.json = true;
     else if (a === "--size") o.size = num(a, argv[++i], 0);
     else if (a === "--max-instances") o.maxInstances = num(a, argv[++i], 1);
+    else if (a === "--max-nat") o.maxNat = num(a, argv[++i], 1);
     else if (a === "--seed") o.seed = num(a, argv[++i], 0);
     else if (a === "--jobs") o.jobs = num(a, argv[++i], 1);
     else if (a === "--timeout") o.timeoutMs = num(a, argv[++i], 1);
@@ -58,7 +59,8 @@ function human(r: Report): string {
   const out = [`lawcheck ${r.version} · ${path.relative(process.cwd(), r.file)} · bend ${r.bend} · seed ${r.seed} · size ${r.size} · ≤${r.maxInstances} instances/law`];
   for (const l of r.laws) {
     const head = `${MARK[l.status]} ${l.name.padEnd(w)}  `;
-    out.push(head + lawLine(l, r));
+    const extra = l.tooLarge ? `, ${l.tooLarge} too large to evaluate` : "";
+    out.push(head + lawLine(l, r) + extra);
     if (l.status === "fail" && l.counterexample) {
       const c = l.counterexample;
       for (const b of [...c.types, ...c.bindings]) out.push(`${pad}${b.name} = ${b.value}`);

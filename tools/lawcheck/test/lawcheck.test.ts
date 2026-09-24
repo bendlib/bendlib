@@ -118,6 +118,25 @@ describe("claim kinds and skips", () => {
   }, T);
 });
 
+describe("too-large instances and --max-nat", () => {
+  test("overflowing instances are dropped, not errors; a small counterexample still fails", async () => {
+    const { code, report } = await json(path.join(FX, "pow.bend"), "--max-instances", "40");
+    expect(code).toBe(1);
+    expect(law(report, "pow_add").status).toBe("pass");
+    const wrong = law(report, "pow_add_wrong");
+    expect(wrong.status).toBe("fail");
+    expect(wrong.counterexample).toBeDefined();
+  }, T);
+
+  test("--max-nat bounds random Nats so nothing overflows", async () => {
+    const { code, report } = await json(path.join(FX, "pow.bend"), "--law", "pow_add", "--max-nat", "3");
+    expect(code).toBe(0);
+    const l = law(report, "pow_add");
+    expect(l.status).toBe("pass");
+    expect(l.tooLarge ?? 0).toBe(0);
+  }, T);
+});
+
 describe("imports and --impl", () => {
   test("laws over an imported module print the user's alias", async () => {
     const { code, report } = await json(path.join(FX, "laws_lib.bend"));

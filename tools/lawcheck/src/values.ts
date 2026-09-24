@@ -38,7 +38,7 @@ const pick = <T>(r: Rng, xs: T[]): T => xs[Math.floor(r() * xs.length)];
 const int = (r: Rng, lo: number, hi: number) => lo + Math.floor(r() * (hi - lo + 1));
 
 export class Universe {
-  constructor(private adts: Map<string, Adt>) {}
+  constructor(private adts: Map<string, Adt>, private maxNat = 30) {}
 
   private adt(ty: Ty): { adt: Adt; ctors: Ctor[] } {
     if (ty.t !== "app") throw new Unsupported(showTy(ty));
@@ -110,7 +110,7 @@ export class Universe {
 
   random(ty: Ty, size: number, r: Rng, budget = size): Val {
     switch (builtin(ty)) {
-      case "nat": return { v: "nat", n: int(r, 0, Math.min(30, Math.max(6, 3 * size))) };
+      case "nat": return { v: "nat", n: int(r, 0, Math.min(this.maxNat, Math.max(6, 3 * size))) };
       case "u32": return { v: "u32", n: r() < 0.5 ? pick(r, [0, 1, 2, 3, 255, 256, 65535, 2147483648, U32_MAX]) : Math.floor(r() * 2 ** 32) };
       case "char": return { v: "char", c: pick(r, ["a", "b", "c", "d", "e"]) };
       case "str": return { v: "str", s: range(int(r, 0, size)).map(() => pick(r, ["a", "b", "c"])).join("") };
