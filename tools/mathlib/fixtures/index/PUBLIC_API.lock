@@ -1,0 +1,14 @@
+{
+  "bools.and_comm": {
+    "kind": "law",
+    "text": "for a: Bool\nfor b: Bool\n{Bool.and(a, b) == Bool.and(b, a) : Bool}",
+    "sha256": "d977e31d970e33a2564fcb1d8d47be1b2818b8e978a8f22ad655de27f939e7b8",
+    "since": null
+  },
+  "bools.not_not": {
+    "kind": "law",
+    "text": "for b: Bool\n{Bool.not(Bool.not(b)) == b : Bool}",
+    "sha256": "85712dd545e4a5985832ccf2399ac46dc79c46bfe5fe338dda4513e2c0f26486",
+    "since": "0.1.0.0"
+  }
+}
