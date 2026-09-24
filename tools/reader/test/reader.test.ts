@@ -114,6 +114,35 @@ describe("decls", () => {
     expect(k.first).toMatchObject({ kind: "def", line: 6 });
   });
 
+  test("constructors on the type header line are placed there", async () => {
+    const k = Object.fromEntries(decls(await load(path.join(FIX, "ctors_header_line.bend"))).map((d) => [d.name, d]));
+    expect(k.A).toMatchObject({ kind: "ctor", line: 3, column: 17, type: "T" });
+    expect(k.B).toMatchObject({ kind: "ctor", line: 3, column: 21, type: "T" });
+    expect(k.f).toMatchObject({ kind: "def", line: 5, column: 1 });
+  });
+
+  test("unindented constructors are placed and the body ends at the next def", async () => {
+    const k = Object.fromEntries(decls(await load(path.join(FIX, "ctors_unindented.bend"))).map((d) => [d.name, d]));
+    expect(k.A).toMatchObject({ kind: "ctor", line: 4, column: 1, type: "T" });
+    expect(k.B).toMatchObject({ kind: "ctor", line: 5, column: 1, type: "T" });
+    expect(k.f).toMatchObject({ kind: "def", line: 7, column: 1 });
+  });
+
+  test("a constructor named inside a comment is not matched", async () => {
+    const k = Object.fromEntries(decls(await load(path.join(FIX, "ctor_in_comment.bend"))).map((d) => [d.name, d]));
+    expect(k.B).toMatchObject({ kind: "ctor", line: 6, column: 3, type: "T", doc: "note} B{}" });
+    expect(k.f).toMatchObject({ kind: "def", line: 8, column: 1 });
+  });
+
+  test("an indented type with its constructors still reads identically", async () => {
+    const k = Object.fromEntries(decls(await load(path.join(FIX, "type_indented.bend"))).map((d) => [d.name, d]));
+    expect(k.Color).toMatchObject({ kind: "type", line: 4, column: 1, doc: "A palette.", ctors: ["Red", "Green", "Blue"] });
+    expect(k.Red).toMatchObject({ kind: "ctor", line: 5, column: 3, type: "Color" });
+    expect(k.Green).toMatchObject({ kind: "ctor", line: 6, column: 3, type: "Color" });
+    expect(k.Blue).toMatchObject({ kind: "ctor", line: 7, column: 3, type: "Color" });
+    expect(k.rank).toMatchObject({ kind: "def", line: 9, column: 1 });
+  });
+
   test("identical module contents in distinct namespaces resolve by namespace", async () => {
     const L = await load(path.join(FIX, "identical/main.bend"));
     const k = Object.fromEntries(decls(L, { scope: "all-non-base" }).map((d) => [d.name, d]));

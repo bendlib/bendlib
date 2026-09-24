@@ -231,6 +231,32 @@ function shape(B: any, T: any, templates: number): { binders: Binder[]; tip: any
 
 const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
+const MASK = "\u0001";
+
+// Replaces string/char literal and `#` comment characters with a sentinel, preserving
+// offsets, so a ctor scan cannot match a name printed inside a comment or literal.
+function maskSource(src: string): string {
+  return src.split("\n").map((line) => {
+    const c = line.split("");
+    let i = 0;
+    while (i < c.length) {
+      if (c[i] === '"' || c[i] === "'") {
+        const q = c[i];
+        c[i++] = MASK;
+        while (i < c.length) {
+          const d = c[i];
+          c[i++] = MASK;
+          if (d === "\\") { if (i < c.length) c[i++] = MASK; continue; }
+          if (d === q) break;
+        }
+      } else if (c[i] === "#") {
+        while (i < c.length) c[i++] = MASK;
+      } else i++;
+    }
+    return c.join("");
+  }).join("\n");
+}
+
 type Header = { kw: string; pos: number; line: number; column: number; unsafe: boolean };
 
 function findHeader(src: string, pos: number, local: string): Header | null {
@@ -266,20 +292,18 @@ function localName(key: string, ns: string): string {
   return ns !== "" && key.startsWith(ns + ".") ? key.slice(ns.length + 1) : key;
 }
 
-// A `type …:` body: from the line after its header to the next top-level item (a
-// non-blank line at column 0) or EOF; ctors carry no span, so this bounds the search.
-function typeBody(src: string, headerPos: number): { start: number; end: number } {
+// A `type …:` body ends at the next top-level item (`def|type|law|import|@unsafe` at
+// column 0) or EOF; stopping on the keyword (not column 0) admits unindented ctors.
+function typeBodyEnd(src: string, headerPos: number): number {
   const nl = src.indexOf("\n", headerPos);
-  const start = nl === -1 ? src.length : nl + 1;
-  let pos = start;
+  let pos = nl === -1 ? src.length : nl + 1;
   while (pos < src.length) {
     const eol = src.indexOf("\n", pos);
     const stop = eol === -1 ? src.length : eol;
-    const line = src.slice(pos, stop);
-    if (line.trim() !== "" && line[0] !== " " && line[0] !== "\t") return { start, end: pos };
+    if (/^(@unsafe\b|(def|type|law|import)\b)/.test(src.slice(pos, stop))) return pos;
     pos = eol === -1 ? src.length : eol + 1;
   }
-  return { start, end: src.length };
+  return src.length;
 }
 
 export type Scope = "own" | "all-non-base" | "all";
@@ -313,22 +337,24 @@ export function decls(L: Loaded, opts: { scope?: Scope } = {}): Decl[] {
         throw new BendReadError(`Error: reader expected 'type ${local}', found '${h.kw}'`, f.path, h.line, h.column, k);
       }
       out.push({ ...base, kind: "type", ctors: t.c.map((c: any) => c.k) });
-      // ctor types carry no span of their own; find them in the type's body, in order
-      const body = typeBody(f.parsed, h.pos);
-      let from = body.start;
+      // ctor types carry no span of their own; find them from the type header through
+      // its body, in order, over the masked text (so a name in a comment cannot match)
+      const masked = maskSource(f.parsed);
+      const end = typeBodyEnd(masked, h.pos);
+      let from = h.pos;
       for (const c of t.c) {
         const cl = localName(c.k, f.namespace);
         const re = new RegExp(`${esc(cl)}[ \\t]*\\{`, "g");
         re.lastIndex = from;
         let at = -1;
-        for (let m; (m = re.exec(f.parsed)) !== null;) {
+        for (let m; (m = re.exec(masked)) !== null;) {
           const p = m.index;
-          if (p >= body.end) break;
-          // matched when preceded by line-start indentation or a `}` (plus spaces) on this line
-          const lineStart = f.parsed.lastIndexOf("\n", p - 1) + 1;
+          if (p >= end) break;
+          // matched when preceded, after indentation, by the header `:` or a `}` or line start
+          const lineStart = masked.lastIndexOf("\n", p - 1) + 1;
           let i = p;
-          while (i > lineStart && (f.parsed[i - 1] === " " || f.parsed[i - 1] === "\t")) i--;
-          if (i === lineStart || f.parsed[i - 1] === "}") {
+          while (i > lineStart && (masked[i - 1] === " " || masked[i - 1] === "\t")) i--;
+          if (i === lineStart || masked[i - 1] === "}" || masked[i - 1] === ":") {
             at = p;
             break;
           }
