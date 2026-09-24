@@ -178,9 +178,11 @@ export async function evaluate(E: Engine, items: Item[], stopAtFail = false): Pr
 
 /** Splits items into batches and evaluates them concurrently. */
 export async function evaluateAll(E: Engine, items: Item[]): Promise<Map<string, Outcome>> {
-  const size = Math.max(8, Math.min(50, Math.ceil(items.length / E.jobs)));
-  const chunks: Item[][] = [];
-  for (let i = 0; i < items.length; i += size) chunks.push(items.slice(i, i + size));
-  const maps = await Promise.all(chunks.map((c) => evaluate(E, c)));
+  // A `bend --check-only` spawn is ~0.13 s of startup, so spawn count matters more than batch
+  // size: a fixed batch keeps runs independent of `--jobs` (slot(E.jobs) still caps concurrency).
+  const BATCH = 32;
+  const parts: Item[][] = [];
+  for (let i = 0; i < items.length; i += BATCH) parts.push(items.slice(i, i + BATCH));
+  const maps = await Promise.all(parts.map((c) => evaluate(E, c)));
   return new Map(maps.flatMap((m) => [...m]));
 }
