@@ -37,6 +37,13 @@ describe("three-package build from the live hub", () => {
     expect(log).toContain("fetch: 3 new packages fetched and verified");
   });
 
+  test("the author page exists and the site nav links to it", () => {
+    const html = read("authors.html");
+    expect(html).toContain("Document your package");
+    expect(html).toContain("What the site reads");
+    expect(read("index.html")).toContain('href="authors.html">Authors</a>');
+  });
+
   test("add_comm appears with its statement, doc, anchor and proved marker", () => {
     const html = read(`pkg/${MATHLIB}/nat.bend.html`);
     const at = html.indexOf('<section class="decl" id="add_comm"');

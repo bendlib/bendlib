@@ -58,7 +58,7 @@ export function page(o: PageOpts): string {
 <a class="skip" href="#main">Skip to content</a>
 <header class="top"><div class="wrap">
 <a class="brand" href="${r("index.html")}">~/bend-docs<span class="pill">community</span></a>
-<nav aria-label="Site"><a href="${r("index.html")}">Packages</a><a href="${r("search.html")}">Search</a></nav>
+<nav aria-label="Site"><a href="${r("index.html")}">Packages</a><a href="${r("search.html")}">Search</a><a href="${r("authors.html")}">Authors</a></nav>
 </div></header>
 <main id="main" class="wrap">
 ${o.body}
@@ -361,4 +361,36 @@ export function renderLemmas(site: Site): string {
   const packages = new Set(rows.map((r) => r.pkg)).size;
   const head = `# ${rows.length} proved laws from ${packages} packages on BendHub, checked with bend ${site.compiler}. Fields are tab-separated: package/module, law, statement.`;
   return [head, ...rows.map((r) => `${r.ref}/${r.module}\t${r.name}\t${r.signature}`)].join("\n") + "\n";
+}
+
+/** The author-facing "Document your package" page. */
+export function renderAuthors(site: Site): string {
+  const example = `# fastsort: a merge sort for Bend 2 with laws.
+import Base
+
+# Sorts a list of U32 in ascending order.
+#
+# Stable; runs in parallel on the CPU pool.
+def sort(xs: List<&2, U32>) -> List<&2, U32>:
+  ...
+`;
+  const body = `<h1>Document your package</h1>
+<p class="lead">Put ordinary comments in your Bend source and publish; there is nothing else to configure.</p>
+<p>No signup or config beyond your BendHub account: publish to BendHub and the next hourly rebuild shows your package on this site.</p>
+<h2>What the site reads</h2>
+<div class="tablewrap"><table class="files">
+<thead><tr><th scope="col">On the page</th><th scope="col">Where it comes from</th></tr></thead>
+<tbody>
+<tr><td>Package description</td><td>The hub's description for the upload; observed to be the first <code>#</code> line of the published entry file (bend-mathlib and bend-tensors). The hub's own code is not public, so this is observed.</td></tr>
+<tr><td>Module header</td><td>The run of <code>#</code> lines at the top of a module, when the line after the run is blank, an <code>import</code>, or the end of the file; a run followed by a declaration is that declaration's doc instead.</td></tr>
+<tr><td>Declaration docs</td><td>The contiguous <code>#</code> lines directly above a <code>def</code>, <code>law</code> or <code>type</code> (no blank line between). A line that is just <code>#</code> is a paragraph break, and backticks render as code.</td></tr>
+<tr><td>Name and version</td><td><code>bend &lt;entry&gt;.bend --publish</code> publishes by hash; <code>bend link &lt;name&gt;@&lt;version&gt; 0x&lt;hash&gt;</code> names a package already on the hub, or <code>bend &lt;entry&gt;.bend --publish &lt;name&gt;@&lt;version&gt;</code> after <code>bend login</code> names it at publish time.</td></tr>
+<tr><td>License</td><td>Every file named exactly <code>LICENSE</code> (the entry directory or a subdirectory): an <code>SPDX-License-Identifier</code> is read first, otherwise a known license text is matched (MIT, Apache-2.0, GPL, …). A package without one shows <code>MIT-0</code>.</td></tr>
+<tr><td>Status</td><td><code>bend &lt;file&gt;.bend --check-only</code> for every <code>.bend</code> file, run on the pinned compiler (bend ${esc(site.compiler)}); each law is marked proved or open.</td></tr>
+</tbody></table></div>
+<h2>An example</h2>
+<pre class="code">${esc(example)}</pre>
+<h2>For AI agents</h2>
+<p>The build writes <a href="lemmas.txt">lemmas.txt</a>, one tab-separated line per proved law (package/module, law, statement), and <a href="llms.txt">llms.txt</a>, a plain-text index of the site.</p>`;
+  return page({ path: "authors.html", title: "Document your package · Bend Docs", body, site });
 }
