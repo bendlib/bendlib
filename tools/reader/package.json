@@ -1,0 +1,10 @@
+{
+  "name": "@bendlib/reader",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A faithful, version-matched view of Bend 2 source, built on the official bend2/bend.ts parser.",
+  "main": "index.ts",
+  "bin": { "bend-reader": "cli.ts" },
+  "scripts": { "test": "bun test" }
+}

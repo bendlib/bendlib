@@ -1,0 +1,186 @@
+{
+  "bend": "2.0.27",
+  "file": "tools/reader/test/fixtures/hub_list.bend",
+  "decls": [
+    {
+      "name": "0x085d89db9ee8a21865e959816bb20e5b/list.append_nil2",
+      "namespace": "0x085d89db9ee8a21865e959816bb20e5b/list",
+      "kind": "def",
+      "origin": "imported",
+      "file": "$BEND_LIB/0x085d89db9ee8a21865e959816bb20e5b/list.bend",
+      "line": 35,
+      "column": 1,
+      "doc": null,
+      "signature": "@xs:List<&2, Nat> -> {xs == List.append(&2, Nat, xs, []) : List<&2, Nat>}",
+      "statement": {
+        "lhs": "xs",
+        "rhs": "List.append(&2, Nat, xs, [])",
+        "type": "List<&2, Nat>"
+      },
+      "binders": [
+        {
+          "name": "xs",
+          "quant": "affine",
+          "type": "List<&2, Nat>"
+        }
+      ]
+    },
+    {
+      "name": "0x085d89db9ee8a21865e959816bb20e5b/list.append_assoc2",
+      "namespace": "0x085d89db9ee8a21865e959816bb20e5b/list",
+      "kind": "def",
+      "origin": "imported",
+      "file": "$BEND_LIB/0x085d89db9ee8a21865e959816bb20e5b/list.bend",
+      "line": 43,
+      "column": 1,
+      "doc": null,
+      "signature": "@xs:List<&2, Nat> -> @ys:List<&2, Nat> -> @zs:List<&2, Nat> -> {List.append(&2, Nat, xs, List.append(&2, Nat, ys, zs)) == List.append(&2, Nat, List.append(&2, Nat, xs, ys), zs) : List<&2, Nat>}",
+      "statement": {
+        "lhs": "List.append(&2, Nat, xs, List.append(&2, Nat, ys, zs))",
+        "rhs": "List.append(&2, Nat, List.append(&2, Nat, xs, ys), zs)",
+        "type": "List<&2, Nat>"
+      },
+      "binders": [
+        {
+          "name": "xs",
+          "quant": "affine",
+          "type": "List<&2, Nat>"
+        },
+        {
+          "name": "ys",
+          "quant": "affine",
+          "type": "List<&2, Nat>"
+        },
+        {
+          "name": "zs",
+          "quant": "affine",
+          "type": "List<&2, Nat>"
+        }
+      ]
+    },
+    {
+      "name": "0x085d89db9ee8a21865e959816bb20e5b/list.reverse_go_spec",
+      "namespace": "0x085d89db9ee8a21865e959816bb20e5b/list",
+      "kind": "def",
+      "origin": "imported",
+      "file": "$BEND_LIB/0x085d89db9ee8a21865e959816bb20e5b/list.bend",
+      "line": 52,
+      "column": 1,
+      "doc": null,
+      "signature": "@xs:List<&2, Nat> -> @+acc:List<&2, Nat> -> {List.append(&2, Nat, List.reverse(&2, Nat, xs), acc) == List.reverse.go(&2, Nat, xs, acc) : List<&2, Nat>}",
+      "statement": {
+        "lhs": "List.append(&2, Nat, List.reverse(&2, Nat, xs), acc)",
+        "rhs": "List.reverse.go(&2, Nat, xs, acc)",
+        "type": "List<&2, Nat>"
+      },
+      "binders": [
+        {
+          "name": "xs",
+          "quant": "affine",
+          "type": "List<&2, Nat>"
+        },
+        {
+          "name": "acc",
+          "quant": "reusable",
+          "type": "List<&2, Nat>"
+        }
+      ]
+    },
+    {
+      "name": "0x085d89db9ee8a21865e959816bb20e5b/list.reverse_append2",
+      "namespace": "0x085d89db9ee8a21865e959816bb20e5b/list",
+      "kind": "def",
+      "origin": "imported",
+      "file": "$BEND_LIB/0x085d89db9ee8a21865e959816bb20e5b/list.bend",
+      "line": 63,
+      "column": 1,
+      "doc": null,
+      "signature": "@xs:List<&2, Nat> -> @+ys:List<&2, Nat> -> {List.append(&2, Nat, List.reverse(&2, Nat, ys), List.reverse(&2, Nat, xs)) == List.reverse(&2, Nat, List.append(&2, Nat, xs, ys)) : List<&2, Nat>}",
+      "statement": {
+        "lhs": "List.append(&2, Nat, List.reverse(&2, Nat, ys), List.reverse(&2, Nat, xs))",
+        "rhs": "List.reverse(&2, Nat, List.append(&2, Nat, xs, ys))",
+        "type": "List<&2, Nat>"
+      },
+      "binders": [
+        {
+          "name": "xs",
+          "quant": "affine",
+          "type": "List<&2, Nat>"
+        },
+        {
+          "name": "ys",
+          "quant": "reusable",
+          "type": "List<&2, Nat>"
+        }
+      ]
+    },
+    {
+      "name": "0x085d89db9ee8a21865e959816bb20e5b/list.reverse_reverse",
+      "namespace": "0x085d89db9ee8a21865e959816bb20e5b/list",
+      "kind": "def",
+      "origin": "imported",
+      "file": "$BEND_LIB/0x085d89db9ee8a21865e959816bb20e5b/list.bend",
+      "line": 76,
+      "column": 1,
+      "doc": null,
+      "signature": "@xs:List<&2, Nat> -> {xs == List.reverse(&2, Nat, List.reverse(&2, Nat, xs)) : List<&2, Nat>}",
+      "statement": {
+        "lhs": "xs",
+        "rhs": "List.reverse(&2, Nat, List.reverse(&2, Nat, xs))",
+        "type": "List<&2, Nat>"
+      },
+      "binders": [
+        {
+          "name": "xs",
+          "quant": "affine",
+          "type": "List<&2, Nat>"
+        }
+      ]
+    },
+    {
+      "name": "0x085d89db9ee8a21865e959816bb20e5b/list.length_append",
+      "namespace": "0x085d89db9ee8a21865e959816bb20e5b/list",
+      "kind": "def",
+      "origin": "imported",
+      "file": "$BEND_LIB/0x085d89db9ee8a21865e959816bb20e5b/list.bend",
+      "line": 86,
+      "column": 1,
+      "doc": null,
+      "signature": "@xs:List<&2, Nat> -> @ys:List<&2, Nat> -> {Nat.add(List.length(&2, Nat, xs), List.length(&2, Nat, ys)) == List.length(&2, Nat, List.append(&2, Nat, xs, ys)) : Nat}",
+      "statement": {
+        "lhs": "Nat.add(List.length(&2, Nat, xs), List.length(&2, Nat, ys))",
+        "rhs": "List.length(&2, Nat, List.append(&2, Nat, xs, ys))",
+        "type": "Nat"
+      },
+      "binders": [
+        {
+          "name": "xs",
+          "quant": "affine",
+          "type": "List<&2, Nat>"
+        },
+        {
+          "name": "ys",
+          "quant": "affine",
+          "type": "List<&2, Nat>"
+        }
+      ]
+    },
+    {
+      "name": "two_nil",
+      "namespace": "",
+      "kind": "def",
+      "origin": "own",
+      "file": "tools/reader/test/fixtures/hub_list.bend",
+      "line": 5,
+      "column": 1,
+      "doc": "uses the hub lemma at a concrete list",
+      "signature": "{[1n, 2n] == List.append(&2, Nat, [1n, 2n], []) : List<&2, Nat>}",
+      "statement": {
+        "lhs": "[1n, 2n]",
+        "rhs": "List.append(&2, Nat, [1n, 2n], [])",
+        "type": "List<&2, Nat>"
+      },
+      "binders": []
+    }
+  ]
+}

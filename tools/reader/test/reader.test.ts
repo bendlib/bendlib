@@ -1,0 +1,179 @@
+// Tests for @bendlib/reader against the installed bend (goldens are for 2.0.27).
+// usage: cd tools/reader && bun test   (network: first source fetch + hub package)
+
+import { describe, expect, test } from "bun:test";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
+import { BendReadError, bendSource, decls, installedVersion, load, SourceError, type Decl } from "../index.ts";
+import { CASES, dump, freshBendLib, goldenPath, HUB_PKG, REPO } from "./golden.ts";
+
+const FIX = path.join(import.meta.dir, "fixtures");
+const HOME_LIB = path.join(os.homedir(), ".bend", "lib");
+
+async function readErr(p: Promise<unknown>): Promise<BendReadError> {
+  try {
+    await p;
+  } catch (e) {
+    expect(e).toBeInstanceOf(BendReadError);
+    return e as BendReadError;
+  }
+  throw new Error("expected a BendReadError, but the load succeeded");
+}
+
+describe("source", () => {
+  test("installed version is what the goldens were made for", () => {
+    expect(installedVersion()).toBe("2.0.27");
+  });
+
+  test("cached tag source matches the installed version and re-verifies", async () => {
+    const s = await bendSource();
+    expect(s.version).toBe(installedVersion());
+    expect(fs.readFileSync(path.join(s.dir, "bend2", "main.ts"), "utf8")).toContain(`const VERSION = "${s.version}";`);
+    if (s.origin !== "local") {
+      expect(s.archiveSha256).toMatch(/^[0-9a-f]{64}$/);
+      const again = await bendSource();
+      expect(again.origin).toBe("cache");
+      expect(again.archiveSha256).toBe(s.archiveSha256);
+    }
+  });
+
+  test("a tampered cached bend.ts is refused", async () => {
+    const s = await bendSource();
+    if (s.origin === "local") return;
+    const vdir = path.dirname(s.dir);
+    const cache = fs.mkdtempSync(path.join(os.tmpdir(), "bendlib-reader-cache-"));
+    const copy = path.join(cache, "bend", s.version);
+    fs.cpSync(vdir, copy, { recursive: true });
+    fs.appendFileSync(path.join(copy, "src", "bend2", "bend.ts"), "\n// tampered\n");
+    const old = process.env.BENDLIB_CACHE;
+    process.env.BENDLIB_CACHE = cache;
+    try {
+      await expect(bendSource()).rejects.toThrow(/bend2\/bend\.ts has sha256 .* recorded/);
+    } finally {
+      if (old === undefined) delete process.env.BENDLIB_CACHE; else process.env.BENDLIB_CACHE = old;
+    }
+  });
+
+  test("a local checkout at another version is refused", async () => {
+    const s = await bendSource();
+    await expect(bendSource({ src: s.dir, version: "2.0.1" })).rejects.toBeInstanceOf(SourceError);
+    const local = await bendSource({ src: s.dir });
+    expect(local.origin).toBe("local");
+  });
+});
+
+describe("goldens (bend 2.0.27)", () => {
+  for (const c of CASES) {
+    test(`${c.name}: ${c.file}`, async () => {
+      const golden = JSON.parse(fs.readFileSync(goldenPath(c), "utf8"));
+      const got = await dump(c);
+      expect(got.version).toBe(golden.bend);
+      expect(got.decls).toEqual(golden.decls);
+    }, 60_000);
+  }
+});
+
+describe("decls", () => {
+  test("glist: laws with readable statements, no HOAS leftovers", async () => {
+    const L = await load(path.join(REPO, "research/experiments/glist.bend"));
+    const ds = decls(L);
+    const nil = ds.find((d) => d.name === "append_nil_r") as Decl;
+    expect(nil.kind).toBe("law");
+    expect(nil.proved).toBe(true);
+    expect(nil.signature).toBe("@a:Quant -> @-A:Kind(a) -> @xs:List<a, A> -> {List.append(a, A, xs, []) == xs : List<a, A>}");
+    expect(nil.statement).toEqual({ lhs: "List.append(a, A, xs, [])", rhs: "xs", type: "List<a, A>" });
+    expect(nil.binders?.map((b) => b.quant)).toEqual(["affine", "erased", "affine"]);
+    for (const d of decls(L, { scope: "all" })) {
+      expect(d.signature).not.toContain("undefined");
+      expect(d.signature).not.toMatch(/function|\[object|=>\s*$/);
+    }
+  });
+
+  test("order: a type, its ctors, a predicate and a law", async () => {
+    const L = await load(path.join(REPO, "research/experiments/v1/order.bend"));
+    const k = Object.fromEntries(decls(L).map((d) => [d.name, d]));
+    expect(k.tree.kind).toBe("type");
+    expect(k.tree.ctors).toEqual(["tleaf", "tnode"]);
+    expect(k.tnode.kind).toBe("ctor");
+    expect(k.tnode.signature).toBe("@l:tree -> @v:Nat -> @r:tree -> tree");
+    expect(k.le.predicate).toBe(true);
+    expect(k.le.doc).toBe("a predicate as a type-level def over Base types");
+    expect(k.le_refl.kind).toBe("law");
+    expect(k.le_refl.statement).toBeUndefined();
+  });
+
+  test("templates, effects and unsafe defs in Base are classified", async () => {
+    const L = await load(path.join(REPO, "research/experiments/v1/order.bend"));
+    const base = decls(L, { scope: "all" }).filter((d) => d.origin === "base");
+    const by = (n: string) => base.find((d) => d.name === n) as Decl;
+    expect(by("List.map").kind).toBe("template");
+    expect(by("List.map").templates).toBe(3);
+    expect(by("IO.print").kind).toBe("effect");
+    expect(base.filter((d) => d.kind === "unsafe").length).toBeGreaterThan(0);
+    expect(L.base.length).toBe(base.filter((d) => d.kind !== "ctor").length);
+  });
+
+  test("open law is reported unproved", async () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "bendlib-reader-open-"));
+    const f = path.join(tmp, "open.bend");
+    fs.writeFileSync(f, "import Base\n\n# stated, not proved\nlaw zero_add:\n  for n: Nat\n  {Nat.add(0n, n) == n : Nat}\n");
+    const [d] = decls(await load(f));
+    expect(d).toMatchObject({ kind: "law", proved: false, line: 4, doc: "stated, not proved" });
+    expect(d.proof).toBeUndefined();
+  });
+});
+
+describe("hub", () => {
+  test("hub package by hash loads into a private BEND_LIB only", async () => {
+    const homeBefore = fs.existsSync(HOME_LIB) ? fs.readdirSync(HOME_LIB).sort() : [];
+    const lib = fs.realpathSync(freshBendLib());
+    const L = await load(path.join(FIX, "hub_list.bend"), { bendLib: lib });
+    expect(fs.existsSync(path.join(lib, HUB_PKG, "list.bend"))).toBe(true);
+    const ns = HUB_PKG + "/list";
+    const imp = decls(L, { scope: "all-non-base" }).filter((d) => d.origin === "imported");
+    expect(imp.length).toBe(6);
+    expect(imp.every((d) => d.namespace === ns && d.file === path.join(lib, HUB_PKG, "list.bend"))).toBe(true);
+    expect(fs.existsSync(HOME_LIB) ? fs.readdirSync(HOME_LIB).sort() : []).toEqual(homeBefore);
+  }, 60_000);
+});
+
+describe("planted negatives", () => {
+  test("syntax error: thrown, located at the offending line", async () => {
+    const e = await readErr(load(path.join(FIX, "syntax_error.bend")));
+    expect(e.file).toBe(fs.realpathSync(path.join(FIX, "syntax_error.bend")));
+    expect(e.line).toBe(9);
+    expect(e.column).toBe(3);
+    expect(e.bendMessage).toContain("- expected : ':'");
+    console.log("[negative] " + e.message);
+  });
+
+  test("syntax error inside an imported file points at that file", async () => {
+    const e = await readErr(load(path.join(FIX, "imports_broken.bend")));
+    expect(e.file).toBe(fs.realpathSync(path.join(FIX, "syntax_error.bend")));
+    expect(e.line).toBe(9);
+  });
+
+  test("missing import: thrown, located at the import line", async () => {
+    const e = await readErr(load(path.join(FIX, "missing_import.bend")));
+    expect(e.file).toBe(fs.realpathSync(path.join(FIX, "missing_import.bend")));
+    expect(e.line).toBe(2);
+    expect(e.bendMessage).toContain("no such file: " + path.join(FIX, "does_not_exist.bend"));
+    console.log("[negative] " + e.message);
+  });
+
+  test("type error with check: thrown with the def and its line", async () => {
+    const f = path.join(FIX, "type_error.bend");
+    expect(decls(await load(f)).map((d) => d.name)).toEqual(["wrong"]);
+    const e = await readErr(load(f, { check: true }));
+    expect(e.def).toBe("wrong");
+    expect(e.file).toBe(fs.realpathSync(f));
+    expect(e.line).toBe(4);
+  });
+
+  test("a missing root file is an error, not an empty result", async () => {
+    const e = await readErr(load(path.join(FIX, "nope.bend")));
+    expect(e.line).toBeNull();
+    expect(e.message).toContain("no such file");
+  });
+});

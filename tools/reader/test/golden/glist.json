@@ -1,0 +1,186 @@
+{
+  "bend": "2.0.27",
+  "file": "research/experiments/glist.bend",
+  "decls": [
+    {
+      "name": "append_nil_r",
+      "namespace": "",
+      "kind": "law",
+      "origin": "own",
+      "file": "research/experiments/glist.bend",
+      "line": 3,
+      "column": 1,
+      "doc": null,
+      "signature": "@a:Quant -> @-A:Kind(a) -> @xs:List<a, A> -> {List.append(a, A, xs, []) == xs : List<a, A>}",
+      "statement": {
+        "lhs": "List.append(a, A, xs, [])",
+        "rhs": "xs",
+        "type": "List<a, A>"
+      },
+      "binders": [
+        {
+          "name": "a",
+          "quant": "affine",
+          "type": "Quant"
+        },
+        {
+          "name": "A",
+          "quant": "erased",
+          "type": "Kind(a)"
+        },
+        {
+          "name": "xs",
+          "quant": "affine",
+          "type": "List<a, A>"
+        }
+      ],
+      "proved": true,
+      "proof": {
+        "line": 9,
+        "column": 1
+      }
+    },
+    {
+      "name": "append_assoc",
+      "namespace": "",
+      "kind": "law",
+      "origin": "own",
+      "file": "research/experiments/glist.bend",
+      "line": 17,
+      "column": 1,
+      "doc": null,
+      "signature": "@a:Quant -> @-A:Kind(a) -> @xs:List<a, A> -> @ys:List<a, A> -> @zs:List<a, A> -> {List.append(a, A, List.append(a, A, xs, ys), zs) == List.append(a, A, xs, List.append(a, A, ys, zs)) : List<a, A>}",
+      "statement": {
+        "lhs": "List.append(a, A, List.append(a, A, xs, ys), zs)",
+        "rhs": "List.append(a, A, xs, List.append(a, A, ys, zs))",
+        "type": "List<a, A>"
+      },
+      "binders": [
+        {
+          "name": "a",
+          "quant": "affine",
+          "type": "Quant"
+        },
+        {
+          "name": "A",
+          "quant": "erased",
+          "type": "Kind(a)"
+        },
+        {
+          "name": "xs",
+          "quant": "affine",
+          "type": "List<a, A>"
+        },
+        {
+          "name": "ys",
+          "quant": "affine",
+          "type": "List<a, A>"
+        },
+        {
+          "name": "zs",
+          "quant": "affine",
+          "type": "List<a, A>"
+        }
+      ],
+      "proved": true,
+      "proof": {
+        "line": 25,
+        "column": 1
+      }
+    },
+    {
+      "name": "length_append",
+      "namespace": "",
+      "kind": "law",
+      "origin": "own",
+      "file": "research/experiments/glist.bend",
+      "line": 33,
+      "column": 1,
+      "doc": null,
+      "signature": "@a:Quant -> @-A:Kind(a) -> @xs:List<a, A> -> @ys:List<a, A> -> {List.length(a, A, List.append(a, A, xs, ys)) == Nat.add(List.length(a, A, xs), List.length(a, A, ys)) : Nat}",
+      "statement": {
+        "lhs": "List.length(a, A, List.append(a, A, xs, ys))",
+        "rhs": "Nat.add(List.length(a, A, xs), List.length(a, A, ys))",
+        "type": "Nat"
+      },
+      "binders": [
+        {
+          "name": "a",
+          "quant": "affine",
+          "type": "Quant"
+        },
+        {
+          "name": "A",
+          "quant": "erased",
+          "type": "Kind(a)"
+        },
+        {
+          "name": "xs",
+          "quant": "affine",
+          "type": "List<a, A>"
+        },
+        {
+          "name": "ys",
+          "quant": "affine",
+          "type": "List<a, A>"
+        }
+      ],
+      "proved": true,
+      "proof": {
+        "line": 40,
+        "column": 1
+      }
+    },
+    {
+      "name": "use1",
+      "namespace": "",
+      "kind": "def",
+      "origin": "own",
+      "file": "research/experiments/glist.bend",
+      "line": 49,
+      "column": 1,
+      "doc": "use at two instantiations: closures (&1) and U32 (&2)",
+      "signature": "@xs:List<&1, @_:U32 -> U32> -> {List.append(&1, @_:U32 -> U32, xs, []) == xs : List<&1, @_:U32 -> U32>}",
+      "statement": {
+        "lhs": "List.append(&1, @_:U32 -> U32, xs, [])",
+        "rhs": "xs",
+        "type": "List<&1, @_:U32 -> U32>"
+      },
+      "binders": [
+        {
+          "name": "xs",
+          "quant": "affine",
+          "type": "List<&1, @_:U32 -> U32>"
+        }
+      ]
+    },
+    {
+      "name": "use2",
+      "namespace": "",
+      "kind": "def",
+      "origin": "own",
+      "file": "research/experiments/glist.bend",
+      "line": 52,
+      "column": 1,
+      "doc": null,
+      "signature": "@xs:List<&2, U32> -> @ys:List<&2, U32> -> {List.length(&2, U32, List.append(&2, U32, xs, ys)) == Nat.add(List.length(&2, U32, xs), List.length(&2, U32, ys)) : Nat}",
+      "statement": {
+        "lhs": "List.length(&2, U32, List.append(&2, U32, xs, ys))",
+        "rhs": "Nat.add(List.length(&2, U32, xs), List.length(&2, U32, ys))",
+        "type": "Nat"
+      },
+      "binders": [
+        {
+          "name": "xs",
+          "quant": "affine",
+          "type": "List<&2, U32>"
+        },
+        {
+          "name": "ys",
+          "quant": "affine",
+          "type": "List<&2, U32>"
+        }
+      ]
+    }
+  ]
+}

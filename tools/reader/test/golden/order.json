@@ -1,0 +1,91 @@
+{
+  "bend": "2.0.27",
+  "file": "research/experiments/v1/order.bend",
+  "decls": [
+    {
+      "name": "le",
+      "namespace": "",
+      "kind": "def",
+      "origin": "own",
+      "file": "research/experiments/v1/order.bend",
+      "line": 4,
+      "column": 1,
+      "doc": "a predicate as a type-level def over Base types",
+      "signature": "@a:Nat -> @b:Nat -> Type",
+      "predicate": true
+    },
+    {
+      "name": "le_refl",
+      "namespace": "",
+      "kind": "law",
+      "origin": "own",
+      "file": "research/experiments/v1/order.bend",
+      "line": 7,
+      "column": 1,
+      "doc": null,
+      "signature": "@a:Nat -> le(a, a)",
+      "binders": [
+        {
+          "name": "a",
+          "quant": "affine",
+          "type": "Nat"
+        }
+      ],
+      "proved": true,
+      "proof": {
+        "line": 11,
+        "column": 1
+      }
+    },
+    {
+      "name": "tree",
+      "namespace": "",
+      "kind": "type",
+      "origin": "own",
+      "file": "research/experiments/v1/order.bend",
+      "line": 19,
+      "column": 1,
+      "doc": "a datatype",
+      "signature": "Data",
+      "ctors": [
+        "tleaf",
+        "tnode"
+      ]
+    },
+    {
+      "name": "tleaf",
+      "namespace": "",
+      "kind": "ctor",
+      "origin": "own",
+      "file": "research/experiments/v1/order.bend",
+      "line": 20,
+      "column": 3,
+      "doc": null,
+      "signature": "tree",
+      "type": "tree"
+    },
+    {
+      "name": "tnode",
+      "namespace": "",
+      "kind": "ctor",
+      "origin": "own",
+      "file": "research/experiments/v1/order.bend",
+      "line": 21,
+      "column": 3,
+      "doc": null,
+      "signature": "@l:tree -> @v:Nat -> @r:tree -> tree",
+      "type": "tree"
+    },
+    {
+      "name": "size",
+      "namespace": "",
+      "kind": "def",
+      "origin": "own",
+      "file": "research/experiments/v1/order.bend",
+      "line": 23,
+      "column": 1,
+      "doc": null,
+      "signature": "@t:tree -> Nat"
+    }
+  ]
+}

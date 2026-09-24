@@ -1,0 +1,60 @@
+{
+  "bend": "2.0.27",
+  "file": "research/experiments/lib/algebra.bend",
+  "decls": [
+    {
+      "name": "reassoc4",
+      "namespace": "",
+      "kind": "law",
+      "origin": "own",
+      "file": "research/experiments/lib/algebra.bend",
+      "line": 3,
+      "column": 1,
+      "doc": null,
+      "signature": "@-op:(@_:Nat -> @_:Nat -> Nat) -> @-assoc:(@x:Nat -> @y:Nat -> @z:Nat -> {op(op(x, y), z) == op(x, op(y, z)) : Nat}) -> @+a:Nat -> @+b:Nat -> @+c:Nat -> @+d:Nat -> {op(op(op(a, b), c), d) == op(a, op(b, op(c, d))) : Nat}",
+      "statement": {
+        "lhs": "op(op(op(a, b), c), d)",
+        "rhs": "op(a, op(b, op(c, d)))",
+        "type": "Nat"
+      },
+      "binders": [
+        {
+          "name": "op",
+          "quant": "template",
+          "type": "@_:Nat -> @_:Nat -> Nat"
+        },
+        {
+          "name": "assoc",
+          "quant": "template",
+          "type": "@x:Nat -> @y:Nat -> @z:Nat -> {op(op(x, y), z) == op(x, op(y, z)) : Nat}"
+        },
+        {
+          "name": "a",
+          "quant": "reusable",
+          "type": "Nat"
+        },
+        {
+          "name": "b",
+          "quant": "reusable",
+          "type": "Nat"
+        },
+        {
+          "name": "c",
+          "quant": "reusable",
+          "type": "Nat"
+        },
+        {
+          "name": "d",
+          "quant": "reusable",
+          "type": "Nat"
+        }
+      ],
+      "proved": true,
+      "proof": {
+        "line": 12,
+        "column": 1
+      },
+      "templates": 2
+    }
+  ]
+}
