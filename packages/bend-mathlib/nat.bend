@@ -1,0 +1,781 @@
+import Base
+
+# Zero is a right identity for addition: x + 0 = x.
+law add_zero:
+  for x: Nat
+  {Nat.add(x, 0n) == x : Nat}
+
+def add_zero(x):
+  match x:
+    case 0n:
+      {==}
+    case 1n+p:
+      %add_zero(p) : {1n+Nat.add(p, 0n) == 1n+_ : Nat}
+      {==}
+
+# Zero is a left identity for addition: 0 + x = x.
+law zero_add:
+  for -x: Nat
+  {Nat.add(0n, x) == x : Nat}
+
+def zero_add(x):
+  {==}
+
+# Adding a successor on the right: n + (m + 1) = (n + m) + 1.
+law add_succ:
+  for n: Nat
+  for -m: Nat
+  {Nat.add(n, 1n+m) == 1n+Nat.add(n, m) : Nat}
+
+def add_succ(n, m):
+  match n:
+    case 0n:
+      {==}
+    case 1n+p:
+      %add_succ(p, m) : {1n+Nat.add(p, 1n+m) == 1n+_ : Nat}
+      {==}
+
+# Adding a successor on the left: (n + 1) + m = (n + m) + 1.
+law succ_add:
+  for -n: Nat
+  for -m: Nat
+  {Nat.add(1n+n, m) == 1n+Nat.add(n, m) : Nat}
+
+def succ_add(n, m):
+  {==}
+
+# Addition is commutative: n + m = m + n.
+law add_comm:
+  for n: Nat
+  for m: Nat
+  {Nat.add(n, m) == Nat.add(m, n) : Nat}
+
+def add_comm(n, m):
+  match n m:
+    case 0n 0n:
+      {==}
+    case 0n 1n+q:
+      %add_zero(q) : {1n+_ == 1n+Nat.add(q, 0n) : Nat}
+      {==}
+    case 1n+p 0n:
+      %add_zero(p) : {1n+Nat.add(p, 0n) == 1n+_ : Nat}
+      {==}
+    case 1n++p 1n++q:
+      %Equal.sym(Nat, Nat.add(p, 1n+q), 1n+Nat.add(p, q), add_succ(p, q)) : {1n+_ == 1n+Nat.add(q, 1n+p) : Nat}
+      %Equal.sym(Nat, Nat.add(q, 1n+p), 1n+Nat.add(q, p), add_succ(q, p)) : {2n+Nat.add(p, q) == 1n+_ : Nat}
+      %add_comm(p, q) : {2n+Nat.add(p, q) == 2n+_ : Nat}
+      {==}
+
+# Addition is associative: (a + b) + c = a + (b + c).
+law add_assoc:
+  for a: Nat
+  for -b: Nat
+  for -c: Nat
+  {Nat.add(Nat.add(a, b), c) == Nat.add(a, Nat.add(b, c)) : Nat}
+
+def add_assoc(a, b, c):
+  match a:
+    case 0n:
+      {==}
+    case 1n+p:
+      %add_assoc(p, b, c) : {1n+Nat.add(Nat.add(p, b), c) == 1n+_ : Nat}
+      {==}
+
+# Left commutativity of addition: a + (b + c) = b + (a + c).
+law add_left_comm:
+  for a: Nat
+  for b: Nat
+  for -c: Nat
+  {Nat.add(a, Nat.add(b, c)) == Nat.add(b, Nat.add(a, c)) : Nat}
+
+def add_left_comm(a, b, c):
+  match a:
+    case 0n:
+      {==}
+    case 1n+p:
+      +b = b
+      %Equal.sym(Nat, Nat.add(b, 1n+Nat.add(p, c)), 1n+Nat.add(b, Nat.add(p, c)), add_succ(b, Nat.add(p, c))) : {1n+Nat.add(p, Nat.add(b, c)) == _ : Nat}
+      %add_left_comm(p, b, c) : {1n+Nat.add(p, Nat.add(b, c)) == 1n+_ : Nat}
+      {==}
+
+# Right commutativity of addition: (a + b) + c = (a + c) + b.
+law add_right_comm:
+  for a: Nat
+  for b: Nat
+  for c: Nat
+  {Nat.add(Nat.add(a, b), c) == Nat.add(Nat.add(a, c), b) : Nat}
+
+def add_right_comm(a, b, c):
+  match a:
+    case 0n:
+      add_comm(b, c)
+    case 1n+p:
+      %add_right_comm(p, b, c) : {1n+Nat.add(Nat.add(p, b), c) == 1n+_ : Nat}
+      {==}
+
+# Four-way regrouping of a sum: (a + b) + (c + d) = (a + c) + (b + d).
+law add_add_add_comm:
+  for a: Nat
+  for b: Nat
+  for c: Nat
+  for -d: Nat
+  {Nat.add(Nat.add(a, b), Nat.add(c, d)) == Nat.add(Nat.add(a, c), Nat.add(b, d)) : Nat}
+
+def add_add_add_comm(a, b, c, d):
+  match a:
+    case 0n:
+      add_left_comm(b, c, d)
+    case 1n+p:
+      %add_add_add_comm(p, b, c, d) : {1n+Nat.add(Nat.add(p, b), Nat.add(c, d)) == 1n+_ : Nat}
+      {==}
+
+def internal_pred(n: Nat) -> Nat:
+  match n:
+    case 0n:
+      0n
+    case 1n+p:
+      p
+
+# The successor function is injective: a + 1 = b + 1 implies a = b.
+law succ_inj:
+  for -a: Nat
+  for -b: Nat
+  for e: {1n+a == 1n+b : Nat}
+  {a == b : Nat}
+
+def succ_inj(a, b, e):
+  %e : {a == internal_pred(_) : Nat}
+  {==}
+
+def internal_zero_ne_succ(-n: Nat, e: {0n == 1n+n : Nat}) -> Empty:
+  %e : Bool.pick(Type, Nat.is_eq(_, 0n), Unit, Empty)
+  Unit{}
+
+# Zero is not a successor.
+law zero_ne_succ:
+  for -n: Nat
+  {0n != 1n+n : Nat}
+
+def zero_ne_succ(n):
+  e => internal_zero_ne_succ(n, e)
+
+def internal_succ_ne_zero(-n: Nat, e: {1n+n == 0n : Nat}) -> Empty:
+  %e : Bool.pick(Type, Nat.is_eq(_, 0n), Empty, Unit)
+  Unit{}
+
+# A successor is not zero.
+law succ_ne_zero:
+  for -n: Nat
+  {1n+n != 0n : Nat}
+
+def succ_ne_zero(n):
+  e => internal_succ_ne_zero(n, e)
+
+# Addition cancels on the left: a + b = a + c implies b = c.
+law add_left_cancel:
+  for a: Nat
+  for -b: Nat
+  for -c: Nat
+  for e: {Nat.add(a, b) == Nat.add(a, c) : Nat}
+  {b == c : Nat}
+
+def add_left_cancel(a, b, c, e):
+  match a:
+    case 0n:
+      e
+    case 1n+p:
+      add_left_cancel(p, b, c, succ_inj(Nat.add(p, b), Nat.add(p, c), e))
+
+# Addition cancels on the right: a + b = c + b implies a = c.
+law add_right_cancel:
+  for a: Nat
+  for b: Nat
+  for c: Nat
+  for e: {Nat.add(a, b) == Nat.add(c, b) : Nat}
+  {a == c : Nat}
+
+def add_right_cancel(a, b, c, e):
+  +b = b
+  add_left_cancel(b, a, c, Equal.trans(Nat, Nat.add(b, a), Nat.add(a, b), Nat.add(b, c), add_comm(b, a), Equal.trans(Nat, Nat.add(a, b), Nat.add(c, b), Nat.add(b, c), e, add_comm(c, b))))
+
+# Zero absorbs multiplication on the right: x * 0 = 0.
+law mul_zero:
+  for x: Nat
+  {Nat.mul(x, 0n) == 0n : Nat}
+
+def mul_zero(x):
+  match x:
+    case 0n:
+      {==}
+    case 1n+p:
+      mul_zero(p)
+
+# Zero absorbs multiplication on the left: 0 * x = 0.
+law zero_mul:
+  for -x: Nat
+  {Nat.mul(0n, x) == 0n : Nat}
+
+def zero_mul(x):
+  {==}
+
+# One is a right identity for multiplication: x * 1 = x.
+law mul_one:
+  for x: Nat
+  {Nat.mul(x, 1n) == x : Nat}
+
+def mul_one(x):
+  match x:
+    case 0n:
+      {==}
+    case 1n+p:
+      %mul_one(p) : {1n+Nat.mul(p, 1n) == 1n+_ : Nat}
+      {==}
+
+# One is a left identity for multiplication: 1 * x = x.
+law one_mul:
+  for x: Nat
+  {Nat.mul(1n, x) == x : Nat}
+
+def one_mul(x):
+  add_zero(x)
+
+# Multiplying by a successor on the right: n * (m + 1) = n * m + n.
+law mul_succ:
+  for n: Nat
+  for m: Nat
+  {Nat.mul(n, 1n+m) == Nat.add(Nat.mul(n, m), n) : Nat}
+
+def mul_succ(n, m):
+  match n:
+    case 0n:
+      {==}
+    case 1n++p:
+      +m = m
+      %Equal.sym(Nat, Nat.add(Nat.add(m, Nat.mul(p, m)), 1n+p), 1n+Nat.add(Nat.add(m, Nat.mul(p, m)), p), add_succ(Nat.add(m, Nat.mul(p, m)), p)) : {1n+Nat.add(m, Nat.mul(p, 1n+m)) == _ : Nat}
+      %Equal.sym(Nat, Nat.add(Nat.add(m, Nat.mul(p, m)), p), Nat.add(m, Nat.add(Nat.mul(p, m), p)), add_assoc(m, Nat.mul(p, m), p)) : {1n+Nat.add(m, Nat.mul(p, 1n+m)) == 1n+_ : Nat}
+      %mul_succ(p, m) : {1n+Nat.add(m, Nat.mul(p, 1n+m)) == 1n+Nat.add(m, _) : Nat}
+      {==}
+
+# Multiplying by a successor on the left: (n + 1) * m = n * m + m.
+law succ_mul:
+  for n: Nat
+  for m: Nat
+  {Nat.mul(1n+n, m) == Nat.add(Nat.mul(n, m), m) : Nat}
+
+def succ_mul(n, m):
+  +m = m
+  add_comm(m, Nat.mul(n, m))
+
+# Multiplication is commutative: n * m = m * n.
+law mul_comm:
+  for n: Nat
+  for m: Nat
+  {Nat.mul(n, m) == Nat.mul(m, n) : Nat}
+
+def mul_comm(n, m):
+  match n:
+    case 0n:
+      %mul_zero(m) : {_ == Nat.mul(m, 0n) : Nat}
+      {==}
+    case 1n++p:
+      +m = m
+      %Equal.sym(Nat, Nat.mul(m, 1n+p), Nat.add(Nat.mul(m, p), m), mul_succ(m, p)) : {Nat.add(m, Nat.mul(p, m)) == _ : Nat}
+      %mul_comm(p, m) : {Nat.add(m, Nat.mul(p, m)) == Nat.add(_, m) : Nat}
+      add_comm(m, Nat.mul(p, m))
+
+# Multiplication distributes over addition on the right: (a + b) * c = a * c + b * c.
+law add_mul:
+  for a: Nat
+  for -b: Nat
+  for c: Nat
+  {Nat.mul(Nat.add(a, b), c) == Nat.add(Nat.mul(a, c), Nat.mul(b, c)) : Nat}
+
+def add_mul(a, b, c):
+  match a:
+    case 0n:
+      {==}
+    case 1n+p:
+      +c = c
+      %Equal.sym(Nat, Nat.add(Nat.add(c, Nat.mul(p, c)), Nat.mul(b, c)), Nat.add(c, Nat.add(Nat.mul(p, c), Nat.mul(b, c))), add_assoc(c, Nat.mul(p, c), Nat.mul(b, c))) : {Nat.add(c, Nat.mul(Nat.add(p, b), c)) == _ : Nat}
+      %add_mul(p, b, c) : {Nat.add(c, Nat.mul(Nat.add(p, b), c)) == Nat.add(c, _) : Nat}
+      {==}
+
+# Multiplication distributes over addition on the left: a * (b + c) = a * b + a * c.
+law mul_add:
+  for a: Nat
+  for b: Nat
+  for c: Nat
+  {Nat.mul(a, Nat.add(b, c)) == Nat.add(Nat.mul(a, b), Nat.mul(a, c)) : Nat}
+
+def mul_add(a, b, c):
+  match a:
+    case 0n:
+      {==}
+    case 1n++p:
+      +b = b
+      +c = c
+      %Equal.sym(Nat, Nat.mul(p, Nat.add(b, c)), Nat.add(Nat.mul(p, b), Nat.mul(p, c)), mul_add(p, b, c)) : {Nat.add(Nat.add(b, c), _) == Nat.add(Nat.add(b, Nat.mul(p, b)), Nat.add(c, Nat.mul(p, c))) : Nat}
+      add_add_add_comm(b, c, Nat.mul(p, b), Nat.mul(p, c))
+
+# Multiplication is associative: (a * b) * c = a * (b * c).
+law mul_assoc:
+  for a: Nat
+  for b: Nat
+  for c: Nat
+  {Nat.mul(Nat.mul(a, b), c) == Nat.mul(a, Nat.mul(b, c)) : Nat}
+
+def mul_assoc(a, b, c):
+  match a:
+    case 0n:
+      {==}
+    case 1n+p:
+      +b = b
+      +c = c
+      %mul_assoc(p, b, c) : {Nat.mul(Nat.add(b, Nat.mul(p, b)), c) == Nat.add(Nat.mul(b, c), _) : Nat}
+      add_mul(b, Nat.mul(p, b), c)
+
+# The order a <= b on naturals, as a reusable proposition.
+def le(a: Nat, b: Nat) -> Data:
+  {Nat.is_le(a, b) == True{} : Bool}
+
+# The strict order a < b on naturals, as a reusable proposition.
+def lt(a: Nat, b: Nat) -> Data:
+  {Nat.is_lt(a, b) == True{} : Bool}
+
+# The order a >= b on naturals, as a reusable proposition.
+def ge(a: Nat, b: Nat) -> Data:
+  {Nat.is_ge(a, b) == True{} : Bool}
+
+# The strict order a > b on naturals, as a reusable proposition.
+def gt(a: Nat, b: Nat) -> Data:
+  {Nat.is_gt(a, b) == True{} : Bool}
+
+def internal_false_ne_true(e: {False{} == True{} : Bool}) -> Empty:
+  %e : Bool.pick(Type, _, Empty, Unit)
+  Unit{}
+
+# Every natural is at most itself: a <= a.
+law le_refl:
+  for a: Nat
+  le(a, a)
+
+def le_refl(a):
+  match a:
+    case 0n:
+      {==}
+    case 1n+p:
+      le_refl(p)
+
+# Zero is at most every natural: 0 <= b.
+law zero_le:
+  for b: Nat
+  le(0n, b)
+
+def zero_le(b):
+  match b:
+    case 0n:
+      {==}
+    case 1n+p:
+      {==}
+
+# Every natural is at most its successor: n <= n + 1.
+law le_succ:
+  for n: Nat
+  le(n, 1n+n)
+
+def le_succ(n):
+  match n:
+    case 0n:
+      {==}
+    case 1n+p:
+      le_succ(p)
+
+# Adding on the right never decreases a natural: n <= n + k.
+law le_add_right:
+  for n: Nat
+  for k: Nat
+  le(n, Nat.add(n, k))
+
+def le_add_right(n, k):
+  match n:
+    case 0n:
+      zero_le(k)
+    case 1n+p:
+      le_add_right(p, k)
+
+# The order is transitive: a <= b and b <= c imply a <= c.
+law le_trans:
+  for a: Nat
+  for b: Nat
+  for c: Nat
+  for ab: le(a, b)
+  for bc: le(b, c)
+  le(a, c)
+
+def le_trans(a, b, c, ab, bc):
+  match a b c:
+    case 0n _ 0n:
+      {==}
+    case 0n _ 1n+r:
+      {==}
+    case 1n+p 0n _:
+      Empty.absurd(le(1n+p, c), internal_false_ne_true(ab))
+    case 1n+p 1n+q 0n:
+      Empty.absurd(le(1n+p, 0n), internal_false_ne_true(bc))
+    case 1n+p 1n+q 1n+r:
+      le_trans(p, q, r, ab, bc)
+
+# The order is antisymmetric: a <= b and b <= a imply a = b.
+law le_antisymm:
+  for a: Nat
+  for b: Nat
+  for ab: le(a, b)
+  for ba: le(b, a)
+  {a == b : Nat}
+
+def le_antisymm(a, b, ab, ba):
+  match a b:
+    case 0n 0n:
+      {==}
+    case 0n 1n+q:
+      Empty.absurd({0n == 1n+q : Nat}, internal_false_ne_true(ba))
+    case 1n+p 0n:
+      Empty.absurd({1n+p == 0n : Nat}, internal_false_ne_true(ab))
+    case 1n+p 1n+q:
+      %le_antisymm(p, q, ab, ba) : {1n+p == 1n+_ : Nat}
+      {==}
+
+# The order is total: a <= b or b <= a.
+law le_total:
+  for a: Nat
+  for b: Nat
+  Or(le(a, b), le(b, a))
+
+def le_total(a, b):
+  match a b:
+    case 0n 0n:
+      Inl{{==}}
+    case 0n 1n+q:
+      Inl{{==}}
+    case 1n+p 0n:
+      Inr{{==}}
+    case 1n+p 1n+q:
+      le_total(p, q)
+
+# The order is total, as a reusable sum: a <= b or b <= a.
+law le_total_d:
+  for a: Nat
+  for b: Nat
+  Either<&2, &2, le(a, b), le(b, a)>
+
+def le_total_d(a, b):
+  match a b:
+    case 0n 0n:
+      Inl{{==}}
+    case 0n 1n+q:
+      Inl{{==}}
+    case 1n+p 0n:
+      Inr{{==}}
+    case 1n+p 1n+q:
+      le_total_d(p, q)
+
+# No natural is less than itself.
+law lt_irrefl:
+  for a: Nat
+  lt(a, a) -> Empty
+
+def lt_irrefl(a):
+  match a:
+    case 0n:
+      h => internal_false_ne_true(h)
+    case 1n+p:
+      lt_irrefl(p)
+
+# The strict order is transitive: a < b and b < c imply a < c.
+law lt_trans:
+  for a: Nat
+  for b: Nat
+  for c: Nat
+  for ab: lt(a, b)
+  for bc: lt(b, c)
+  lt(a, c)
+
+def lt_trans(a, b, c, ab, bc):
+  match a b c:
+    case 0n 0n _:
+      Empty.absurd(lt(0n, c), internal_false_ne_true(ab))
+    case 0n 1n+q 0n:
+      Empty.absurd(lt(0n, 0n), internal_false_ne_true(bc))
+    case 0n 1n+q 1n+r:
+      {==}
+    case 1n+p 0n _:
+      Empty.absurd(lt(1n+p, c), internal_false_ne_true(ab))
+    case 1n+p 1n+q 0n:
+      Empty.absurd(lt(1n+p, 0n), internal_false_ne_true(bc))
+    case 1n+p 1n+q 1n+r:
+      lt_trans(p, q, r, ab, bc)
+
+# A strict inequality implies the weak one: a < b implies a <= b.
+law le_of_lt:
+  for a: Nat
+  for b: Nat
+  for h: lt(a, b)
+  le(a, b)
+
+def le_of_lt(a, b, h):
+  match a b:
+    case 0n 0n:
+      {==}
+    case 0n 1n+q:
+      {==}
+    case 1n+p 0n:
+      Empty.absurd(le(1n+p, 0n), internal_false_ne_true(h))
+    case 1n+p 1n+q:
+      le_of_lt(p, q, h)
+
+# Flipping a >= b gives b <= a.
+law le_of_ge:
+  for a: Nat
+  for b: Nat
+  for h: ge(a, b)
+  le(b, a)
+
+def le_of_ge(a, b, h):
+  match a b:
+    case 0n 0n:
+      {==}
+    case 0n 1n+q:
+      Empty.absurd(le(1n+q, 0n), internal_false_ne_true(h))
+    case 1n+p 0n:
+      {==}
+    case 1n+p 1n+q:
+      le_of_ge(p, q, h)
+
+# Flipping b <= a gives a >= b.
+law ge_of_le:
+  for a: Nat
+  for b: Nat
+  for h: le(b, a)
+  ge(a, b)
+
+def ge_of_le(a, b, h):
+  match a b:
+    case 0n 0n:
+      {==}
+    case 0n 1n+q:
+      Empty.absurd(ge(0n, 1n+q), internal_false_ne_true(h))
+    case 1n+p 0n:
+      {==}
+    case 1n+p 1n+q:
+      ge_of_le(p, q, h)
+
+# Flipping a > b gives b < a.
+law lt_of_gt:
+  for a: Nat
+  for b: Nat
+  for h: gt(a, b)
+  lt(b, a)
+
+def lt_of_gt(a, b, h):
+  match a b:
+    case 0n 0n:
+      Empty.absurd(lt(0n, 0n), internal_false_ne_true(h))
+    case 0n 1n+q:
+      Empty.absurd(lt(1n+q, 0n), internal_false_ne_true(h))
+    case 1n+p 0n:
+      {==}
+    case 1n+p 1n+q:
+      lt_of_gt(p, q, h)
+
+# Flipping b < a gives a > b.
+law gt_of_lt:
+  for a: Nat
+  for b: Nat
+  for h: lt(b, a)
+  gt(a, b)
+
+def gt_of_lt(a, b, h):
+  match a b:
+    case 0n 0n:
+      Empty.absurd(gt(0n, 0n), internal_false_ne_true(h))
+    case 0n 1n+q:
+      Empty.absurd(gt(0n, 1n+q), internal_false_ne_true(h))
+    case 1n+p 0n:
+      {==}
+    case 1n+p 1n+q:
+      gt_of_lt(p, q, h)
+
+# --- generated: _sym twins (tools/mathlib/twins.ts), do not edit ---
+
+# Zero is a right identity for addition: x + 0 = x, reversed to rewrite toward the simple side.
+law add_zero_sym:
+  for x: Nat
+  {x == Nat.add(x, 0n) : Nat}
+
+def add_zero_sym(x):
+  Equal.sym(Nat, Nat.add(x, 0n), x, add_zero(x))
+
+# Zero is a left identity for addition: 0 + x = x, reversed to rewrite toward the simple side.
+law zero_add_sym:
+  for -x: Nat
+  {x == Nat.add(0n, x) : Nat}
+
+def zero_add_sym(x):
+  Equal.sym(Nat, Nat.add(0n, x), x, zero_add(x))
+
+# Adding a successor on the right: n + (m + 1) = (n + m) + 1, reversed to rewrite toward the simple side.
+law add_succ_sym:
+  for n: Nat
+  for -m: Nat
+  {1n+Nat.add(n, m) == Nat.add(n, 1n+m) : Nat}
+
+def add_succ_sym(n, m):
+  Equal.sym(Nat, Nat.add(n, 1n+m), 1n+Nat.add(n, m), add_succ(n, m))
+
+# Adding a successor on the left: (n + 1) + m = (n + m) + 1, reversed to rewrite toward the simple side.
+law succ_add_sym:
+  for -n: Nat
+  for -m: Nat
+  {1n+Nat.add(n, m) == Nat.add(1n+n, m) : Nat}
+
+def succ_add_sym(n, m):
+  Equal.sym(Nat, Nat.add(1n+n, m), 1n+Nat.add(n, m), succ_add(n, m))
+
+# Addition is commutative: n + m = m + n, reversed to rewrite toward the simple side.
+law add_comm_sym:
+  for n: Nat
+  for m: Nat
+  {Nat.add(m, n) == Nat.add(n, m) : Nat}
+
+def add_comm_sym(n, m):
+  Equal.sym(Nat, Nat.add(n, m), Nat.add(m, n), add_comm(n, m))
+
+# Addition is associative: (a + b) + c = a + (b + c), reversed to rewrite toward the simple side.
+law add_assoc_sym:
+  for a: Nat
+  for -b: Nat
+  for -c: Nat
+  {Nat.add(a, Nat.add(b, c)) == Nat.add(Nat.add(a, b), c) : Nat}
+
+def add_assoc_sym(a, b, c):
+  Equal.sym(Nat, Nat.add(Nat.add(a, b), c), Nat.add(a, Nat.add(b, c)), add_assoc(a, b, c))
+
+# Left commutativity of addition: a + (b + c) = b + (a + c), reversed to rewrite toward the simple side.
+law add_left_comm_sym:
+  for a: Nat
+  for b: Nat
+  for -c: Nat
+  {Nat.add(b, Nat.add(a, c)) == Nat.add(a, Nat.add(b, c)) : Nat}
+
+def add_left_comm_sym(a, b, c):
+  Equal.sym(Nat, Nat.add(a, Nat.add(b, c)), Nat.add(b, Nat.add(a, c)), add_left_comm(a, b, c))
+
+# Right commutativity of addition: (a + b) + c = (a + c) + b, reversed to rewrite toward the simple side.
+law add_right_comm_sym:
+  for a: Nat
+  for b: Nat
+  for c: Nat
+  {Nat.add(Nat.add(a, c), b) == Nat.add(Nat.add(a, b), c) : Nat}
+
+def add_right_comm_sym(a, b, c):
+  Equal.sym(Nat, Nat.add(Nat.add(a, b), c), Nat.add(Nat.add(a, c), b), add_right_comm(a, b, c))
+
+# Four-way regrouping of a sum: (a + b) + (c + d) = (a + c) + (b + d), reversed to rewrite toward the simple side.
+law add_add_add_comm_sym:
+  for a: Nat
+  for b: Nat
+  for c: Nat
+  for -d: Nat
+  {Nat.add(Nat.add(a, c), Nat.add(b, d)) == Nat.add(Nat.add(a, b), Nat.add(c, d)) : Nat}
+
+def add_add_add_comm_sym(a, b, c, d):
+  Equal.sym(Nat, Nat.add(Nat.add(a, b), Nat.add(c, d)), Nat.add(Nat.add(a, c), Nat.add(b, d)), add_add_add_comm(a, b, c, d))
+
+# Zero absorbs multiplication on the right: x * 0 = 0, reversed to rewrite toward the simple side.
+law mul_zero_sym:
+  for x: Nat
+  {0n == Nat.mul(x, 0n) : Nat}
+
+def mul_zero_sym(x):
+  Equal.sym(Nat, Nat.mul(x, 0n), 0n, mul_zero(x))
+
+# Zero absorbs multiplication on the left: 0 * x = 0, reversed to rewrite toward the simple side.
+law zero_mul_sym:
+  for -x: Nat
+  {0n == Nat.mul(0n, x) : Nat}
+
+def zero_mul_sym(x):
+  Equal.sym(Nat, Nat.mul(0n, x), 0n, zero_mul(x))
+
+# One is a right identity for multiplication: x * 1 = x, reversed to rewrite toward the simple side.
+law mul_one_sym:
+  for x: Nat
+  {x == Nat.mul(x, 1n) : Nat}
+
+def mul_one_sym(x):
+  Equal.sym(Nat, Nat.mul(x, 1n), x, mul_one(x))
+
+# One is a left identity for multiplication: 1 * x = x, reversed to rewrite toward the simple side.
+law one_mul_sym:
+  for x: Nat
+  {x == Nat.mul(1n, x) : Nat}
+
+def one_mul_sym(x):
+  Equal.sym(Nat, Nat.mul(1n, x), x, one_mul(x))
+
+# Multiplying by a successor on the right: n * (m + 1) = n * m + n, reversed to rewrite toward the simple side.
+law mul_succ_sym:
+  for n: Nat
+  for m: Nat
+  {Nat.add(Nat.mul(n, m), n) == Nat.mul(n, 1n+m) : Nat}
+
+def mul_succ_sym(n, m):
+  Equal.sym(Nat, Nat.mul(n, 1n+m), Nat.add(Nat.mul(n, m), n), mul_succ(n, m))
+
+# Multiplying by a successor on the left: (n + 1) * m = n * m + m, reversed to rewrite toward the simple side.
+law succ_mul_sym:
+  for n: Nat
+  for m: Nat
+  {Nat.add(Nat.mul(n, m), m) == Nat.mul(1n+n, m) : Nat}
+
+def succ_mul_sym(n, m):
+  Equal.sym(Nat, Nat.mul(1n+n, m), Nat.add(Nat.mul(n, m), m), succ_mul(n, m))
+
+# Multiplication is commutative: n * m = m * n, reversed to rewrite toward the simple side.
+law mul_comm_sym:
+  for n: Nat
+  for m: Nat
+  {Nat.mul(m, n) == Nat.mul(n, m) : Nat}
+
+def mul_comm_sym(n, m):
+  Equal.sym(Nat, Nat.mul(n, m), Nat.mul(m, n), mul_comm(n, m))
+
+# Multiplication distributes over addition on the right: (a + b) * c = a * c + b * c, reversed to rewrite toward the simple side.
+law add_mul_sym:
+  for a: Nat
+  for -b: Nat
+  for c: Nat
+  {Nat.add(Nat.mul(a, c), Nat.mul(b, c)) == Nat.mul(Nat.add(a, b), c) : Nat}
+
+def add_mul_sym(a, b, c):
+  Equal.sym(Nat, Nat.mul(Nat.add(a, b), c), Nat.add(Nat.mul(a, c), Nat.mul(b, c)), add_mul(a, b, c))
+
+# Multiplication distributes over addition on the left: a * (b + c) = a * b + a * c, reversed to rewrite toward the simple side.
+law mul_add_sym:
+  for a: Nat
+  for b: Nat
+  for c: Nat
+  {Nat.add(Nat.mul(a, b), Nat.mul(a, c)) == Nat.mul(a, Nat.add(b, c)) : Nat}
+
+def mul_add_sym(a, b, c):
+  Equal.sym(Nat, Nat.mul(a, Nat.add(b, c)), Nat.add(Nat.mul(a, b), Nat.mul(a, c)), mul_add(a, b, c))
+
+# Multiplication is associative: (a * b) * c = a * (b * c), reversed to rewrite toward the simple side.
+law mul_assoc_sym:
+  for a: Nat
+  for b: Nat
+  for c: Nat
+  {Nat.mul(a, Nat.mul(b, c)) == Nat.mul(Nat.mul(a, b), c) : Nat}
+
+def mul_assoc_sym(a, b, c):
+  Equal.sym(Nat, Nat.mul(Nat.mul(a, b), c), Nat.mul(a, Nat.mul(b, c)), mul_assoc(a, b, c))

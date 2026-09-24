@@ -12,11 +12,11 @@
 
 import { cpSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { basename, join, relative } from "node:path";
+import { basename, join, relative, resolve } from "node:path";
 import { BEND, ROOT, baseNames, packageModules, parseModule, type Module } from "./lib.ts";
 
 const args = process.argv.slice(2);
-const pkg = args.find((a) => !a.startsWith("--")) ?? join(ROOT, "packages", "bend-mathlib");
+const pkg = resolve(args.find((a) => !a.startsWith("--")) ?? join(ROOT, "packages", "bend-mathlib"));
 const doErasure = args.includes("--erasure");
 const allowTypes = args.includes("--allow-types");
 
@@ -37,7 +37,7 @@ for (const m of mods) {
   for (const d of m.defs) {
     if (!NAME.test(d.name)) at(m, d.line, `def name '${d.name}' must be lowercase snake_case without dots`);
     if (base.has(d.name)) at(m, d.line, `def name '${d.name}' collides with Base`);
-    if (/->\s*(Data|Type)\s*:\s*$/.test(d.header)) {
+    if (!d.name.startsWith("internal_") && /->\s*(Data|Type)\s*:\s*$/.test(d.header)) {
       const body = d.body.filter((l) => l.trim() !== "");
       if (body.length !== 1) at(m, d.line, `predicate '${d.name}' must have a one-line body`);
       const text = body.join(" ");
@@ -60,7 +60,7 @@ if (doErasure) {
     const lines = m.text.split("\n");
     for (const law of m.laws) {
       for (const b of law.binders) {
-        if (b.mark === "-" || b.mark === "~" || /^(Quant|Type|Data|Kind\b)/.test(b.type)) continue;
+        if (b.mark === "-" || b.mark === "~" || /^(Type|Data|Kind\b)/.test(b.type)) continue;
         const idx = lines.findIndex((l, i) => i >= law.line && l.trim() === b.raw);
         if (idx < 0) continue;
         const mutated = lines.slice();

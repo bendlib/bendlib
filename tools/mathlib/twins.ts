@@ -10,11 +10,11 @@
 //   --check: exit 1 if any module's generated section is out of date (CI)
 
 import { readFileSync, writeFileSync } from "node:fs";
-import { join, relative } from "node:path";
+import { join, relative, resolve } from "node:path";
 import { GENERATED_MARK, ROOT, packageModules, parseModule, splitEquation } from "./lib.ts";
 
 const args = process.argv.slice(2);
-const pkg = args.find((a) => !a.startsWith("--")) ?? join(ROOT, "packages", "bend-mathlib");
+const pkg = resolve(args.find((a) => !a.startsWith("--")) ?? join(ROOT, "packages", "bend-mathlib"));
 const check = args.includes("--check");
 let stale = 0;
 
@@ -28,6 +28,8 @@ for (const file of packageModules(pkg)) {
   for (const law of mod.laws) {
     if (law.name.startsWith("internal_") || law.name.endsWith("_sym") || law.exs || !law.proof) continue;
     if (law.binders.some((b) => b.where) || law.claimLines.length !== 1) continue;
+    // A twin of a conclusion drawn from hypotheses (succ_inj, le_antisymm) is permanent noise.
+    if (law.binders.some((b) => b.type.startsWith("{") || /^([a-z_][A-Za-z0-9_.]*|[A-Z])\(/.test(b.type))) continue;
     const eq = splitEquation(law.claimLines[0]);
     if (!eq) continue;
     const params = law.binders.map((b) => b.name);

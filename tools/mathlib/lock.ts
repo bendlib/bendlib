@@ -7,12 +7,12 @@
 
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { ROOT, packageModules, parseModule } from "./lib.ts";
 
 type Entry = { kind: "law" | "predicate"; text: string; sha256: string; since: string | null };
 const args = process.argv.slice(2);
-const pkg = args.find((a, i) => !a.startsWith("--") && args[i - 1] !== "--freeze") ?? join(ROOT, "packages", "bend-mathlib");
+const pkg = resolve(args.find((a, i) => !a.startsWith("--") && args[i - 1] !== "--freeze") ?? join(ROOT, "packages", "bend-mathlib"));
 const mode = args.find((a) => ["--check", "--update", "--freeze"].includes(a));
 if (!mode) { console.error("usage: lock.ts [pkgdir] (--check | --update | --freeze <version>)"); process.exit(2); }
 

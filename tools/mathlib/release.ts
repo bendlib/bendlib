@@ -32,6 +32,7 @@ const gates: [string, string[]][] = [
   ["twins", [process.execPath, "tools/mathlib/twins.ts", pkg, "--check"]],
   ["comments", [process.execPath, "tools/comments.ts", ...["packages", "tools"].map((d) => join(ROOT, d))]],
   ["lock", [process.execPath, "tools/mathlib/lock.ts", pkg, "--check"]],
+  ["index", [process.execPath, "tools/mathlib/index.ts", pkg, name, version, "--check"]],
 ];
 for (const [label, cmd] of gates) {
   const r = sh(cmd);

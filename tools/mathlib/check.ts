@@ -6,14 +6,14 @@
 // exit: 0 all green · 1 findings · 2 usage/toolchain error
 
 import { readFileSync } from "node:fs";
-import { join, relative } from "node:path";
+import { join, relative, resolve } from "node:path";
 import { BEND, ROOT, packageModules, stripCommentsAndStrings } from "./lib.ts";
 
 const args = process.argv.slice(2);
 const json = args.includes("--json");
 const maxIdx = args.indexOf("--max-seconds");
 const maxSeconds = maxIdx >= 0 ? Number(args[maxIdx + 1]) : 10;
-const pkg = args.find((a, i) => !a.startsWith("--") && args[i - 1] !== "--max-seconds") ?? join(ROOT, "packages", "bend-mathlib");
+const pkg = resolve(args.find((a, i) => !a.startsWith("--") && args[i - 1] !== "--max-seconds") ?? join(ROOT, "packages", "bend-mathlib"));
 
 const pinned = JSON.parse(readFileSync(join(ROOT, "toolchain.json"), "utf8")).bend.version as string;
 const ver = new TextDecoder().decode(Bun.spawnSync([BEND, "version"]).stdout).trim();
