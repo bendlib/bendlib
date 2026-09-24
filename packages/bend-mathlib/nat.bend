@@ -605,6 +605,137 @@ def gt_of_lt(a, b, h):
     case 1n+p 1n+q:
       gt_of_lt(p, q, h)
 
+# Subtracting zero changes nothing: n - 0 = n.
+law sub_zero:
+  for n: Nat
+  {Nat.sub(n, 0n) == n : Nat}
+
+def sub_zero(n):
+  match n:
+    case 0n:
+      {==}
+    case 1n+p:
+      {==}
+
+# Truncated subtraction from zero is zero: 0 - n = 0.
+law zero_sub:
+  for n: Nat
+  {Nat.sub(0n, n) == 0n : Nat}
+
+def zero_sub(n):
+  match n:
+    case 0n:
+      {==}
+    case 1n+p:
+      {==}
+
+# A natural minus itself is zero: n - n = 0.
+law sub_self:
+  for n: Nat
+  {Nat.sub(n, n) == 0n : Nat}
+
+def sub_self(n):
+  match n:
+    case 0n:
+      {==}
+    case 1n+p:
+      sub_self(p)
+
+# Subtracting successors: (n + 1) - (m + 1) = n - m.
+law succ_sub_succ:
+  for -n: Nat
+  for -m: Nat
+  {Nat.sub(1n+n, 1n+m) == Nat.sub(n, m) : Nat}
+
+def succ_sub_succ(n, m):
+  {==}
+
+# Adding then subtracting m cancels: (n + m) - m = n.
+law add_sub_cancel:
+  for n: Nat
+  for m: Nat
+  {Nat.sub(Nat.add(n, m), m) == n : Nat}
+
+def add_sub_cancel(n, m):
+  match m:
+    case 0n:
+      +n = n
+      %Equal.sym(Nat, Nat.add(n, 0n), n, add_zero(n)) : {Nat.sub(_, 0n) == n : Nat}
+      sub_zero(n)
+    case 1n++q:
+      +n = n
+      %Equal.sym(Nat, Nat.add(n, 1n+q), 1n+Nat.add(n, q), add_succ(n, q)) : {Nat.sub(_, 1n+q) == n : Nat}
+      add_sub_cancel(n, q)
+
+# Adding then subtracting n cancels: (n + m) - n = m.
+law add_sub_cancel_left:
+  for n: Nat
+  for m: Nat
+  {Nat.sub(Nat.add(n, m), n) == m : Nat}
+
+def add_sub_cancel_left(n, m):
+  match n:
+    case 0n:
+      sub_zero(m)
+    case 1n+p:
+      add_sub_cancel_left(p, m)
+
+# If m <= n, subtracting and adding m back gives n: (n - m) + m = n.
+law sub_add_cancel:
+  for n: Nat
+  for m: Nat
+  for h: le(m, n)
+  {Nat.add(Nat.sub(n, m), m) == n : Nat}
+
+def sub_add_cancel(n, m, h):
+  match n m:
+    case 0n 0n:
+      {==}
+    case 0n 1n+q:
+      Empty.absurd({1n+q == 0n : Nat}, internal_false_ne_true(h))
+    case 1n++p 0n:
+      %add_zero(p) : {1n+Nat.add(p, 0n) == 1n+_ : Nat}
+      {==}
+    case 1n++p 1n++q:
+      %Equal.sym(Nat, Nat.add(Nat.sub(p, q), 1n+q), 1n+Nat.add(Nat.sub(p, q), q), add_succ(Nat.sub(p, q), q)) : {_ == 1n+p : Nat}
+      %Equal.sym(Nat, Nat.add(Nat.sub(p, q), q), p, sub_add_cancel(p, q, h)) : {1n+_ == 1n+p : Nat}
+      {==}
+
+# Subtracting twice is subtracting the sum: (n - m) - k = n - (m + k).
+law sub_sub:
+  for n: Nat
+  for m: Nat
+  for k: Nat
+  {Nat.sub(Nat.sub(n, m), k) == Nat.sub(n, Nat.add(m, k)) : Nat}
+
+def sub_sub(n, m, k):
+  match n m:
+    case 0n 0n:
+      {==}
+    case 0n 1n+q:
+      zero_sub(k)
+    case 1n+p 0n:
+      {==}
+    case 1n+p 1n+q:
+      sub_sub(p, q, k)
+
+# Truncated subtraction never increases: n - m <= n.
+law sub_le:
+  for n: Nat
+  for m: Nat
+  le(Nat.sub(n, m), n)
+
+def sub_le(n, m):
+  match n m:
+    case 0n 0n:
+      {==}
+    case 0n 1n+q:
+      {==}
+    case 1n+p 0n:
+      le_refl(1n+p)
+    case 1n++p 1n++q:
+      le_trans(Nat.sub(p, q), p, 1n+p, sub_le(p, q), le_succ(p))
+
 # --- generated: _sym twins (tools/mathlib/twins.ts), do not edit ---
 
 # Zero is a right identity for addition: x + 0 = x, reversed to rewrite toward the simple side.
@@ -779,3 +910,64 @@ law mul_assoc_sym:
 
 def mul_assoc_sym(a, b, c):
   Equal.sym(Nat, Nat.mul(Nat.mul(a, b), c), Nat.mul(a, Nat.mul(b, c)), mul_assoc(a, b, c))
+
+# Subtracting zero changes nothing: n - 0 = n, reversed to rewrite toward the simple side.
+law sub_zero_sym:
+  for n: Nat
+  {n == Nat.sub(n, 0n) : Nat}
+
+def sub_zero_sym(n):
+  Equal.sym(Nat, Nat.sub(n, 0n), n, sub_zero(n))
+
+# Truncated subtraction from zero is zero: 0 - n = 0, reversed to rewrite toward the simple side.
+law zero_sub_sym:
+  for n: Nat
+  {0n == Nat.sub(0n, n) : Nat}
+
+def zero_sub_sym(n):
+  Equal.sym(Nat, Nat.sub(0n, n), 0n, zero_sub(n))
+
+# A natural minus itself is zero: n - n = 0, reversed to rewrite toward the simple side.
+law sub_self_sym:
+  for n: Nat
+  {0n == Nat.sub(n, n) : Nat}
+
+def sub_self_sym(n):
+  Equal.sym(Nat, Nat.sub(n, n), 0n, sub_self(n))
+
+# Subtracting successors: (n + 1) - (m + 1) = n - m, reversed to rewrite toward the simple side.
+law succ_sub_succ_sym:
+  for -n: Nat
+  for -m: Nat
+  {Nat.sub(n, m) == Nat.sub(1n+n, 1n+m) : Nat}
+
+def succ_sub_succ_sym(n, m):
+  Equal.sym(Nat, Nat.sub(1n+n, 1n+m), Nat.sub(n, m), succ_sub_succ(n, m))
+
+# Adding then subtracting m cancels: (n + m) - m = n, reversed to rewrite toward the simple side.
+law add_sub_cancel_sym:
+  for n: Nat
+  for m: Nat
+  {n == Nat.sub(Nat.add(n, m), m) : Nat}
+
+def add_sub_cancel_sym(n, m):
+  Equal.sym(Nat, Nat.sub(Nat.add(n, m), m), n, add_sub_cancel(n, m))
+
+# Adding then subtracting n cancels: (n + m) - n = m, reversed to rewrite toward the simple side.
+law add_sub_cancel_left_sym:
+  for n: Nat
+  for m: Nat
+  {m == Nat.sub(Nat.add(n, m), n) : Nat}
+
+def add_sub_cancel_left_sym(n, m):
+  Equal.sym(Nat, Nat.sub(Nat.add(n, m), n), m, add_sub_cancel_left(n, m))
+
+# Subtracting twice is subtracting the sum: (n - m) - k = n - (m + k), reversed to rewrite toward the simple side.
+law sub_sub_sym:
+  for n: Nat
+  for m: Nat
+  for k: Nat
+  {Nat.sub(n, Nat.add(m, k)) == Nat.sub(Nat.sub(n, m), k) : Nat}
+
+def sub_sub_sym(n, m, k):
+  Equal.sym(Nat, Nat.sub(Nat.sub(n, m), k), Nat.sub(n, Nat.add(m, k)), sub_sub(n, m, k))

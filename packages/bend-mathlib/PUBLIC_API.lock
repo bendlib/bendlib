@@ -617,6 +617,30 @@
     "sha256": "02d383072eaeb85f5b558bf46cc1789583b64eca3ad87fe6bf926ff761bf9342",
     "since": "0.1.0.0"
   },
+  "nat.add_sub_cancel": {
+    "kind": "law",
+    "text": "for n: Nat\nfor m: Nat\n{Nat.sub(Nat.add(n, m), m) == n : Nat}",
+    "sha256": "ab7f7a5ae26b5182099523922867850a89d2344a6377f334bd52126998f92d92",
+    "since": null
+  },
+  "nat.add_sub_cancel_left": {
+    "kind": "law",
+    "text": "for n: Nat\nfor m: Nat\n{Nat.sub(Nat.add(n, m), n) == m : Nat}",
+    "sha256": "8ae5e0c119fabb7bc4ce6005bfea4696935bc13f2aededd4d0bf145cc4744c39",
+    "since": null
+  },
+  "nat.add_sub_cancel_left_sym": {
+    "kind": "law",
+    "text": "for n: Nat\nfor m: Nat\n{m == Nat.sub(Nat.add(n, m), n) : Nat}",
+    "sha256": "4871b72958aa3f8633fbce84da849318651c55e6fc3503fcfa1f72023ba0a8c7",
+    "since": null
+  },
+  "nat.add_sub_cancel_sym": {
+    "kind": "law",
+    "text": "for n: Nat\nfor m: Nat\n{n == Nat.sub(Nat.add(n, m), m) : Nat}",
+    "sha256": "44d9bf8d2de007169736d54e0e09fefdc1013d659bcb6b5313d3b73d401652de",
+    "since": null
+  },
   "nat.add_succ": {
     "kind": "law",
     "text": "for n: Nat\nfor -m: Nat\n{Nat.add(n, 1n+m) == 1n+Nat.add(n, m) : Nat}",
@@ -833,6 +857,54 @@
     "sha256": "3109c6702678ac050437d8278f3349197f8fd36da15cee2d342a8a40cf81489a",
     "since": "0.1.0.0"
   },
+  "nat.sub_add_cancel": {
+    "kind": "law",
+    "text": "for n: Nat\nfor m: Nat\nfor h: le(m, n)\n{Nat.add(Nat.sub(n, m), m) == n : Nat}",
+    "sha256": "d3c4ed3a52d73ebcb59f9c094efc1c934d09084e38423785fc412d558878e607",
+    "since": null
+  },
+  "nat.sub_le": {
+    "kind": "law",
+    "text": "for n: Nat\nfor m: Nat\nle(Nat.sub(n, m), n)",
+    "sha256": "cc77f7160b28ba3c1290e085903e049d76ea67a885a63deb0439019a20c59b22",
+    "since": null
+  },
+  "nat.sub_self": {
+    "kind": "law",
+    "text": "for n: Nat\n{Nat.sub(n, n) == 0n : Nat}",
+    "sha256": "b02b635363e95eb06cba65dfb1438ee73f9972844832547f6125b1865280ef21",
+    "since": null
+  },
+  "nat.sub_self_sym": {
+    "kind": "law",
+    "text": "for n: Nat\n{0n == Nat.sub(n, n) : Nat}",
+    "sha256": "3b7b01027e2aaec07deb271b1d3b472cdddb79440ba0a6e75d7ca1860ac1d958",
+    "since": null
+  },
+  "nat.sub_sub": {
+    "kind": "law",
+    "text": "for n: Nat\nfor m: Nat\nfor k: Nat\n{Nat.sub(Nat.sub(n, m), k) == Nat.sub(n, Nat.add(m, k)) : Nat}",
+    "sha256": "97d09cedac5f9aca7c2d79e175b841b7e017bc3d85a0485d1174f1a1e83a1d4d",
+    "since": null
+  },
+  "nat.sub_sub_sym": {
+    "kind": "law",
+    "text": "for n: Nat\nfor m: Nat\nfor k: Nat\n{Nat.sub(n, Nat.add(m, k)) == Nat.sub(Nat.sub(n, m), k) : Nat}",
+    "sha256": "5402ccd9031622556679bb67ce030ee4776b7a108fb77ecb967dba28ca4f61cb",
+    "since": null
+  },
+  "nat.sub_zero": {
+    "kind": "law",
+    "text": "for n: Nat\n{Nat.sub(n, 0n) == n : Nat}",
+    "sha256": "6d3ae8bc26f8508e0eb67549682d85ba7731c7e16a51bfd22b4d2912eb3c9df5",
+    "since": null
+  },
+  "nat.sub_zero_sym": {
+    "kind": "law",
+    "text": "for n: Nat\n{n == Nat.sub(n, 0n) : Nat}",
+    "sha256": "645db532fcdf19a39e5abcef85d331b21d262ec8acfc98784808dd0fd63759d9",
+    "since": null
+  },
   "nat.succ_add": {
     "kind": "law",
     "text": "for -n: Nat\nfor -m: Nat\n{Nat.add(1n+n, m) == 1n+Nat.add(n, m) : Nat}",
@@ -869,6 +941,18 @@
     "sha256": "6429cc762fb823d248168027f3defc9c48c555937dc274a4e1ec9d7447880037",
     "since": "0.1.0.0"
   },
+  "nat.succ_sub_succ": {
+    "kind": "law",
+    "text": "for -n: Nat\nfor -m: Nat\n{Nat.sub(1n+n, 1n+m) == Nat.sub(n, m) : Nat}",
+    "sha256": "5b3a6410b0611fb23c9f542674b7f0f3aa73236b9329519b6bd6f0557c00aea9",
+    "since": null
+  },
+  "nat.succ_sub_succ_sym": {
+    "kind": "law",
+    "text": "for -n: Nat\nfor -m: Nat\n{Nat.sub(n, m) == Nat.sub(1n+n, 1n+m) : Nat}",
+    "sha256": "364c2f644c68043856df38dba449ecc3ebf9e5fa500e498c5dfccf88d53f3496",
+    "since": null
+  },
   "nat.zero_add": {
     "kind": "law",
     "text": "for -x: Nat\n{Nat.add(0n, x) == x : Nat}",
@@ -904,5 +988,17 @@
     "text": "for -n: Nat\n{0n != 1n+n : Nat}",
     "sha256": "287f2177f8fd4e51647707bd6fcd2207abb5d38707abe76c2e5f443e9ca5901d",
     "since": "0.1.0.0"
+  },
+  "nat.zero_sub": {
+    "kind": "law",
+    "text": "for n: Nat\n{Nat.sub(0n, n) == 0n : Nat}",
+    "sha256": "d76947949bb3a87abcd763ab84e12443ab19103472081e93094bd528a029fb97",
+    "since": null
+  },
+  "nat.zero_sub_sym": {
+    "kind": "law",
+    "text": "for n: Nat\n{0n == Nat.sub(0n, n) : Nat}",
+    "sha256": "d0a8109486dfb3acf63bf80f0826e36f601143cfa901ebb128e0e83c9a48833a",
+    "since": null
   }
 }
