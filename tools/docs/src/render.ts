@@ -5,7 +5,7 @@ import { posix } from "node:path";
 import type { DocDecl } from "./extract.ts";
 import type { Edge } from "./imports.ts";
 import { HUB } from "./hub.ts";
-import { label, published, shortHash, type Module, type Package, type Site } from "./model.ts";
+import { groupPackages, label, published, shortHash, type Module, type Package, type Site } from "./model.ts";
 import type { FileClass } from "./status.ts";
 
 export const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
@@ -52,12 +52,12 @@ export function page(o: PageOpts): string {
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(o.title)}</title>
 <meta name="description" content="${esc(o.description ?? "Documentation for every package on BendHub, the Bend 2 package hub.")}">
-<meta name="color-scheme" content="light dark">
+<meta name="color-scheme" content="light">
 <link rel="stylesheet" href="${r("assets/style.css")}">${scripts}
 </head><body>
 <a class="skip" href="#main">Skip to content</a>
 <header class="top"><div class="wrap">
-<a class="brand" href="${r("index.html")}">Bend Docs</a>
+<a class="brand" href="${r("index.html")}">~/bend-docs<span class="pill">community</span></a>
 <nav aria-label="Site"><a href="${r("index.html")}">Packages</a><a href="${r("search.html")}">Search</a></nav>
 <form class="hsearch" role="search" action="${r("search.html")}" method="get"><label class="vh" for="hq">Search the hub</label><input id="hq" name="q" type="search" placeholder="Search names, docs, or List.append(_, Nil{})" autocomplete="off"></form>
 </div></header>
@@ -74,26 +74,29 @@ ${o.body}
 
 export function renderIndex(site: Site): string {
   const path = "index.html";
-  const rows = site.packages.map((p) => {
-    const n = p.names[0];
-    const search = [label(p), p.hash, p.desc, n?.owner ?? "", ...p.names.map((x) => x.name)].join(" ").toLowerCase();
+  const groups = groupPackages(site.packages);
+  const rows = groups.map((g) => {
+    const p = g.latest, n = p.names[0];
+    const search = [label(p), p.desc, n?.owner ?? "", ...g.members.map((m) => m.hash), ...p.names.map((x) => x.name)].join(" ").toLowerCase();
+    const more = g.members.length < 2 ? "" : n
+      ? ` <a class="pill" href="${rel(path, namePage(n.name))}">${g.members.length} versions</a>`
+      : ` <span class="pill" title="${esc(g.members.map((m) => shortHash(m.hash)).join(", "))}">${g.members.length} uploads</span>`;
     return `<tr data-s="${esc(search)}">
-<td class="pk"><a href="${rel(path, pkgPage(p.hash))}">${esc(label(p))}</a>${n ? "" : ` <span class="anon">anonymous</span>`}</td>
+<td class="pk"><a href="${rel(path, pkgPage(p.hash))}">${esc(label(p))}</a>${more}${n ? "" : ` <span class="anon">anonymous</span>`}</td>
 <td class="ds">${esc(p.desc) || `<span class="muted">no description</span>`}</td>
 <td data-l="Owner">${n ? esc(n.owner) : `<span class="muted">—</span>`}</td>
-<td data-l="License" class="nw">${esc(p.licenses.map((l) => l.id).join(", "))}</td>
 <td data-l="Status">${statusBadge(p.status)}</td>
 <td data-l="Laws / defs / types" class="num">${p.counts.laws} / ${p.counts.defs} / ${p.counts.types}</td>
-<td data-l="Dependents" class="num">${p.rdeps.length}</td>
-<td data-l="Published" class="num">${date(published(p))}</td></tr>`;
+<td data-l="Dependents" class="num">${g.members.reduce((a, m) => a + m.rdeps.length, 0)}</td>
+<td data-l="Updated" class="num">${date(p.ts)}</td></tr>`;
   }).join("\n");
-  const totals = site.packages.reduce((a, p) => ({ laws: a.laws + p.counts.laws, decls: a.decls + p.counts.decls }), { laws: 0, decls: 0 });
+  const totals = groups.reduce((a, g) => ({ laws: a.laws + g.latest.counts.laws, decls: a.decls + g.latest.counts.decls }), { laws: 0, decls: 0 });
   const body = `<h1>Packages on BendHub</h1>
-<p class="lead">${site.packages.length} packages, ${totals.decls.toLocaleString("en")} declarations, ${totals.laws.toLocaleString("en")} laws. Named packages first, then the newest.
+<p class="lead">${groups.length} packages (${site.packages.length} uploads), ${totals.decls.toLocaleString("en")} declarations and ${totals.laws.toLocaleString("en")} laws in their latest versions. Named packages first, then the newest.
 Search declarations and <a href="${rel(path, "search.html")}">laws by shape</a>, e.g. <code>Nat.add(_, 0n)</code>.</p>
 <div class="filter"><label for="filter">Filter packages</label> <input id="filter" type="search" placeholder="name, hash, owner or description" autocomplete="off"> <span id="shown" aria-live="polite"></span></div>
 <div class="tablewrap"><table class="pkgs" id="pkgs">
-<thead><tr><th scope="col">Package</th><th scope="col">Description</th><th scope="col">Owner</th><th scope="col">License</th><th scope="col">Status</th><th scope="col" class="num">Laws / defs / types</th><th scope="col" class="num">Dependents</th><th scope="col" class="num">Published</th></tr></thead>
+<thead><tr><th scope="col">Package</th><th scope="col">Description</th><th scope="col">Owner</th><th scope="col">Status</th><th scope="col" class="num">Laws / defs / types</th><th scope="col" class="num">Dependents</th><th scope="col" class="num">Updated</th></tr></thead>
 <tbody>
 ${rows}
 </tbody></table></div>`;
@@ -144,6 +147,10 @@ export function renderPackage(site: Site, p: Package): string {
   const namesHtml = p.names.length
     ? `<p>${p.names.map((n) => `<a href="${rel(path, namePage(n.name))}">${esc(n.name)}</a>@${esc(n.version)} by ${esc(n.owner)}`).join("; ")}</p>`
     : `<p class="muted">Anonymous package: import it by hash.</p>`;
+  const g = groupPackages(site.packages).find((x) => x.members.includes(p))!;
+  const siblings = g.members.filter((m) => m !== p);
+  const versionsHtml = siblings.length === 0 ? "" : `<details class="vers"><summary>${g.latest === p ? "Earlier versions" : "Other versions"} (${siblings.length})</summary><ul class="edges">${siblings.map((m) =>
+    `<li><a href="${rel(path, pkgPage(m.hash))}">${esc(label(m))}</a> <span class="muted">${date(m.ts)}</span>${m === g.latest ? ` <span class="pill">latest</span>` : ""}</li>`).join("")}</ul></details>`;
   const lic = p.licenses.map((l) => l.from === null
     ? `${esc(l.id)} <span class="muted">(no LICENSE file; the hub's default)</span>`
     : `${esc(l.id)} <span class="muted">(<a href="${HUB}/${p.hash}/${esc(l.from)}">${esc(l.from)}</a>)</span>`).join("<br>");
@@ -156,6 +163,7 @@ export function renderPackage(site: Site, p: Package): string {
 <p class="hash"><code>${p.hash}</code></p>
 <p class="lead">${esc(p.desc) || `<span class="muted">no description</span>`}</p>
 ${namesHtml}
+${versionsHtml}
 <dl class="facts"><dt>Published</dt><dd>${date(published(p))}</dd><dt>Size</dt><dd>${p.bytes.toLocaleString("en")} bytes, ${p.files.length} files</dd>
 <dt>License</dt><dd>${lic}</dd><dt>Declarations</dt><dd>${p.counts.laws} laws (${p.counts.proved} proved), ${p.counts.defs} defs, ${p.counts.types} types</dd></dl>
 <h2 id="import">Import</h2>

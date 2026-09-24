@@ -54,6 +54,30 @@ export function namesByHash(names: NameRecord[]): Map<string, PkgName[]> {
   return m;
 }
 
+export type Group = { key: string; latest: Package; members: Package[] };
+
+const versionKey = (v: string) => v.split(".").map((x) => x.padStart(8, "0")).join(".");
+const newest = (a: Package, b: Package) => {
+  const va = a.names[0]?.version, vb = b.names[0]?.version;
+  if (va && vb && va !== vb) return versionKey(va) > versionKey(vb) ? a : b;
+  return a.ts >= b.ts ? a : b;
+};
+
+/** One group per package lineage: a name, or (for anonymous uploads) the same file set and description. */
+export function groupPackages(pkgs: Package[]): Group[] {
+  const sig = (p: Package) => `${p.files.map((f) => f.path).sort().join("\n")}\n${p.desc}`;
+  const groups = new Map<string, Group>();
+  const bySig = new Map<string, string>();
+  const add = (key: string, p: Package) => {
+    const g = groups.get(key);
+    if (g) { g.members.push(p); g.latest = newest(g.latest, p); } else groups.set(key, { key, latest: p, members: [p] });
+  };
+  for (const p of pkgs) if (p.names.length > 0) { add(`name:${p.names[0].name}`, p); bySig.set(sig(p), `name:${p.names[0].name}`); }
+  for (const p of pkgs) if (p.names.length === 0) add(bySig.get(sig(p)) ?? `files:${sig(p)}`, p);
+  for (const g of groups.values()) g.members.sort((a, b) => (newest(a, b) === a ? -1 : 1));
+  return displayOrder([...groups.values()].map((g) => g.latest)).map((p) => [...groups.values()].find((g) => g.latest === p)!);
+}
+
 export function displayOrder(pkgs: Package[]): Package[] {
   return [...pkgs].sort((a, b) => {
     const na = a.names.length > 0 ? 0 : 1, nb = b.names.length > 0 ? 0 : 1;

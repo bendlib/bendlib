@@ -2,7 +2,7 @@
 // [file, name, kind, anchor, doc, lhs, rhs, proved] with files and packages interned.
 
 import { declIds, modPage } from "./render.ts";
-import { label, type Site } from "./model.ts";
+import { groupPackages, label, type Site } from "./model.ts";
 
 export type SearchIndex = {
   v: 1; built: string; compiler: string;
@@ -15,7 +15,8 @@ const DOC_MAX = 160;
 
 export function buildSearchIndex(site: Site): SearchIndex {
   const idx: SearchIndex = { v: 1, built: site.built, compiler: site.compiler, p: [], f: [], d: [] };
-  site.packages.forEach((p, pi) => {
+  // Only the latest member of each package lineage, so results are not repeated per version.
+  groupPackages(site.packages).map((g) => g.latest).forEach((p, pi) => {
     idx.p.push([label(p), p.hash]);
     for (const m of p.modules) {
       if (m.decls === null) continue;
