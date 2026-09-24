@@ -39,3 +39,5 @@ jobs:
           v=$($HOME/.bend/bin/bend version | cut -d' ' -f2)
           sed -i "s/\"version\": \"[0-9.]*\"/\"version\": \"$v\"/" toolchain.json
       - run: bun tools/mathlib/check.ts packages/bend-mathlib
+      - run: bun test tools/reader tools/lawcheck
+      - run: bun tools/lawcheck/cli.ts packages/bend-mathlib/nat.bend --max-instances 50
