@@ -485,7 +485,7 @@ these; they prepare the dry run and stop.
 | Single publisher (bus factor) | Keep hub login recoverable (GitHub 2FA recovery codes); document the release steps in the repo; README always carries hash imports too |
 | Base absorbs the basics (a Base `Nat.add_comm` needs no import) | Naming prevents errors, not irrelevance: value moves to perm/sorted/algebra/kernels and the tools; upstreaming basics ourselves is a credit win |
 | Base definitions churn (argument order, fuel) | Published statements are Base terms and immutable; nightly detects, new versions + a compatibility table repair; kernel encodings are immune |
-| Checker conversion rules change | No automated runner: `research/experiments/run.sh` does not exist and no workflow references it. The nightly `latest-compiler` job (`ci.yml`, run on `schedule`) only re-checks mathlib and runs the reader/lawcheck tests on the newest Bend release, so a conversion-rule change is caught via the lemmas/tests that depend on it, not by re-running the F-experiments (gap) |
+| Checker conversion rules change | `research/experiments/run.sh` asserts the observed outcome of every assertable F-fact (56 checks; `--self-test` proves it can fail on a perturbation), run by the scheduled `F-fact regression` step added to the `latest-compiler` job (`ci.yml`, `schedule`, `continue-on-error`). Facts without a definable assertion are explicit non-goals recorded in the script. A conversion-rule change is now caught the day the newest compiler ships. |
 
 ---
 
