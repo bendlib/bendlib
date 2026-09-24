@@ -33,7 +33,7 @@ export type Binding = { name: string; value: string };
 
 export type NativeDisagreement = {
   bindings: Binding[];
-  engineC: "pass" | "fail";
+  engineC: "pass" | "open" | "fail";
   engineN: boolean;
   repro: string;
 };
@@ -63,7 +63,7 @@ export type LawResult = {
   instances: number;
   failures: number;
   tooLarge?: number;
-  native?: { checked: number; disagreements: NativeDisagreement[] };
+  native?: { checked: number; disagreements: NativeDisagreement[]; skip?: string };
   premise?: { satisfied: number; total: number };
   counterexample?: Counterexample;
 };
@@ -480,12 +480,74 @@ function validate(L: Loaded): void {
   }
 }
 
-/** Base equality for the claim types engine N can compare. */
-const NATIVE_EQ: Record<string, (a: string, b: string) => string> = {
-  Nat: (a, b) => `Nat.is_eq(${a}, ${b})`,
-  U32: (a, b) => `U32.is_eq(${a}, ${b})`,
-  Bool: (a, b) => `U32.is_eq(Bool.to_u32(${a}), Bool.to_u32(${b}))`,
+/** Base has no list equality, so engine N emits this recursive one for list claims. */
+const LIST_EQ: Record<string, string> = {
+  Nat: `def internal_list_eq_nat(xs: List<&1, Nat>, ys: List<&1, Nat>) -> Bool:
+  match xs:
+    case Nil{}:
+      match ys:
+        case Nil{}:
+          True{}
+        case y <> yt:
+          False{}
+    case x <> xt:
+      match ys:
+        case Nil{}:
+          False{}
+        case y <> yt:
+          Bool.and(Nat.is_eq(x, y), internal_list_eq_nat(xt, yt))
+`,
+  U32: `def internal_list_eq_u32(xs: List<&1, U32>, ys: List<&1, U32>) -> Bool:
+  match xs:
+    case Nil{}:
+      match ys:
+        case Nil{}:
+          True{}
+        case y <> yt:
+          False{}
+    case x <> xt:
+      match ys:
+        case Nil{}:
+          False{}
+        case y <> yt:
+          Bool.and(U32.is_eq(x, y), internal_list_eq_u32(xt, yt))
+`,
+  Bool: `def internal_list_eq_bool(xs: List<&1, Bool>, ys: List<&1, Bool>) -> Bool:
+  match xs:
+    case Nil{}:
+      match ys:
+        case Nil{}:
+          True{}
+        case y <> yt:
+          False{}
+    case x <> xt:
+      match ys:
+        case Nil{}:
+          False{}
+        case y <> yt:
+          Bool.and(U32.is_eq(Bool.to_u32(x), Bool.to_u32(y)), internal_list_eq_bool(xt, yt))
+`,
 };
+
+/** The native equality (and any helper def) for a claim type engine N can compare. */
+function nativeEq(type: string): { eq: (a: string, b: string) => string; helper?: string } | null {
+  if (type === "Nat") return { eq: (a, b) => `Nat.is_eq(${a}, ${b})` };
+  if (type === "U32") return { eq: (a, b) => `U32.is_eq(${a}, ${b})` };
+  if (type === "Bool") return { eq: (a, b) => `U32.is_eq(Bool.to_u32(${a}), Bool.to_u32(${b}))` };
+  const ty = parseTy(type);
+  if (ty !== null && ty.t === "app" && ty.head === "List" && ty.args.length >= 1) {
+    const el = showTy(ty.args[ty.args.length - 1]);
+    const helper = LIST_EQ[el];
+    if (helper !== undefined) return { eq: (a, b) => `internal_list_eq_${el.toLowerCase()}(${a}, ${b})`, helper };
+  }
+  return null;
+}
+
+/** Writes a minimal native harness that prints one instance's equality. */
+export function nativeRepro(head: string, line: string, file: string): void {
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, `${head}def main() -> IO(Unit):\n  do IO<Unit>:\n${line}\n`);
+}
 
 /** Pairs engine C outcomes with engine N bits; returns the indices that disagree (PLAN §4.2 step 6). */
 export function nativeDisagreements(c: (Outcome | undefined)[], n: (boolean | undefined)[]): number[] {
@@ -677,22 +739,25 @@ async function checkLaw(L: Loaded, d: Decl, li: number, o: Options, U: Universe,
     return combos;
   };
 
-  const nativeCheck = async (sat: Inst[], items: Item[], res: Map<string, Outcome>): Promise<{ checked: number; disagreements: NativeDisagreement[] } | null> => {
+  const nativeCheck = async (sat: Inst[], items: Item[], res: Map<string, Outcome>): Promise<{ checked: number; disagreements: NativeDisagreement[]; skip?: string }> => {
     const parts = items.map((it) => splitEquation(it.claim));
-    if (parts.some((pp) => pp === null || NATIVE_EQ[pp.type] === undefined)) return null;
+    const eqs = parts.map((pp) => (pp === null ? null : nativeEq(pp.type)));
+    if (eqs.some((e) => e === null)) return { checked: 0, disagreements: [], skip: "claim is not an equation over Nat, U32, Bool or a list of those" };
     const nroot = nativeRoot(L, E.dir);
     const header = E.header.split(`import ${L.file} as U`).join(`import ${nroot} as U`);
-    const lineOf = (i: number) => `    IO.print(U32.show(Bool.to_u32(${NATIVE_EQ[parts[i]!.type](parts[i]!.lhs, parts[i]!.rhs)})))`;
-    const src = `${header}\ndef main() -> IO(Unit):\n  do IO<Unit>:\n${items.map((_, i) => lineOf(i)).join("\n")}\n`;
+    const helpers = [...new Set(eqs.map((e) => e!.helper).filter((h): h is string => h !== undefined))];
+    const head = `${header}\n${helpers.join("")}`;
+    const lineOf = (i: number) => `    IO.print(U32.show(Bool.to_u32(${eqs[i]!.eq(parts[i]!.lhs, parts[i]!.rhs)})))`;
+    const src = `${head}def main() -> IO(Unit):\n  do IO<Unit>:\n${items.map((_, i) => lineOf(i)).join("\n")}\n`;
     const ran = await runNative(E, src);
-    if (typeof ran === "string") return null;
+    if (typeof ran === "string") return { checked: 0, disagreements: [], skip: ran };
     const outs = items.map((it) => res.get(it.id));
     const bits = items.map((_, i) => (ran[i] === "1" ? true : ran[i] === "0" ? false : undefined));
     const checked = outs.filter((x) => x?.r === "pass" || x?.r === "open" || x?.r === "fail").length;
     const disagreements: NativeDisagreement[] = nativeDisagreements(outs, bits).map((i) => {
       const repro = path.join(E.dir, "native", `repro_${li}_${i}.bend`);
-      fs.writeFileSync(repro, `${header}\ndef main() -> IO(Unit):\n  do IO<Unit>:\n${lineOf(i)}\n`);
-      return { bindings: p.values.map((v, k) => ({ name: v.name, value: render(sat[i].vals[k], nameOut) })), engineC: outs[i]!.r as "pass" | "fail", engineN: bits[i]!, repro };
+      nativeRepro(head, lineOf(i), repro);
+      return { bindings: p.values.map((v, k) => ({ name: v.name, value: render(sat[i].vals[k], nameOut) })), engineC: outs[i]!.r as "pass" | "open" | "fail", engineN: bits[i]!, repro };
     });
     return { checked, disagreements };
   };
@@ -737,10 +802,7 @@ async function checkLaw(L: Loaded, d: Decl, li: number, o: Options, U: Universe,
       const claimTooLarge = outs.filter((o) => o.r === "toolarge").length;
       if (claimTooLarge > 0) { tooLarge += claimTooLarge; base.tooLarge = tooLarge; }
       failing = sat.map((inst, i) => ({ inst, out: res.get(items[i].id)! })).filter((x) => x.out.r === "fail");
-      if (o.native) {
-        const nat = await nativeCheck(sat, items, res);
-        if (nat !== null) base.native = nat;
-      }
+      if (o.native) base.native = await nativeCheck(sat, items, res);
     }
     base.failures = failing.length;
     if (failing.length === 0) {

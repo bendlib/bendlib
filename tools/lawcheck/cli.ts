@@ -95,10 +95,13 @@ function human(r: Report): string {
   const out = [`lawcheck ${r.version} · ${path.relative(process.cwd(), r.file)} · bend ${r.bend} · seed ${r.seed} · size ${r.size} · ≤${r.maxInstances} instances/law`];
   for (const l of r.laws) {
     const head = `${MARK[l.status]} ${l.name.padEnd(w)}  `;
-    const extra = (l.tooLarge ? `, ${l.tooLarge} too large to evaluate` : "")
-      + (l.native ? `, native ${l.native.checked} compared${l.native.disagreements.length ? `, ${l.native.disagreements.length} DISAGREE` : ""}` : "");
+    const nv = l.native;
+    const native = nv === undefined ? "" : nv.skip !== undefined
+      ? `, native skipped: ${nv.skip.replace(/\s+/g, " ")}`
+      : `, native ${nv.checked} compared${nv.disagreements.length ? `, ${nv.disagreements.length} DISAGREE` : ""}`;
+    const extra = (l.tooLarge ? `, ${l.tooLarge} too large to evaluate` : "") + native;
     out.push(head + lawLine(l, r) + extra);
-    for (const x of l.native?.disagreements ?? []) {
+    for (const x of nv?.disagreements ?? []) {
       out.push(`${pad}native DISAGREES: engine C ${x.engineC}, native ${x.engineN ? "1" : "0"} · ${x.bindings.map((b) => `${b.name} = ${b.value}`).join(", ")} · repro ${x.repro}`);
     }
     if (l.status === "fail" && l.counterexample) {

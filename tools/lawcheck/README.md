@@ -71,7 +71,7 @@ Exit codes: 0 no survivors · 1 at least one survivor · 2 usage, load, tool err
 
 ## Native comparison (`--native`)
 
-For equation laws whose claim type is `Nat`, `U32`, or `Bool`, `--native` evaluates each instance a second way (engine N, PLAN §4.2 step 6): it emits one `main` that prints `lhs == rhs` for every instance, builds it with `bend -o`, runs it, and compares the result with the checker (engine C). Any instance where the two engines disagree is a likely compiler or runtime bug; it is reported with the instance bindings and a minimal reproduction file. Laws whose claim is not such an equation, or whose target does not build natively, are left to the checker alone.
+For equation laws whose claim type is `Nat`, `U32`, `Bool`, or `List<Nat>`/`List<U32>`/`List<Bool>`, `--native` evaluates each instance a second way (engine N, PLAN §4.2 step 6): it emits one `main` that prints `lhs == rhs` for every instance (emitting a small recursive equality for lists, since Base has none), builds it with `bend -o`, runs it, and compares the result with the checker (engine C). Any instance where the two engines disagree is a likely compiler or runtime bug; it is reported with the instance bindings and a minimal reproduction file. A law whose claim is not such an equation, or whose harness cannot build or run, carries a `native skipped: <reason>` note instead of a silent absence.
 
 ## Known limits (v0.1)
 
