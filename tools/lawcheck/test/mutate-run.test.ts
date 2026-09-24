@@ -34,4 +34,14 @@ describe("mutate runner", () => {
     expect(rep.defs.map((d: any) => d.name)).toEqual(["dbl"]);
     expect(rep.defs[0].mutants.some((m: any) => m.status === "killed")).toBe(true);
   }, T);
+
+  // first_of calls the non-self helper pick; swapping pick's arguments still
+  // type-checks, and the diagonal law first_of(a, a) = a does not catch it.
+  test("a non-self arg-swap can genuinely survive", async () => {
+    const rep = await mutate(path.join(FX, "mut_argswap.bend"), { maxInstances: 40, seed: 1, size: 3 });
+    const swaps = def(rep, "first_of").mutants.filter((m: any) => m.op === "arg-swap");
+    expect(swaps).toHaveLength(1);
+    expect(swaps[0].def).toBe("first_of");
+    expect(swaps[0].status).toBe("survived");
+  }, T);
 });
