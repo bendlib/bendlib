@@ -64,7 +64,7 @@ export function page(o: PageOpts): string {
 ${o.body}
 </main>
 <footer class="foot"><div class="wrap">
-<p>Community docs for BendHub packages · not affiliated with Higher Order Company · source <a href="https://github.com/bendlib/bendlib">github.com/bendlib/bendlib</a></p>
+<p>Community docs for BendHub packages · not affiliated with Higher Order Company · source <a href="https://github.com/bendlib/bendlib">github.com/bendlib/bendlib</a> · <a href="${r("llms.txt")}">llms.txt</a></p>
 <p>Built ${esc(o.site.built)} · statuses are <code>bend --check-only</code> results on bend ${esc(o.site.compiler)} only${o.site.checked ? "" : " (checking was skipped in this build)"}${partial}</p>
 </div></footer>
 </body></html>
@@ -322,4 +322,43 @@ export function renderSearch(site: Site): string {
 <p>Statements are shown as bend ${esc(site.compiler)} prints them. The index covers ${site.packages.length} packages.</p>
 </section>`;
   return page({ path, title: "Search · Bend Docs", body, site, scripts: ["assets/search.js"] });
+}
+
+// The package identity plain-text files use: name@version, or the full hash when anonymous.
+const pkgRef = (p: Package) => (p.names.length > 0 ? `${p.names[0].name}@${p.names[0].version}` : p.hash);
+
+/** The AI-facing `llms.txt` index of the site (see https://llmstxt.org). */
+export function renderLlms(site: Site): string {
+  const lines = [
+    "# Bend Docs",
+    `> Community documentation for every package on BendHub, the Bend 2 package hub. Statuses are \`bend --check-only\` results on bend ${site.compiler}.`,
+    "",
+    "- [Every proved law, one per line](lemmas.txt): package@version/module, law name, statement as bend prints it.",
+    "- [Search](search.html): names, docs and law-shape search.",
+    "",
+    "## Packages",
+  ];
+  for (const g of groupPackages(site.packages)) {
+    const p = g.latest;
+    const status = p.status === null ? "not checked" : STATUS_TEXT[p.status];
+    lines.push(`- [${label(p)}](${pkgPage(p.hash)}): ${p.desc} (${status}, ${p.counts.proved}/${p.counts.laws} laws proved)`);
+  }
+  return lines.join("\n") + "\n";
+}
+
+/** The AI-facing `lemmas.txt`: every proved law of every latest package lineage, tab-separated. */
+export function renderLemmas(site: Site): string {
+  const rows: { pkg: string; ref: string; module: string; line: number; name: string; signature: string }[] = [];
+  for (const g of groupPackages(site.packages)) {
+    const p = g.latest;
+    for (const m of p.modules) for (const d of m.decls ?? []) {
+      if (d.kind === "law" && d.proved) {
+        rows.push({ pkg: label(p), ref: pkgRef(p), module: m.path, line: d.line, name: d.name, signature: d.signature.replace(/\n/g, " ") });
+      }
+    }
+  }
+  rows.sort((a, b) => a.pkg.localeCompare(b.pkg) || a.module.localeCompare(b.module) || a.line - b.line);
+  const packages = new Set(rows.map((r) => r.pkg)).size;
+  const head = `# ${rows.length} proved laws from ${packages} packages on BendHub, checked with bend ${site.compiler}. Fields are tab-separated: package/module, law, statement.`;
+  return [head, ...rows.map((r) => `${r.ref}/${r.module}\t${r.name}\t${r.signature}`)].join("\n") + "\n";
 }

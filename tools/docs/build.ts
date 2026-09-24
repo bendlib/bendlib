@@ -14,7 +14,7 @@ import { extractFile, type FileDecls } from "./src/extract.ts";
 import { dependencyEdges, foreignImports, parseImports } from "./src/imports.ts";
 import { licenses } from "./src/license.ts";
 import { attachEdges, displayOrder, finishPackage, moduleHeader, namesByHash, type Module, type Package, type Site } from "./src/model.ts";
-import { renderIndex, renderModule, renderName, renderPackage, renderSearch, modPage, pkgPage, namePage, setBaseNamespaces } from "./src/render.ts";
+import { renderIndex, renderLemmas, renderLlms, renderModule, renderName, renderPackage, renderSearch, modPage, pkgPage, namePage, setBaseNamespaces } from "./src/render.ts";
 import { baseNamespaces } from "./src/status.ts";
 import { buildSearchIndex } from "./src/searchindex.ts";
 import { checkFile, compilerVersion, crossCheck, readStatusCache, statusKey, writeStatusCache, type FileClass } from "./src/status.ts";
@@ -198,6 +198,8 @@ async function main() {
   write(out, "index.html", renderIndex(site));
   write(out, "search.html", renderSearch(site));
   write(out, "search-index.json", JSON.stringify(buildSearchIndex(site)));
+  write(out, "llms.txt", renderLlms(site));
+  write(out, "lemmas.txt", renderLemmas(site));
   write(out, "assets/style.css", readFileSync(join(HERE, "assets/style.css"), "utf8"));
   write(out, "assets/search.js", await bundle(join(HERE, "src/client/search.ts")));
   write(out, "assets/site.js", await bundle(join(HERE, "src/client/site.ts")));

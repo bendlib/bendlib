@@ -52,6 +52,19 @@ describe("three-package build from the live hub", () => {
     expect(read(`pkg/${MATHLIB}/all.bend.html`)).toContain("machine-checked lemmas for Bend 2");
   });
 
+  test("llms.txt and lemmas.txt list every latest proved law as 3 tab-separated fields", () => {
+    const llms = read("llms.txt");
+    expect(llms).toContain("[bend-mathlib@0.1.0.1](");
+    const lemmas = read("lemmas.txt");
+    expect(lemmas.startsWith("# ")).toBe(true);
+    const lines = lemmas.split("\n").filter((l) => l !== "" && !l.startsWith("#"));
+    expect(lines.some((l) => l.startsWith("bend-mathlib@0.1.0.1/nat.bend\tadd_comm\t"))).toBe(true);
+    for (const l of lines) expect(l.split("\t").length).toBe(3);
+    // Expected line count = proved claim rows in search-index.json (same latest-lineage scope).
+    const idx = JSON.parse(read("search-index.json")) as SearchIndex;
+    expect(lines.length).toBe(idx.d.filter((r) => r[2] === "law" && r[7] === 1).length);
+  });
+
   test("the index lists the three packages, named ones first, with statuses from the real checker", () => {
     const html = read("index.html");
     const [m, t, a] = ['bend-mathlib</a> <span class="pill">@0.1.0.1</span>', 'bend-tensors</a> <span class="pill">@0.0.0.2</span>', `${ANON.slice(0, 10)}…</a>`].map((s) => html.indexOf(`>${s}`));
