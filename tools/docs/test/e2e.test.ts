@@ -7,6 +7,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { compile, matchStatement } from "../src/shape.ts";
 import type { SearchIndex } from "../src/searchindex.ts";
+import { hubHash, packageFiles } from "../../mathlib/hash.ts";
 
 const MATHLIB = "0xafc61ca8b7738a6df7f28eddf80168f8";   // bend-mathlib@0.1.0.1
 const TENSORS = "0x39d8166231e68361eb37e8bef9287b8a";   // bend-tensors@0.0.0.2
@@ -122,4 +123,20 @@ describe("three-package build from the live hub", () => {
       expect(html).toContain("on bend 2.0.27 only");
     }
   });
+});
+
+describe("--local preview", () => {
+  test("stages an unpublished package, banners every page, and prints the package page path", () => {
+    const entry = join(import.meta.dir, "..", "..", "mathlib", "fixtures", "good", "list.bend");
+    const dir = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "bend-docs-local-"));
+    const p = Bun.spawnSync([process.execPath, join(import.meta.dir, "..", "build.ts"),
+      "--local", entry, "--out", dir, "--cache", join(dir, "cache")]);
+    const msg = new TextDecoder().decode(p.stdout) + new TextDecoder().decode(p.stderr);
+    if (p.exitCode !== 0) throw new Error(`build exited ${p.exitCode}:\n${msg}`);
+    const hash = hubHash(packageFiles(entry));
+    expect(existsSync(join(dir, "pkg", hash, "index.html"))).toBe(true);
+    expect(readFileSync(join(dir, "pkg", hash, "index.html"), "utf8")).toContain("Local preview of an unpublished package — not on BendHub.");
+    expect(readFileSync(join(dir, "pkg", hash, "list.bend.html"), "utf8")).toContain("Appending the empty list on the right changes nothing.");
+    expect(msg).toContain(`local package page: pkg/${hash}/index.html`);
+  }, 120_000);
 });

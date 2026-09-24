@@ -61,6 +61,7 @@ export function page(o: PageOpts): string {
 <nav aria-label="Site"><a href="${r("index.html")}">Packages</a><a href="${r("search.html")}">Search</a><a href="${r("authors.html")}">Authors</a></nav>
 </div></header>
 <main id="main" class="wrap">
+${o.site.local ? `<p class="err">Local preview of an unpublished package — not on BendHub.</p>` : ""}
 ${o.body}
 </main>
 <footer class="foot"><div class="wrap">

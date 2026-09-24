@@ -33,7 +33,7 @@ export type Package = {
 };
 
 export type Site = {
-  built: string; compiler: string; checked: boolean; partial: boolean;
+  built: string; compiler: string; checked: boolean; partial: boolean; local: boolean;
   packages: Package[];                // display order: named first, then by recency
   byHash: Map<string, Package>;
   names: NameRecord[];

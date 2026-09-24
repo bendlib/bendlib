@@ -3,13 +3,14 @@
 // and render a static site with relative links into tools/docs/dist/.
 //
 // usage: bun tools/docs/build.ts [--limit N] [--only name@version|0xhash,...] [--no-check]
-//          [--jobs N] [--timeout SEC] [--mem-mb MB] [--out DIR] [--cache DIR]
+//          [--local entry.bend] [--jobs N] [--timeout SEC] [--mem-mb MB] [--out DIR] [--cache DIR]
 // exit: 0 site written · 1 fatal error (network, hub data) · 2 usage or toolchain mismatch
 
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { bendSource } from "../reader/index.ts";
-import { ensurePackage, fetchIndex, fetchNames, pool, seedNames, type IndexEntry } from "./src/hub.ts";
+import { packageFiles, hubHash } from "../mathlib/hash.ts";
+import { ensurePackage, fetchIndex, fetchNames, pool, seedNames, sha256, type IndexEntry, type ManifestLine } from "./src/hub.ts";
 import { extractFile, type FileDecls } from "./src/extract.ts";
 import { dependencyEdges, foreignImports, parseImports } from "./src/imports.ts";
 import { licenses } from "./src/license.ts";
@@ -24,15 +25,16 @@ const ROOT = resolve(HERE, "../..");
 // Bump when the shape of cached extraction records changes.
 const EXTRACT_FORMAT = 2;
 
-type Args = { limit: number | null; only: string[] | null; check: boolean; jobs: number; timeout: number; memMb: number; out: string; cache: string };
+type Args = { limit: number | null; only: string[] | null; local: string | null; check: boolean; jobs: number; timeout: number; memMb: number; out: string; cache: string };
 
 function usage(msg: string): never {
-  console.error(`build: ${msg}\nusage: bun tools/docs/build.ts [--limit N] [--only name@version|0xhash,...] [--no-check] [--jobs N] [--timeout SEC] [--mem-mb MB] [--out DIR] [--cache DIR]`);
+  console.error(`build: ${msg}\nusage: bun tools/docs/build.ts [--limit N] [--only name@version|0xhash,...] [--no-check] [--local entry.bend] [--jobs N] [--timeout SEC] [--mem-mb MB] [--out DIR] [--cache DIR]`);
   process.exit(2);
 }
 
 function parseArgs(argv: string[]): Args {
-  const a: Args = { limit: null, only: null, check: true, jobs: 8, timeout: 20, memMb: 4096, out: join(HERE, "dist"), cache: join(HERE, ".cache") };
+  const a: Args = { limit: null, only: null, local: null, check: true, jobs: 8, timeout: 20, memMb: 4096, out: join(HERE, "dist"), cache: join(HERE, ".cache") };
+  let outSet = false;
   const num = (i: number) => {
     const n = Number(argv[i + 1]);
     if (!Number.isFinite(n) || n <= 0) usage(`${argv[i]} needs a positive number`);
@@ -45,11 +47,13 @@ function parseArgs(argv: string[]): Args {
     else if (f === "--jobs") a.jobs = Math.floor(num(i++));
     else if (f === "--timeout") a.timeout = num(i++);
     else if (f === "--mem-mb") a.memMb = num(i++);
+    else if (f === "--local") { if (!argv[i + 1]) usage("--local needs an entry .bend file"); a.local = resolve(argv[++i]); }
     else if (f === "--only") { if (!argv[i + 1]) usage("--only needs a list"); a.only = argv[++i].split(",").filter(Boolean); }
-    else if (f === "--out") { if (!argv[i + 1]) usage("--out needs a directory"); a.out = resolve(argv[++i]); }
+    else if (f === "--out") { if (!argv[i + 1]) usage("--out needs a directory"); a.out = resolve(argv[++i]); outSet = true; }
     else if (f === "--cache") { if (!argv[i + 1]) usage("--cache needs a directory"); a.cache = resolve(argv[++i]); }
     else usage(`unknown argument ${f}`);
   }
+  if (a.local !== null && !outSet) a.out = join(HERE, "dist", "local");
   return a;
 }
 
@@ -78,6 +82,22 @@ async function bundle(entry: string): Promise<string> {
   return await r.outputs[0].text();
 }
 
+/** Stages `bend <entry> --publish`'s file set into `<lib>/<hash>/`, keyed by its would-be hub hash. */
+function stageLocal(entry: string, lib: string): { hash: string; files: Record<string, number>; bytes: number; manifest: ManifestLine[] } {
+  const content = packageFiles(entry);
+  const hash = hubHash(content);
+  const files: Record<string, number> = {};
+  const manifest: ManifestLine[] = [];
+  for (const path of Object.keys(content).sort()) {
+    files[path] = Buffer.byteLength(content[path]);
+    manifest.push({ sha256: sha256(content[path]), path });
+    const target = join(lib, hash, path);
+    mkdirSync(dirname(target), { recursive: true });
+    writeFileSync(target, content[path]);
+  }
+  return { hash, files, bytes: Object.values(files).reduce((a, b) => a + b, 0), manifest };
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const T0 = performance.now();
@@ -98,8 +118,13 @@ async function main() {
     const [n, v] = nv.split("@");
     return names.find((x) => x.name === n)?.versions.find((x) => x.version === v)?.hash ?? null;
   };
+  let local: { hash: string; files: Record<string, number>; bytes: number; manifest: ManifestLine[] } | null = null;
   let entries: IndexEntry[] = index;
-  if (args.only !== null) {
+  if (args.local !== null) {
+    local = stageLocal(args.local, lib);
+    entries = [{ hash: local.hash, files: local.files, bytes: local.bytes, ts: Date.now(), desc: "" }];
+    log(`local: staged ${args.local} as ${local.hash} (${Object.keys(local.files).length} files) (${secs(t)})`);
+  } else if (args.only !== null) {
     const want = new Set(args.only.map((o) => (o.startsWith("0x") ? o : resolveName(o) ?? usage(`--only: ${o} is not a name@version on the hub`))));
     entries = index.filter((e) => want.has(e.hash));
     for (const h of want) if (!entries.some((e) => e.hash === h)) usage(`--only: ${h} is not in the hub index`);
@@ -107,16 +132,22 @@ async function main() {
   const ordered = [...entries].sort((a, b) => (nameMap.has(a.hash) ? 0 : 1) - (nameMap.has(b.hash) ? 0 : 1) || b.ts - a.ts);
   if (args.limit !== null) entries = ordered.slice(0, args.limit); else entries = ordered;
   const partial = entries.length !== index.length;
-  log(`hub: ${index.length} packages in index.json, ${names.length} names; building ${entries.length} (${secs(t)})`);
+  if (local === null) log(`hub: ${index.length} packages in index.json, ${names.length} names; building ${entries.length} (${secs(t)})`);
 
   t = performance.now();
-  let fetched = 0;
-  const manifests = await pool(entries, Math.min(16, args.jobs * 2), async (e) => {
-    const c = await ensurePackage(e.hash, lib, args.cache);
-    if (c.fetched) fetched++;
-    return c.manifest;
-  });
-  log(`fetch: ${fetched} new packages fetched and verified, ${entries.length - fetched} from cache (${secs(t)})`);
+  let manifests: ManifestLine[];
+  if (local !== null) {
+    manifests = [local.manifest];
+    log(`stage: local package staged (${secs(t)})`);
+  } else {
+    let fetched = 0;
+    manifests = await pool(entries, Math.min(16, args.jobs * 2), async (e) => {
+      const c = await ensurePackage(e.hash, lib, args.cache);
+      if (c.fetched) fetched++;
+      return c.manifest;
+    });
+    log(`fetch: ${fetched} new packages fetched and verified, ${entries.length - fetched} from cache (${secs(t)})`);
+  }
 
   t = performance.now();
   const src = await bendSource();
@@ -187,7 +218,7 @@ async function main() {
   attachEdges(pkgs, edges);
 
   const site: Site = {
-    built: new Date().toISOString().replace(/\.\d+Z$/, "Z"), compiler, checked: args.check, partial,
+    built: new Date().toISOString().replace(/\.\d+Z$/, "Z"), compiler, checked: args.check, partial, local: local !== null,
     packages: displayOrder(pkgs), byHash: new Map(pkgs.map((p) => [p.hash, p])), names,
   };
 
@@ -239,6 +270,7 @@ async function main() {
   for (const { p, m } of failed) console.log(`  ${p.hash.slice(0, 10)} ${m.path}: ${m.error!.message.split("\n").map((l) => l.trim()).filter((l) => l && l !== "Error:").slice(0, 2).join(" ").slice(0, 160)}`);
   console.log(`dist       ${out}: ${du.files} files, ${(du.bytes / 1048576).toFixed(1)} MiB (search-index.json ${(statSync(join(out, "search-index.json")).size / 1048576).toFixed(2)} MiB)`);
   console.log(`wall       ${secs(T0)}`);
+  if (local !== null) console.log(`local package page: ${pkgPage(local.hash)}`);
 }
 
 main().catch((e) => {
