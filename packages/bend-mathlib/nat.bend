@@ -973,6 +973,78 @@ def le_max_right(a, b):
     case 1n+p 1n+q:
       le_max_right(p, q)
 
+# Any natural to the power zero is one.
+law pow_zero:
+  for -a: Nat
+  {Nat.pow(a, 0n) == 1n : Nat}
+
+def pow_zero(a):
+  {==}
+
+# A power with a successor exponent: a^(n+1) = a * a^n.
+law pow_succ:
+  for -a: Nat
+  for -n: Nat
+  {Nat.pow(a, 1n+n) == Nat.mul(a, Nat.pow(a, n)) : Nat}
+
+def pow_succ(a, n):
+  {==}
+
+# Any natural to the power one is itself.
+law pow_one:
+  for a: Nat
+  {Nat.pow(a, 1n) == a : Nat}
+
+def pow_one(a):
+  mul_one(a)
+
+# One to any power is one.
+law one_pow:
+  for n: Nat
+  {Nat.pow(1n, n) == 1n : Nat}
+
+def one_pow(n):
+  match n:
+    case 0n:
+      {==}
+    case 1n++p:
+      %Equal.sym(Nat, Nat.mul(1n, Nat.pow(1n, p)), Nat.pow(1n, p), one_mul(Nat.pow(1n, p))) : {_ == 1n : Nat}
+      one_pow(p)
+
+# Exponents add under multiplication: a^(m+n) = a^m * a^n.
+law pow_add:
+  for a: Nat
+  for m: Nat
+  for n: Nat
+  {Nat.pow(a, Nat.add(m, n)) == Nat.mul(Nat.pow(a, m), Nat.pow(a, n)) : Nat}
+
+def pow_add(a, m, n):
+  match m:
+    case 0n:
+      +a = a
+      +n = n
+      %Equal.sym(Nat, Nat.mul(1n, Nat.pow(a, n)), Nat.pow(a, n), one_mul(Nat.pow(a, n))) : {Nat.pow(a, n) == _ : Nat}
+      {==}
+    case 1n++p:
+      +a = a
+      +n = n
+      %Equal.sym(Nat, Nat.pow(a, Nat.add(p, n)), Nat.mul(Nat.pow(a, p), Nat.pow(a, n)), pow_add(a, p, n)) : {Nat.mul(a, _) == Nat.mul(Nat.mul(a, Nat.pow(a, p)), Nat.pow(a, n)) : Nat}
+      Equal.sym(Nat, Nat.mul(Nat.mul(a, Nat.pow(a, p)), Nat.pow(a, n)), Nat.mul(a, Nat.mul(Nat.pow(a, p), Nat.pow(a, n))), mul_assoc(a, Nat.pow(a, p), Nat.pow(a, n)))
+
+# Doubling is adding a natural to itself.
+law double_eq_add:
+  for n: Nat
+  {Nat.double(n) == Nat.add(n, n) : Nat}
+
+def double_eq_add(n):
+  match n:
+    case 0n:
+      {==}
+    case 1n++p:
+      %Equal.sym(Nat, Nat.add(p, 1n+p), 1n+Nat.add(p, p), add_succ(p, p)) : {2n+Nat.double(p) == 1n+_ : Nat}
+      %double_eq_add(p) : {2n+Nat.double(p) == 2n+_ : Nat}
+      {==}
+
 # --- generated: _sym twins (tools/mathlib/twins.ts), do not edit ---
 
 # Zero is a right identity for addition: x + 0 = x, reversed to rewrite toward the simple side.
@@ -1303,3 +1375,54 @@ law min_add_max_sym:
 
 def min_add_max_sym(a, b):
   Equal.sym(Nat, Nat.add(Nat.min(a, b), Nat.max(a, b)), Nat.add(a, b), min_add_max(a, b))
+
+# Any natural to the power zero is one, reversed to rewrite toward the simple side.
+law pow_zero_sym:
+  for -a: Nat
+  {1n == Nat.pow(a, 0n) : Nat}
+
+def pow_zero_sym(a):
+  Equal.sym(Nat, Nat.pow(a, 0n), 1n, pow_zero(a))
+
+# A power with a successor exponent: a^(n+1) = a * a^n, reversed to rewrite toward the simple side.
+law pow_succ_sym:
+  for -a: Nat
+  for -n: Nat
+  {Nat.mul(a, Nat.pow(a, n)) == Nat.pow(a, 1n+n) : Nat}
+
+def pow_succ_sym(a, n):
+  Equal.sym(Nat, Nat.pow(a, 1n+n), Nat.mul(a, Nat.pow(a, n)), pow_succ(a, n))
+
+# Any natural to the power one is itself, reversed to rewrite toward the simple side.
+law pow_one_sym:
+  for a: Nat
+  {a == Nat.pow(a, 1n) : Nat}
+
+def pow_one_sym(a):
+  Equal.sym(Nat, Nat.pow(a, 1n), a, pow_one(a))
+
+# One to any power is one, reversed to rewrite toward the simple side.
+law one_pow_sym:
+  for n: Nat
+  {1n == Nat.pow(1n, n) : Nat}
+
+def one_pow_sym(n):
+  Equal.sym(Nat, Nat.pow(1n, n), 1n, one_pow(n))
+
+# Exponents add under multiplication: a^(m+n) = a^m * a^n, reversed to rewrite toward the simple side.
+law pow_add_sym:
+  for a: Nat
+  for m: Nat
+  for n: Nat
+  {Nat.mul(Nat.pow(a, m), Nat.pow(a, n)) == Nat.pow(a, Nat.add(m, n)) : Nat}
+
+def pow_add_sym(a, m, n):
+  Equal.sym(Nat, Nat.pow(a, Nat.add(m, n)), Nat.mul(Nat.pow(a, m), Nat.pow(a, n)), pow_add(a, m, n))
+
+# Doubling is adding a natural to itself, reversed to rewrite toward the simple side.
+law double_eq_add_sym:
+  for n: Nat
+  {Nat.add(n, n) == Nat.double(n) : Nat}
+
+def double_eq_add_sym(n):
+  Equal.sym(Nat, Nat.double(n), Nat.add(n, n), double_eq_add(n))
