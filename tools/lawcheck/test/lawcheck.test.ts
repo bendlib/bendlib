@@ -89,11 +89,22 @@ describe("planted bugs", () => {
 });
 
 describe("claim kinds and skips", () => {
-  test("template binder is skipped, not a crash", async () => {
+  test("template function binder is instantiated from the catalog", async () => {
     const { code, report } = await json(path.join(FX, "template.bend"));
     expect(code).toBe(0);
-    expect(law(report, "twice_id")).toMatchObject({ status: "skip", reason: "template binder ~f (v0.2)" });
+    expect(law(report, "twice_id").status).toBe("pass");
     expect(law(report, "add_zero").status).toBe("pass");
+  }, T);
+
+  test("template map laws: a true one passes, a false one fails on a non-identity f", async () => {
+    const { code, report } = await json(path.join(FX, "templates_map.bend"), "--max-instances", "40");
+    expect(code).toBe(1);
+    expect(law(report, "length_map").status).toBe("pass");
+    const bad = law(report, "map_id_bad");
+    expect(bad.status).toBe("fail");
+    const f = bad.counterexample.bindings.find((b: any) => b.name === "f");
+    expect(f).toBeDefined();
+    expect(f.value).not.toBe("(lc_x => lc_x)");
   }, T);
 
   test("predicates, refutations, premises, type parameters, unsupported binders", async () => {

@@ -76,6 +76,7 @@ export const VERSION = "0.1.0";
 class Skip extends Error {}
 
 type Value = { name: string; ty: Ty };
+type FunBinder = { name: string; args: string[]; ret: string };
 type Plan = {
   d: Decl;
   kind: LawResult["claim"];
@@ -83,9 +84,50 @@ type Plan = {
   typeParams: string[];
   quantParams: string[];
   values: Value[];
+  funs: FunBinder[];
   premises: string[];
 };
-type Inst = { vals: Val[]; types: Map<string, string> };
+type Inst = { vals: Val[]; types: Map<string, string>; funs: string[] };
+
+// Closed lambdas per instantiated signature, substituted for template function
+// binders `~f` (PLAN F12/F28). Params `lc_*`; affine, so used at most once.
+const CATALOG: Record<string, string[]> = {
+  "Nat -> Nat": ["(lc_x => lc_x)", "(lc_x => 0n)", "(lc_x => 1n+lc_x)", "(lc_x => Nat.double(lc_x))"],
+  "Nat -> Bool": ["(lc_x => True{})", "(lc_x => False{})", "(lc_x => Nat.is_le(lc_x, 1n))"],
+  "Nat -> Nat -> Bool": ["(lc_x => lc_y => Nat.is_le(lc_x, lc_y))", "(lc_x => lc_y => Nat.is_eq(lc_x, lc_y))", "(lc_x => lc_y => True{})"],
+  "Nat -> Nat -> Nat": ["(lc_x => lc_y => Nat.add(lc_x, lc_y))", "(lc_x => lc_y => lc_x)", "(lc_x => lc_y => lc_y)"],
+  "U32 -> U32": ["(lc_x => lc_x)", "(lc_x => 0)", "(lc_x => (1 + lc_x : U32))", "(lc_x => U32.mul(lc_x, 2))"],
+  "U32 -> Bool": ["(lc_x => True{})", "(lc_x => False{})", "(lc_x => U32.is_le(lc_x, 1))"],
+  "U32 -> U32 -> Bool": ["(lc_x => lc_y => U32.is_le(lc_x, lc_y))", "(lc_x => lc_y => U32.is_eq(lc_x, lc_y))", "(lc_x => lc_y => True{})"],
+  "U32 -> U32 -> U32": ["(lc_x => lc_y => U32.add(lc_x, lc_y))", "(lc_x => lc_y => lc_x)", "(lc_x => lc_y => lc_y)"],
+};
+
+/** Splits a printed arrow type on its top-level `->`. */
+function splitArrow(t: string): string[] {
+  const out: string[] = [];
+  let depth = 0, start = 0;
+  for (let i = 0; i < t.length; i++) {
+    const c = t[i];
+    if (c === "(" || c === "[" || c === "{") depth++;
+    else if (c === ")" || c === "]" || c === "}") depth--;
+    else if (depth === 0 && c === "-" && t[i + 1] === ">") { out.push(t.slice(start, i)); start = i + 2; i++; }
+  }
+  out.push(t.slice(start));
+  return out;
+}
+
+function parseFun(name: string, t: string): FunBinder {
+  const parts = splitArrow(t).map((s) => s.trim());
+  const ret = parts.pop() ?? "";
+  return { name, args: parts.map((s) => s.replace(/^@_:\s*/, "")), ret };
+}
+
+/** The printed signature with type parameters instantiated to `choice`. */
+function substSig(f: FunBinder, choice: string, typeParams: string[]): string {
+  const env = new Map(typeParams.map((n) => [n, choice]));
+  const sub = (s: string) => s.replace(/[A-Za-z_][A-Za-z0-9_]*/g, (id) => env.get(id) ?? id);
+  return [...f.args.map(sub), sub(f.ret)].join(" -> ");
+}
 
 const TYPE_CHOICES = ["U32", "Nat"];
 
@@ -126,9 +168,7 @@ function universe(L: Loaded, maxNat = 30): Universe {
 
 function plan(L: Loaded, d: Decl, predicates: Set<string>, U: Universe): Plan {
   const binders = d.binders ?? [];
-  const tmpl = binders.find((b) => b.quant === "template" && !/^(Quant|Type|Data|Kind\(.*\))$/.test(b.type));
-  if (tmpl) throw new Skip(`template binder ~${tmpl.name} (v0.2)`);
-  const p: Plan = { d, kind: "other", claim: "", typeParams: [], quantParams: [], values: [], premises: [] };
+  const p: Plan = { d, kind: "other", claim: "", typeParams: [], quantParams: [], values: [], funs: [], premises: [] };
   const premiseNames: string[] = [];
   const isPredicateApp = (s: string) => {
     const head = applicationHead(s);
@@ -136,11 +176,17 @@ function plan(L: Loaded, d: Decl, predicates: Set<string>, U: Universe): Plan {
   };
   for (const b of binders) {
     const t = b.type;
+    const tmpl = b.quant === "template";
+    if (tmpl && t === "Quant") { p.quantParams.push(b.name); continue; }
+    if (tmpl && /^(Type|Data|Kind\(.*\))$/.test(t)) { p.typeParams.push(b.name); continue; }
+    if (tmpl && t.includes("->")) { p.funs.push(parseFun(b.name, t)); continue; }
+    if (tmpl && t.startsWith("{")) throw new Skip("template hypothesis (v0.3)");
     if (t === "Quant") p.quantParams.push(b.name);
     else if (/^(Type|Data|Kind\(.*\))$/.test(t)) p.typeParams.push(b.name);
     else if (t.startsWith("{")) { p.premises.push(t); premiseNames.push(b.name); }
     else if (/^&[A-Za-z_]\w*:/.test(t)) throw new Skip(`\`where\` premise on ${b.name} (v0.2)`);
     else if (t.includes("->")) throw new Skip(`function-typed binder ${b.name}: ${t} (v0.2)`);
+    else if (tmpl) throw new Skip(`template binder ~${b.name}: ${t} (v0.2)`);
     else {
       const ty = parseTy(t);
       if (ty !== null && generable(U, substTy(ty, envTypes(p, TYPE_CHOICES[0])))) p.values.push({ name: b.name, ty });
@@ -176,6 +222,12 @@ function plan(L: Loaded, d: Decl, predicates: Set<string>, U: Universe): Plan {
         if (e instanceof Unsupported) throw new Skip(`binder ${v.name}: no generator for type ${e.message}`);
         throw e;
       }
+    }
+  }
+  for (const f of p.funs) {
+    for (const choice of p.typeParams.length ? TYPE_CHOICES : [""]) {
+      const sig = substSig(f, choice, p.typeParams);
+      if (CATALOG[sig] === undefined) throw new Skip(`no catalog functions for ~${f.name}: ${sig}`);
     }
   }
   return p;
@@ -221,19 +273,31 @@ function* product(doms: Val[][], order: number[]): Generator<Val[]> {
 
 function instances(p: Plan, U: Universe, o: Options, r: Rng): Inst[] {
   const choices = p.typeParams.length ? TYPE_CHOICES : [""];
+  const ctxs: { choice: string; funs: string[] }[] = [];
+  for (const choice of choices) {
+    const perFun = p.funs.map((f) => CATALOG[substSig(f, choice, p.typeParams)]);
+    const combos: string[][] = [];
+    const build = (i: number, acc: string[]) => {
+      if (combos.length >= 8) return;
+      if (i === perFun.length) { combos.push(acc); return; }
+      for (const cand of perFun[i]) { build(i + 1, [...acc, cand]); if (combos.length >= 8) return; }
+    };
+    build(0, []);
+    for (const funs of combos) ctxs.push({ choice, funs });
+  }
   const all: Inst[] = [];
-  choices.forEach((choice, ci) => {
-    const budget = Math.floor(o.maxInstances / choices.length) + (ci < o.maxInstances % choices.length ? 1 : 0);
-    const env = envTypes(p, choice);
+  ctxs.forEach((ctx, ci) => {
+    const budget = Math.floor(o.maxInstances / ctxs.length) + (ci < o.maxInstances % ctxs.length ? 1 : 0);
+    const env = envTypes(p, ctx.choice);
     const tys = p.values.map((v) => substTy(v.ty, env));
-    const types = new Map(p.typeParams.map((a) => [a, choice] as [string, string]));
+    const types = new Map(p.typeParams.map((a) => [a, ctx.choice] as [string, string]));
     const seen = new Set<string>();
     const out: Inst[] = [];
     const add = (vals: Val[]) => {
       const k = vals.map((v) => render(v)).join("|");
       if (seen.has(k) || out.length >= budget) return;
       seen.add(k);
-      out.push({ vals, types });
+      out.push({ vals, types, funs: ctx.funs });
     };
     const exhaustive = Math.ceil(budget * 0.6);
     for (let d = 0; d <= o.size && out.length < exhaustive; d++) {
@@ -374,6 +438,7 @@ async function checkLaw(L: Loaded, d: Decl, li: number, o: Options, U: Universe,
     for (const q of p.quantParams) env.set(q, "&2");
     for (const [a, t] of inst.types) env.set(a, t);
     p.values.forEach((v, i) => env.set(v.name, render(inst.vals[i], qualify)));
+    p.funs.forEach((f, i) => env.set(f.name, inst.funs[i]));
     const denv = new Map(env);
     p.values.forEach((v, i) => denv.set(v.name, render(inst.vals[i], nameOut)));
     try {
@@ -462,7 +527,7 @@ async function checkLaw(L: Loaded, d: Decl, li: number, o: Options, U: Universe,
           for (const s of U.shrink(v)) {
             const vals = cur.inst.vals.map((w, j) => (j === i ? s : w));
             const k = vals.map((x) => render(x)).join("|");
-            if (!seen.has(k)) { seen.add(k); cands.push({ vals, types: cur.inst.types }); }
+            if (!seen.has(k)) { seen.add(k); cands.push({ vals, types: cur.inst.types, funs: cur.inst.funs }); }
           }
         });
         cands.sort((a, b) => size(a) - size(b));
@@ -476,7 +541,10 @@ async function checkLaw(L: Loaded, d: Decl, li: number, o: Options, U: Universe,
         cur = { inst: ok.kept[hit], out: res.get(items[hit].id) };
       }
     }
-    const bind = (inst: Inst): Binding[] => p.values.map((v, i) => ({ name: v.name, value: render(inst.vals[i], nameOut) }));
+    const bind = (inst: Inst): Binding[] => [
+      ...p.values.map((v, i) => ({ name: v.name, value: render(inst.vals[i], nameOut) })),
+      ...p.funs.map((f, i) => ({ name: f.name, value: inst.funs[i] })),
+    ];
     const t = texts(cur.inst);
     const cex: Counterexample = {
       bindings: bind(cur.inst),
