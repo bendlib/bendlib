@@ -3,10 +3,14 @@
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
-import { ROOT, packageModules, parseModule } from "./lib.ts";
+import { PkgError, ROOT, packageModules, parseModule } from "./lib.ts";
+
+const USAGE = "usage: bun tools/mathlib/index.ts <pkgdir> <name> <version> [--check] [--stdout]";
+const usage = (msg: string): never => { console.error(`index: ${msg}\n${USAGE}`); process.exit(2); };
 
 const [dirArg, name, version] = process.argv.slice(2).filter((a) => !a.startsWith("--"));
-if (!dirArg || !name || !version) { console.error("usage: index.ts <pkgdir> <name> <version> [--check] [--stdout]"); process.exit(2); }
+if (!dirArg || !name || !version) usage("need <pkgdir> <name> <version>");
+if (!/^\d+\.\d+\.\d+\.\d+$/.test(version)) usage(`version must be a.b.c.d, got ${JSON.stringify(version)}`);
 const dir = resolve(dirArg);
 const alias = (m: string) => "M" + m[0].toUpperCase() + m.slice(1);
 const cell = (s: string) => "`" + s.replace(/\|/g, "\\|") + "`";
@@ -32,7 +36,9 @@ const head: string[] = [
 ];
 const body: string[] = [];
 let total = 0;
-for (const file of packageModules(dir)) {
+let files: string[];
+try { files = packageModules(dir); } catch (e) { if (e instanceof PkgError) usage(e.message); throw e; }
+for (const file of files) {
   const m = parseModule(file);
   const laws = m.laws.filter((l) => !l.name.startsWith("internal_"));
   const preds = m.defs.filter((d) => !d.name.startsWith("internal_") && /->\s*(Data|Type)\s*:\s*$/.test(d.header));

@@ -13,7 +13,10 @@
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
-import { BEND, ROOT, baseNames, packageModules, parseModule, type Module } from "./lib.ts";
+import { BEND, PkgError, ROOT, baseNames, packageModules, parseModule, type Module } from "./lib.ts";
+
+const USAGE = "usage: bun tools/mathlib/lint.ts [pkgdir] [--erasure] [--allow-types]";
+const usage = (msg: string): never => { console.error(`lint: ${msg}\n${USAGE}`); process.exit(2); };
 
 const args = process.argv.slice(2);
 const pkg = resolve(args.find((a) => !a.startsWith("--")) ?? join(ROOT, "packages", "bend-mathlib"));
@@ -23,8 +26,10 @@ const allowTypes = args.includes("--allow-types");
 const findings: string[] = [];
 const at = (m: Module, line: number, msg: string) => findings.push(`${relative(ROOT, m.file)}:${line}: ${msg}`);
 const NAME = /^[a-z][a-z0-9_]*$/;
+let files: string[];
+try { files = packageModules(pkg); } catch (e) { if (e instanceof PkgError) usage(e.message); throw e; }
 const base = await baseNames();
-const mods = packageModules(pkg).map((f) => parseModule(f));
+const mods = files.map((f) => parseModule(f));
 
 for (const m of mods) {
   for (const law of m.laws) {

@@ -5,7 +5,7 @@
 // block with one-line claims, immediately followed by its `def name(...)` proof.
 // Third-party code is read with tools/reader (the official parser) instead.
 
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, basename } from "node:path";
 import { homedir } from "node:os";
 
@@ -101,7 +101,13 @@ export function parseModule(file: string, source?: string): Module {
   return mod;
 }
 
+/** A bad package path; each CLI reports it as a usage error (exit 2). */
+export class PkgError extends Error {}
+
 export function packageModules(pkgDir: string): string[] {
+  let st;
+  try { st = statSync(pkgDir); } catch { throw new PkgError(`no such package directory: ${pkgDir}`); }
+  if (!st.isDirectory()) throw new PkgError(`not a directory: ${pkgDir}`);
   const out: string[] = [];
   const walk = (dir: string) => {
     for (const e of readdirSync(dir, { withFileTypes: true })) {

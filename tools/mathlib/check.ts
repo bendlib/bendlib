@@ -7,12 +7,16 @@
 
 import { readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
-import { BEND, ROOT, packageModules, stripCommentsAndStrings } from "./lib.ts";
+import { BEND, PkgError, ROOT, packageModules, stripCommentsAndStrings } from "./lib.ts";
+
+const USAGE = "usage: bun tools/mathlib/check.ts [packages/bend-mathlib] [--json] [--max-seconds N]";
+const usage = (msg: string): never => { console.error(`check: ${msg}\n${USAGE}`); process.exit(2); };
 
 const args = process.argv.slice(2);
 const json = args.includes("--json");
 const maxIdx = args.indexOf("--max-seconds");
 const maxSeconds = maxIdx >= 0 ? Number(args[maxIdx + 1]) : 10;
+if (!Number.isInteger(maxSeconds) || maxSeconds <= 0) usage(`--max-seconds needs a positive integer, got ${JSON.stringify(args[maxIdx + 1] ?? null)}`);
 const pkg = resolve(args.find((a, i) => !a.startsWith("--") && args[i - 1] !== "--max-seconds") ?? join(ROOT, "packages", "bend-mathlib"));
 
 const pinned = JSON.parse(readFileSync(join(ROOT, "toolchain.json"), "utf8")).bend.version as string;
@@ -24,7 +28,9 @@ if (ver !== `bend ${pinned}`) {
 
 type Row = { module: string; ok: boolean; seconds: number; output: string; problems: string[] };
 const rows: Row[] = [];
-for (const file of packageModules(pkg)) {
+let files: string[];
+try { files = packageModules(pkg); } catch (e) { if (e instanceof PkgError) usage(e.message); throw e; }
+for (const file of files) {
   const problems: string[] = [];
   const src = stripCommentsAndStrings(readFileSync(file, "utf8"));
   if (/@unsafe/.test(src)) problems.push("contains @unsafe");

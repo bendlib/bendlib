@@ -8,16 +8,21 @@
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { ROOT, packageModules, parseModule } from "./lib.ts";
+import { PkgError, ROOT, packageModules, parseModule } from "./lib.ts";
+
+const USAGE = "usage: bun tools/mathlib/lock.ts [pkgdir] (--check | --update | --freeze <version>)";
+const usage = (msg: string): never => { console.error(`lock: ${msg}\n${USAGE}`); process.exit(2); };
 
 type Entry = { kind: "law" | "predicate"; text: string; sha256: string; since: string | null };
 const args = process.argv.slice(2);
 const pkg = resolve(args.find((a, i) => !a.startsWith("--") && args[i - 1] !== "--freeze") ?? join(ROOT, "packages", "bend-mathlib"));
 const mode = args.find((a) => ["--check", "--update", "--freeze"].includes(a));
-if (!mode) { console.error("usage: lock.ts [pkgdir] (--check | --update | --freeze <version>)"); process.exit(2); }
+if (!mode) usage("one of --check | --update | --freeze <version> is required");
 
 const current = new Map<string, Omit<Entry, "since">>();
-for (const file of packageModules(pkg)) {
+let files: string[];
+try { files = packageModules(pkg); } catch (e) { if (e instanceof PkgError) usage(e.message); throw e; }
+for (const file of files) {
   const mod = parseModule(file);
   const put = (name: string, kind: Entry["kind"], text: string) =>
     current.set(`${mod.name}.${name}`, { kind, text, sha256: createHash("sha256").update(text).digest("hex") });

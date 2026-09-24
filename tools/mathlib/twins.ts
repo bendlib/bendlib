@@ -11,14 +11,19 @@
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
-import { GENERATED_MARK, ROOT, packageModules, parseModule, splitEquation } from "./lib.ts";
+import { GENERATED_MARK, PkgError, ROOT, packageModules, parseModule, splitEquation } from "./lib.ts";
+
+const USAGE = "usage: bun tools/mathlib/twins.ts [pkgdir] [--check]";
+const usage = (msg: string): never => { console.error(`twins: ${msg}\n${USAGE}`); process.exit(2); };
 
 const args = process.argv.slice(2);
 const pkg = resolve(args.find((a) => !a.startsWith("--")) ?? join(ROOT, "packages", "bend-mathlib"));
 const check = args.includes("--check");
 let stale = 0;
 
-for (const file of packageModules(pkg)) {
+let files: string[];
+try { files = packageModules(pkg); } catch (e) { if (e instanceof PkgError) usage(e.message); throw e; }
+for (const file of files) {
   const text = readFileSync(file, "utf8");
   const cut = text.indexOf(GENERATED_MARK);
   const handwritten = (cut >= 0 ? text.slice(0, cut) : text).replace(/\s+$/, "") + "\n";
@@ -45,7 +50,10 @@ for (const file of packageModules(pkg)) {
       ``,
     );
   }
-  const next = out.length === 0 ? handwritten : handwritten + "\n" + GENERATED_MARK + "\n\n" + out.join("\n").replace(/\n+$/, "") + "\n";
+  // A module with no twins and no generated section is already up to date, even when byte-empty.
+  const next = out.length === 0
+    ? (cut < 0 ? text : handwritten)
+    : handwritten + "\n" + GENERATED_MARK + "\n\n" + out.join("\n").replace(/\n+$/, "") + "\n";
   if (next !== text) {
     stale++;
     if (check) console.log(`stale: ${relative(ROOT, file)}`);

@@ -166,3 +166,47 @@ test("release resolves an absolute existing pkgdir instead of mangling it", () =
   expect(r.out).toContain("FAIL check");
 });
 
+const STACK = /\n\s+at /;
+
+test("a missing or non-directory package path is a typed usage error, exit 2, no stack", () => {
+  const parent = mkdtempSync(join(tmpdir(), "bend-missing-"));
+  const missing = join(parent, "nope");
+  const file = join(dir, "fixtures/good/list.bend");
+  const cases: [string, string[]][] = [
+    ["check.ts", [missing]],
+    ["check.ts", [file]],
+    ["lint.ts", [missing]],
+    ["twins.ts", [missing, "--check"]],
+    ["lock.ts", [missing, "--check"]],
+    ["index.ts", [missing, "fixture-package", "0.1.0.0", "--stdout"]],
+  ];
+  for (const [script, args] of cases) {
+    const r = run(script, ...args);
+    expect(r.code).toBe(2);
+    expect(r.out).toMatch(/no such package directory|not a directory/);
+    expect(r.out).not.toMatch(STACK);
+  }
+});
+
+test("check: --max-seconds must be a positive integer", () => {
+  const r = run("check.ts", join(dir, "fixtures/good"), "--max-seconds", "x");
+  expect(r.code).toBe(2);
+  expect(r.out).toContain("--max-seconds needs a positive integer");
+  expect(r.out).not.toMatch(STACK);
+});
+
+test("index: the version must be a.b.c.d", () => {
+  const r = run("index.ts", join(dir, "fixtures/index"), "fixture-package", "notaversion", "--stdout");
+  expect(r.code).toBe(2);
+  expect(r.out).toContain("version must be a.b.c.d");
+  expect(r.out).not.toMatch(STACK);
+});
+
+test("twins: a byte-empty module is up to date, not perpetually stale", () => {
+  const empty = join(dir, "fixtures/empty");
+  const r = run("twins.ts", empty, "--check");
+  expect(r.code).toBe(0);
+  expect(r.out).toContain("twins up to date");
+  expect(readFileSync(join(empty, "empty.bend"), "utf8")).toBe("");
+});
+
