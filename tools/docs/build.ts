@@ -102,6 +102,11 @@ function stageLocal(entry: string, lib: string): { hash: string; files: Record<s
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
+  if (args.local !== null) {
+    let isFile = false;
+    try { isFile = statSync(args.local).isFile(); } catch { isFile = false; }
+    if (!isFile) usage(`--local: ${args.local} is not a file`);
+  }
   const T0 = performance.now();
   const pinned = JSON.parse(readFileSync(join(ROOT, "toolchain.json"), "utf8")).bend.version as string;
   const compiler = compilerVersion();

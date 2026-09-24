@@ -151,4 +151,17 @@ describe("--local preview", () => {
     expect(readFileSync(join(dir, "pkg", hash, "list.bend.html"), "utf8")).toContain("Appending the empty list on the right changes nothing.");
     expect(msg).toContain(`local package page: pkg/${hash}/index.html`);
   }, 120_000);
+
+  test("--local rejects a missing path and a directory with a typed usage error", () => {
+    const dir = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "bend-docs-local-bad-"));
+    for (const bad of [join(dir, "nope.bend"), dir]) {
+      const p = Bun.spawnSync([process.execPath, join(import.meta.dir, "..", "build.ts"), "--local", bad]);
+      const msg = new TextDecoder().decode(p.stdout) + new TextDecoder().decode(p.stderr);
+      expect(p.exitCode).toBe(2);
+      expect(msg).toContain(`build: --local: ${bad} is not a file`);
+      expect(msg).toContain("usage: bun tools/docs/build.ts");
+      expect(msg).not.toContain("ENOENT");
+      expect(msg).not.toContain("EISDIR");
+    }
+  });
 });
