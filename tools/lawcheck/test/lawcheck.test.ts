@@ -28,9 +28,13 @@ const law = (report: any, name: string) => {
 };
 const binds = (l: any) => Object.fromEntries(l.counterexample.bindings.map((b: any) => [b.name, b.value]));
 
+// One `correct.bend` run, shared by the two tests that assert on a clean module.
+let correctRun: Promise<{ code: number; report: any }> | null = null;
+const correct = () => (correctRun ??= json(path.join(FX, "correct.bend")));
+
 describe("correct implementation", () => {
   test("all four laws pass, exit 0", async () => {
-    const { code, report } = await json(path.join(FX, "correct.bend"));
+    const { code, report } = await correct();
     expect(code).toBe(0);
     expect(report.laws.map((l: any) => [l.name, l.status, l.claim])).toEqual([
       ["ins_sorted", "pass", "equation"],
@@ -140,7 +144,7 @@ describe("unsafe verdict", () => {
   }, T);
 
   test("a clean module still reports pass", async () => {
-    const { code, report } = await json(path.join(FX, "correct.bend"));
+    const { code, report } = await correct();
     expect(code).toBe(0);
     expect(report.laws.every((l: any) => l.status === "pass")).toBe(true);
   }, T);

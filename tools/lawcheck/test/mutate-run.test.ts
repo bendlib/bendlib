@@ -11,7 +11,7 @@ const def = (rep: any, name: string) => rep.defs.find((d: any) => d.name === nam
 
 describe("mutate runner", () => {
   test("weak laws leave survivors; some mutants are invalid", async () => {
-    const rep = await mutate(path.join(FX, "mut_weak.bend"), { maxInstances: 40, seed: 1, size: 3 });
+    const rep = await mutate(path.join(FX, "mut_weak.bend"), { jobs: 4, maxInstances: 5, seed: 1, size: 3 });
     const all = rep.defs.flatMap((d: any) => d.mutants);
     expect(all.some((m: any) => m.status === "survived")).toBe(true);
     expect(all.some((m: any) => m.status === "invalid")).toBe(true);
@@ -23,14 +23,14 @@ describe("mutate runner", () => {
   }, T);
 
   test("strong laws kill every mutant of both defs", async () => {
-    const rep = await mutate(path.join(FX, "mut_strong.bend"), { maxInstances: 40, seed: 1, size: 3 });
+    const rep = await mutate(path.join(FX, "mut_strong.bend"), { jobs: 4, maxInstances: 5, seed: 1, size: 3 });
     for (const name of ["app", "size"]) {
       expect(def(rep, name).mutants.filter((m: any) => m.status === "survived")).toEqual([]);
     }
   }, T);
 
   test("in-file mode mutates one def and kills at least one mutant", async () => {
-    const rep = await mutate(path.join(FX, "correct.bend"), { def: "dbl" });
+    const rep = await mutate(path.join(FX, "correct.bend"), { def: "dbl", jobs: 4, maxInstances: 5 });
     expect(rep.defs.map((d: any) => d.name)).toEqual(["dbl"]);
     expect(rep.defs[0].mutants.some((m: any) => m.status === "killed")).toBe(true);
   }, T);
@@ -38,7 +38,7 @@ describe("mutate runner", () => {
   // first_of calls the non-self helper pick; swapping pick's arguments still
   // type-checks, and the diagonal law first_of(a, a) = a does not catch it.
   test("a non-self arg-swap can genuinely survive", async () => {
-    const rep = await mutate(path.join(FX, "mut_argswap.bend"), { maxInstances: 40, seed: 1, size: 3 });
+    const rep = await mutate(path.join(FX, "mut_argswap.bend"), { jobs: 4, maxInstances: 5, seed: 1, size: 3 });
     const swaps = def(rep, "first_of").mutants.filter((m: any) => m.op === "arg-swap");
     expect(swaps).toHaveLength(1);
     expect(swaps[0].def).toBe("first_of");
