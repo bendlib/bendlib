@@ -67,7 +67,7 @@ app   3/3 valid mutants killed · 0 survived · 7 invalid
 3 survivor(s): your laws do not pin these changes. A survivor can also be an equivalent mutant (same behaviour); check it by hand.
 ```
 
-Exit codes: 0 no survivors · 1 at least one survivor · 2 usage, load, tool error, or an `error` mutant. A survivor shows a weakness of the laws for these operators; zero survivors does not prove the laws pin the def.
+Exit codes: 0 no survivors · 1 at least one survivor · 2 usage, load, tool error, or an `error` mutant. A target with no mutable defs is a usage error (`no mutable defs`), never `no survivors`. A survivor shows a weakness of the laws for these operators; zero survivors does not prove the laws pin the def.
 
 ## Known limits (v0.1)
 
@@ -77,5 +77,6 @@ Exit codes: 0 no survivors · 1 at least one survivor · 2 usage, load, tool err
 - Values are kept small because the checker evaluates unary `Nat`s: random `Nat`s are drawn from `0..min(maxNat, max(6, 3·size))`, so `--max-nat` (default 30) bounds them. An instance whose evaluation overflows the checker's unary `Nat`s (such as `Nat.pow(20n, 25n)`) is dropped as too large to evaluate and reported on the law's line; it neither passes nor fails the law, and if every instance is dropped this way the law is skipped. Types with no generator (`F32`, `Array`, `Map`, `IO`, indexed families) make lawcheck skip the law and name the type.
 - If the file, or anything it imports, fails to type-check, no instance can be evaluated, because bend re-checks imports (F8). lawcheck exits 2 and shows the checker's error. This includes a file with no laws at all: lawcheck validates the target up front, so a rejected file exits 2 rather than reporting `0 laws`. Open laws are fine.
 - Hub imports (`0x…`) are re-imported by their hash. That path has not been exercised yet.
+- A target directory is a typed load error (exit 2), never a raw stack. A target path containing whitespace is copied into the batch temp directory under a safe basename (bend `import` lines are unquoted) with its local imports rewritten to absolute realpaths; a symlink to such a path works the same way.
 - Batch files are left in `$TMPDIR/lawcheck-*` (the path is printed) and are never deleted.
 - lawcheck is tested only on bend 2.0.27.

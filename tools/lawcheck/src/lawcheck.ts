@@ -433,6 +433,24 @@ function rootFor(file: string, impl: string | undefined, tmp: string): string {
   return out;
 }
 
+/** Copy a whitespace-path root into `tmp` under a safe basename (bend import lines are unquoted). */
+function safeRoot(file: string, tmp: string): string {
+  const real = fs.existsSync(file) ? fs.realpathSync(file) : file;
+  if (!/[\s"']/.test(real)) return file;
+  if (!fs.statSync(real).isFile()) return file;
+  const dir = path.dirname(real);
+  const lines = fs.readFileSync(real, "utf8").split("\n");
+  lines.forEach((l, i) => {
+    const m = /^import\s+(\.{1,2}\/\S+\.bend)(\s+as\s+\S+)?\s*$/.exec(l.trim());
+    if (m === null) return;
+    const abs = path.resolve(dir, m[1]);
+    lines[i] = `import ${fs.existsSync(abs) ? fs.realpathSync(abs) : abs}${m[2] ?? ""}`;
+  });
+  const out = path.join(tmp, `root_${path.basename(real).replace(/[^\w.-]/g, "_")}`);
+  fs.writeFileSync(out, lines.join("\n"));
+  return out;
+}
+
 export class UsageError extends Error {}
 
 /** Basenames of loaded non-Base files whose comment/string-stripped source has `@unsafe`. */
@@ -457,7 +475,7 @@ export async function lawcheck(file: string, o: Options): Promise<Report> {
   const abs = path.resolve(file);
   if (!fs.existsSync(abs)) throw new UsageError(`no such file: ${file}`);
   const tmp = o.tmpDir ?? fs.mkdtempSync(path.join(os.tmpdir(), "lawcheck-"));
-  const root = rootFor(abs, o.impl, tmp);
+  const root = safeRoot(rootFor(abs, o.impl, tmp), tmp);
   const L = await load(root);
   validate(L);
   const own = decls(L, { scope: "own" });
@@ -772,8 +790,9 @@ export async function mutate(file: string, o: MutateOptions): Promise<MutateRepo
     if (!fs.existsSync(target)) throw new UsageError(`--impl: no such file: ${o.impl}`);
     mode = "impl";
   } else {
+    const rootL = await load(abs);
     const locals = localImports(fs.readFileSync(abs, "utf8"));
-    const rootDecls = decls(await load(abs), { scope: "own" });
+    const rootDecls = decls(rootL, { scope: "own" });
     const rootLaws = new Set(rootDecls.filter((d) => d.kind === "law").map((d) => d.name));
     const hasDef = rootDecls.some((d) => (d.kind === "def" || d.kind === "template") && !rootLaws.has(d.name));
     if (locals.length === 1 && !hasDef) { target = path.resolve(path.dirname(abs), locals[0]); mode = "impl"; }
@@ -788,8 +807,10 @@ export async function mutate(file: string, o: MutateOptions): Promise<MutateRepo
     if (one.length === 0) throw new UsageError(`no mutable def named ${o.def} in ${path.relative(process.cwd(), target)}`);
     defs = one;
   }
+  if (defs.length === 0) throw new UsageError(`no mutable defs in ${path.relative(process.cwd(), target)}`);
   const fillNames = mode === "in-file" ? own.filter((d) => d.kind === "law" && d.proved).map((d) => d.name) : [];
   const targetText = fs.readFileSync(target, "utf8");
+  const safeBase = path.basename(target).replace(/[^\w.-]/g, "_");
 
   const baseDir = path.join(tmp, "base");
   fs.mkdirSync(baseDir, { recursive: true });
@@ -797,7 +818,7 @@ export async function mutate(file: string, o: MutateOptions): Promise<MutateRepo
   if (mode === "impl") {
     baseReport = await lawcheck(abs, { ...opts, impl: target, tmpDir: baseDir });
   } else {
-    const basePath = path.join(baseDir, path.basename(target));
+    const basePath = path.join(baseDir, safeBase);
     fs.writeFileSync(basePath, stripFills(targetText, fillNames));
     baseReport = await lawcheck(basePath, { ...opts, impl: undefined, tmpDir: baseDir });
   }
@@ -814,7 +835,7 @@ export async function mutate(file: string, o: MutateOptions): Promise<MutateRepo
       const m = ms[i];
       const dir = path.join(tmp, "mut", `${d.name}_${i}`);
       fs.mkdirSync(dir, { recursive: true });
-      const mutantPath = path.join(dir, path.basename(target));
+      const mutantPath = path.join(dir, safeBase);
       fs.writeFileSync(mutantPath, mode === "in-file" ? stripFills(m.text, fillNames) : m.text);
       const runOpts: Options = { ...opts, shrink: false, firstFail: true, tmpDir: dir, impl: mode === "impl" ? mutantPath : undefined };
       const res: MutantResult = { id: m.id, def: d.name, op: m.op, line: m.line, before: m.before, after: m.after, status: "survived" };
