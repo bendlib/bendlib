@@ -57,7 +57,7 @@ export function namesByHash(names: NameRecord[]): Map<string, PkgName[]> {
 
 export type Group = { key: string; latest: Package; members: Package[] };
 
-const versionKey = (v: string) => v.split(".").map((x) => x.padStart(8, "0")).join(".");
+export const versionKey = (v: string) => v.split(".").map((x) => x.padStart(8, "0")).join(".");
 const newest = (a: Package, b: Package) => {
   const va = a.names[0]?.version, vb = b.names[0]?.version;
   if (va && vb && va !== vb) return versionKey(va) > versionKey(vb) ? a : b;
@@ -84,6 +84,30 @@ export function displayOrder(pkgs: Package[]): Package[] {
     const na = a.names.length > 0 ? 0 : 1, nb = b.names.length > 0 ? 0 : 1;
     return na - nb || b.ts - a.ts || a.hash.localeCompare(b.hash);
   });
+}
+
+export type ApiDiff = { added: string[]; removed: string[]; changed: string[] };
+
+// The declaration kinds that make up a package's API; effects and unsafe defs are not compared.
+const API_KINDS = new Set(["def", "law", "template", "type", "ctor"]);
+
+/** Compares two packages' APIs by `<module path>/<decl name>`; `changed` means the signature differs. */
+export function apiDiff(older: Package, newer: Package): ApiDiff {
+  const index = (p: Package) => {
+    const m = new Map<string, string>();
+    for (const mod of p.modules) for (const d of mod.decls ?? []) {
+      if (API_KINDS.has(d.kind)) m.set(`${mod.path}/${d.name}`, d.signature);
+    }
+    return m;
+  };
+  const a = index(older), b = index(newer);
+  const added: string[] = [], removed: string[] = [], changed: string[] = [];
+  for (const [k, sig] of b) {
+    if (!a.has(k)) added.push(k);
+    else if (a.get(k) !== sig) changed.push(k);
+  }
+  for (const k of a.keys()) if (!b.has(k)) removed.push(k);
+  return { added: added.sort(), removed: removed.sort(), changed: changed.sort() };
 }
 
 const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

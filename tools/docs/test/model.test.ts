@@ -2,7 +2,7 @@
 // may count as checking for its package.
 
 import { describe, expect, test } from "bun:test";
-import { defBody, fillerLine, finishPackage, hasHole, moduleHeader, type Module, type Package } from "../src/model.ts";
+import { apiDiff, defBody, fillerLine, finishPackage, hasHole, moduleHeader, type Module, type Package } from "../src/model.ts";
 import type { DocDecl } from "../src/extract.ts";
 import { declIds } from "../src/render.ts";
 import type { FileStatus } from "../src/status.ts";
@@ -98,5 +98,20 @@ describe("module header", () => {
   });
   test("a bare # line becomes an empty line, which the renderer turns into a paragraph break", () => {
     expect(moduleHeader("# a\n#\n# b\n\n")).toBe("a\n\nb");
+  });
+});
+
+describe("apiDiff", () => {
+  const decl = (name: string, kind: DocDecl["kind"], signature: string): DocDecl => ({ name, kind, line: 1, doc: null, signature });
+  const version = (decls: DocDecl[]): Package => pkg([mod("m.bend", decls, null)]);
+  test("added, removed and changed signatures by module/name; an unchanged declaration is not reported", () => {
+    const older = version([decl("keep", "def", "a"), decl("gone", "law", "b"), decl("moved", "type", "c")]);
+    const newer = version([decl("keep", "def", "a"), decl("new", "def", "d"), decl("moved", "type", "c2")]);
+    expect(apiDiff(older, newer)).toEqual({ added: ["m.bend/new"], removed: ["m.bend/gone"], changed: ["m.bend/moved"] });
+  });
+  test("only API kinds count (effects and unsafe defs are ignored) and lists are sorted", () => {
+    const older = version([decl("keep", "def", "x"), decl("z", "effect", "e"), decl("u", "unsafe", "u")]);
+    const newer = version([decl("keep", "def", "x"), decl("a", "def", "x"), decl("c", "template", "y")]);
+    expect(apiDiff(older, newer)).toEqual({ added: ["m.bend/a", "m.bend/c"], removed: [], changed: [] });
   });
 });

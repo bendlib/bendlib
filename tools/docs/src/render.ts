@@ -4,8 +4,8 @@
 import { posix } from "node:path";
 import type { DocDecl } from "./extract.ts";
 import type { Edge } from "./imports.ts";
-import { HUB } from "./hub.ts";
-import { groupPackages, label, published, shortHash, type Module, type Package, type Site } from "./model.ts";
+import { HUB, type NameRecord } from "./hub.ts";
+import { apiDiff, groupPackages, label, published, shortHash, versionKey, type Module, type Package, type Site } from "./model.ts";
 import type { FileClass } from "./status.ts";
 
 export const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
@@ -287,8 +287,25 @@ export function renderName(site: Site, name: string): string {
   }).join("");
   const body = `<nav class="crumbs" aria-label="Breadcrumb"><a href="${rel(path, "index.html")}">Packages</a> / ${esc(name)}</nav>
 <h1>${esc(name)}</h1><p class="lead">${esc(rec.latest.desc)}</p><p>Owner: ${esc(rec.owner_login)}</p>
-<h2>Versions</h2><div class="tablewrap"><table class="files"><thead><tr><th scope="col">Version</th><th scope="col">Hash</th><th scope="col">Status</th><th scope="col" class="num">Named on</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+<h2>Versions</h2><div class="tablewrap"><table class="files"><thead><tr><th scope="col">Version</th><th scope="col">Hash</th><th scope="col">Status</th><th scope="col" class="num">Named on</th></tr></thead><tbody>${rows}</tbody></table></div>
+${changesHtml(site, rec)}`;
   return page({ path, title: `${name} · Bend Docs`, body, site, description: rec.latest.desc });
+}
+
+/** "Changes between versions" for the versions present in this build, oldest pair first. */
+function changesHtml(site: Site, rec: NameRecord): string {
+  const built = [...rec.versions].filter((v) => site.byHash.has(v.hash)).sort((a, b) => versionKey(a.version).localeCompare(versionKey(b.version)));
+  if (built.length < 2) return "";
+  const list = (xs: string[]) => xs.map((n) => `<code>${esc(n)}</code>`).join(", ");
+  const items = built.slice(1).map((v, i) => {
+    const d = apiDiff(site.byHash.get(built[i].hash)!, site.byHash.get(v.hash)!);
+    const parts: string[] = [];
+    if (d.added.length) parts.push(`added: ${list(d.added)}`);
+    if (d.removed.length) parts.push(`removed: ${list(d.removed)} <span class="st st-fails">breaking</span>`);
+    if (d.changed.length) parts.push(`changed: ${list(d.changed)} <span class="st st-fails">breaking</span>`);
+    return `<li><code>${esc(built[i].version)}</code> → <code>${esc(v.version)}</code>: ${parts.length > 0 ? parts.join("; ") : "no API changes"}</li>`;
+  }).join("");
+  return `<h2>Changes between versions</h2><ul class="edges">${items}</ul>`;
 }
 
 export function renderSearch(site: Site): string {
