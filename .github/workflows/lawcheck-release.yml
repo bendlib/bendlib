@@ -1,0 +1,57 @@
+name: lawcheck-release
+on:
+  push:
+    tags: ["lawcheck-v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      BEND_NO_TELEMETRY: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun tools/install-bend.ts
+      - run: bun test tools/lawcheck tools/reader
+      - name: tag matches VERSION
+        run: |
+          have=$(sed -n 's/^export const VERSION = "\(.*\)";$/\1/p' tools/lawcheck/src/lawcheck.ts)
+          want="${GITHUB_REF_NAME#lawcheck-v}"
+          if [ "$have" != "$want" ]; then
+            echo "tag $GITHUB_REF_NAME does not match VERSION $have" >&2
+            exit 1
+          fi
+      - name: build standalone binaries
+        run: |
+          mkdir -p "$RUNNER_TEMP/out"
+          bun build --compile tools/lawcheck/cli.ts --target=bun-linux-x64   --outfile "$RUNNER_TEMP/out/lawcheck-linux-x64"
+          bun build --compile tools/lawcheck/cli.ts --target=bun-linux-arm64 --outfile "$RUNNER_TEMP/out/lawcheck-linux-arm64"
+          bun build --compile tools/lawcheck/cli.ts --target=bun-darwin-x64  --outfile "$RUNNER_TEMP/out/lawcheck-darwin-x64"
+          bun build --compile tools/lawcheck/cli.ts --target=bun-darwin-arm64 --outfile "$RUNNER_TEMP/out/lawcheck-darwin-arm64"
+      - name: smoke test the linux-x64 binary
+        run: |
+          BIN="$RUNNER_TEMP/out/lawcheck-linux-x64"
+          "$BIN" --version | grep -qx "lawcheck ${GITHUB_REF_NAME#lawcheck-v}"
+          "$BIN" tools/lawcheck/test/fixtures/correct.bend --max-instances 10
+          set +e
+          "$BIN" tools/lawcheck/test/fixtures/buggy.bend --max-instances 30
+          code=$?
+          set -e
+          if [ "$code" -ne 1 ]; then
+            echo "buggy.bend exited $code, expected 1" >&2
+            exit 1
+          fi
+      - name: checksums
+        run: |
+          cd "$RUNNER_TEMP/out"
+          sha256sum lawcheck-* > SHA256SUMS
+      - name: create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" "$RUNNER_TEMP"/out/* \
+            --title "lawcheck ${GITHUB_REF_NAME#lawcheck-v}" \
+            --notes "Standalone lawcheck binaries for ${GITHUB_REF_NAME}. Download \`lawcheck-<os>-<arch>\`, \`chmod +x\`, and put it on PATH. It needs \`bend\` installed; the first run downloads the matching \`bend.ts\`."

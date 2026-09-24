@@ -2,6 +2,10 @@
 
 `lawcheck` looks for counterexamples to the `law`s of a Bend 2 file before anyone tries to prove them, and shrinks the ones it finds. **It never proves anything.** A ✓ only means that no counterexample turned up among the instances it tried.
 
+## Install
+
+Download `lawcheck-<os>-<arch>` from the latest `lawcheck-v*` release at https://github.com/bendlib/bendlib/releases, `chmod +x`, and put it on PATH. It needs `bend` installed; the first run downloads the matching `bend.ts` (network).
+
 ```sh
 bun tools/lawcheck/cli.ts LAWS.bend                  # every law in the file, open or proved
 bun tools/lawcheck/cli.ts LAWS.bend --law ins_sorted # one law
