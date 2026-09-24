@@ -393,11 +393,16 @@ modules from JS). Dogfooding where laws add value; TypeScript for plumbing.
 Steps 1–3 of the first build order shipped in one day: pinned toolchain and CI; `@bendlib/reader`
 (the §2 keystone, renamed); bend-mathlib 0.1.0.0 and 0.1.0.1 on the hub (72 lemmas, 47 `_sym` twins,
 4 predicates) with lint, erasure, twins, lock, index and release tools; lawcheck v0.1 (engine C,
-shrinking, premises, user datatypes, `--json`, `--impl`); Bend Docs v0.1 live at
+shrinking, premises, user datatypes, `--json`, `--impl`) — it now ships as **0.2.0** with mutation
+mode, `where`/`exs` and a template catalog (`tools/lawcheck/src/lawcheck.ts` `VERSION = "0.2.0"`);
+Bend Docs v0.1 live at
 https://bendlib.github.io/bendlib/ (every hub package, checked status, reverse deps, law-shape search,
 hourly rebuild); launch demo, hub post and X thread. Not built: `devlib` (no second package needs it
-yet), a sandbox for docs checking, template generators, source view. Landed since this snapshot:
-mutation mode except its CLI entry (bead `bend-23x.5`; `tools/lawcheck/src/mutate.ts`), API diff
+yet; `tools/mathlib/devlib.ts` absent) and template generators. Landed since this snapshot (status
+refreshed 2026-09-24):
+mutation mode with its CLI entry (bead `bend-23x.5`; `tools/lawcheck/src/mutate.ts`, `tools/lawcheck/cli.ts`),
+a sandbox for docs checking (`tools/docs/src/status.ts` `sandboxAvailable`/`checkCommand`, bwrap) and a
+source view (`tools/docs/src/render.ts` `srcPage`/`renderSource`), API diff
 between versions (`tools/docs/src/model.ts` `apiDiff`), agent-facing `llms.txt`/`lemmas.txt`
 (`tools/docs/build.ts`), and a local preview of a local entry file (`tools/docs/build.ts --local
 entry.bend`).
@@ -428,22 +433,32 @@ compounds on both (mathlib is its showcase package) but is already live, so it g
    predicates; `perm` count-based vs inductive (D3). Then the kernel package, published once by the
    owner, and the perm lemmas that import it by hash.
 
-**Track L: lawcheck 0.2**
-1. Fixes: too-large instances (F31); the reader bug with several constructors on one line.
-2. `lawcheck mutate` (PLAN §4.3), built in three beads: pure mutation operators
+**Track L: lawcheck 0.2** — done (status refreshed 2026-09-24)
+1. **Done.** Fixes: too-large instances (F31; PLAN F31) and the reader bug with several constructors
+   on one line (`tools/reader/test/reader.test.ts`, `fixtures/ctors_one_line.bend`).
+2. **Done.** `lawcheck mutate` (PLAN §4.3), built in three beads: pure mutation operators
    (`src/mutate.ts`, unit-tested without bend), a runner that re-uses the `--impl` machinery per
-   mutant (killed / survived / invalid), and the CLI with human and `--json` output. A planted
+   mutant (killed / survived / invalid), and the CLI with human and `--json` output (the `mutate`
+   entry in `tools/lawcheck/cli.ts`). A planted
    "weak laws" fixture must show survivors; a strong one must show none.
-3. Template binders from a catalog of closed functions (unskips `foldr_append`, `map_append`, …).
-4. Binary release (F30): a tag-triggered workflow builds four targets; the owner pushes the tag.
-5. Nightly: reader and lawcheck tests on the newest compiler (early warning, like mathlib's).
+3. **Done.** Template binders from a catalog of closed functions (unskips `foldr_append`, `map_append`, …)
+   (`tools/lawcheck/src/lawcheck.ts` `CATALOG`).
+4. **Done.** Binary release (F30): a tag-triggered workflow builds four targets
+   (`.github/workflows/lawcheck-release.yml`); the owner pushes the tag.
+5. **Done.** Nightly: reader and lawcheck tests on the newest compiler (`.github/workflows/ci.yml`
+   `latest-compiler`, `if: github.event_name == 'schedule'`).
 
-**Track D: docs**
-1. Module header comments on module pages; a "Document your package" page; `llms.txt` and
-   `lemmas.txt` for AI agents.
-2. Status honesty: a file whose source holds `@unsafe` is never shown as `checks` (F33).
-3. API diff between consecutive versions of a named package; `bend-docs build <dir>` local preview.
-4. Later: source view, sandboxed checking, the domain (owner buys; D2).
+**Track D: docs** — items 1–3 done, plus source view and sandboxed checking (status refreshed 2026-09-24)
+1. **Done.** Module header comments on module pages (`tools/docs/src/model.ts` `moduleHeader`); a
+   "Document your package" page (`tools/docs/src/render.ts` `renderAuthors`); `llms.txt` and
+   `lemmas.txt` for AI agents (`tools/docs/build.ts`).
+2. **Done.** Status honesty: a file whose source holds `@unsafe` is never shown as `checks` (F33;
+   `tools/docs/src/status.ts` `crossCheck`).
+3. **Done.** API diff between consecutive versions of a named package (`tools/docs/src/model.ts`
+   `apiDiff`); `bend-docs build <dir>` local preview (`tools/docs/build.ts --local`).
+4. **Todo (owner).** The domain (owner buys; D2). Source view and sandboxed checking landed
+   (`tools/docs/src/render.ts` `srcPage`/`renderSource`; `tools/docs/src/status.ts`
+   `sandboxAvailable`/`checkCommand`).
 
 **Owner-only beads** (label `owner`): releases and hub publishing, `bend link`, frozen-definition
 decisions, git tags that trigger releases, contacting people, buying the domain. Agents never do
