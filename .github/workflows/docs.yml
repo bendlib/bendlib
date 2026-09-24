@@ -1,0 +1,48 @@
+name: docs
+on:
+  push:
+    branches: [main]
+    paths: ["tools/docs/**", "tools/reader/**", "toolchain.json", ".github/workflows/docs.yml"]
+  schedule:
+    - cron: "23 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      BEND_NO_TELEMETRY: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun tools/install-bend.ts
+      - uses: actions/cache@v4
+        with:
+          path: |
+            tools/docs/.cache
+            ~/.cache/bendlib
+          key: docs-${{ hashFiles('toolchain.json') }}-${{ github.run_id }}
+          restore-keys: docs-${{ hashFiles('toolchain.json') }}-
+      - run: bun tools/docs/build.ts --jobs 4
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: tools/docs/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

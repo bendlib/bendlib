@@ -34,3 +34,5 @@ venv/
 .cache/
 .ntm/
 .claude/
+tools/docs/dist/
+tools/docs/.cache/
