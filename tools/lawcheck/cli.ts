@@ -1,41 +1,50 @@
 #!/usr/bin/env bun
 // lawcheck: search for counterexamples to the laws of a Bend 2 file before anyone
-// tries to prove them, and shrink them. Passing laws are NOT proved.
+// tries to prove them, and shrink them. Passing laws are NOT proved. `mutate`
+// checks the laws against every small mutant of the target's defs instead.
 // usage: bun tools/lawcheck/cli.ts <file.bend> [--impl <file>] [--size N]
 //          [--max-instances N] [--max-nat N] [--seed S] [--json] [--law name] [--jobs N] [--timeout MS]
+//        bun tools/lawcheck/cli.ts mutate <laws.bend> [--impl <file>] [--def <name>]
+//          [--json] [--max-instances N] [--seed S] [--size N] [--jobs N] [--timeout MS]
 //   --impl  check the laws against another implementation: replaces the file's
 //           local import with the same basename (or its only local import)
-// exit: 0 no counterexample · 1 counterexample found · 2 usage, load or tool error
+// exit: lawcheck 0 no counterexample · 1 counterexample found · 2 usage, load or tool error
+//       mutate 0 no survivors · 1 at least one survivor · 2 usage, load, tool error or error mutant
 
 import * as path from "node:path";
 import { BendReadError, SourceError } from "../reader/index.ts";
 
 import { ModuleError } from "./src/checker.ts";
-import { lawcheck, UsageError, type LawResult, type Options, type Report } from "./src/lawcheck.ts";
+import {
+  lawcheck, mutate, UsageError, VERSION,
+  type LawResult, type MutateOptions, type MutateReport, type Options, type Report,
+} from "./src/lawcheck.ts";
 
 const USAGE = "usage: bun tools/lawcheck/cli.ts <file.bend> [--impl <file>] [--size N] [--max-instances N] [--max-nat N] [--seed S] [--json] [--law name] [--jobs N] [--timeout MS]";
+const MUTATE_USAGE = "usage: bun tools/lawcheck/cli.ts mutate <laws.bend> [--impl <file>] [--def <name>] [--json] [--max-instances N] [--seed S] [--size N] [--jobs N] [--timeout MS]";
 
 function die(msg: string): never {
   process.stderr.write(`lawcheck: ${msg}\n`);
   process.exit(2);
 }
 
+function num(flag: string, v: string | undefined, min: number, usage: string): number {
+  const n = Number(v);
+  if (v === undefined || !Number.isInteger(n) || n < min) die(`${flag} needs an integer ≥ ${min}\n${usage}`);
+  return n;
+}
+
 function parseArgs(argv: string[]) {
   const o: Options & { file: string; json: boolean } = { file: "", json: false, size: 3, maxInstances: 200, seed: 1, maxNat: 30 };
-  const num = (flag: string, v: string | undefined, min: number) => {
-    const n = Number(v);
-    if (v === undefined || !Number.isInteger(n) || n < min) die(`${flag} needs an integer ≥ ${min}\n${USAGE}`);
-    return n;
-  };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--json") o.json = true;
-    else if (a === "--size") o.size = num(a, argv[++i], 0);
-    else if (a === "--max-instances") o.maxInstances = num(a, argv[++i], 1);
-    else if (a === "--max-nat") o.maxNat = num(a, argv[++i], 1);
-    else if (a === "--seed") o.seed = num(a, argv[++i], 0);
-    else if (a === "--jobs") o.jobs = num(a, argv[++i], 1);
-    else if (a === "--timeout") o.timeoutMs = num(a, argv[++i], 1);
+    else if (a === "--size") o.size = num(a, argv[++i], 0, USAGE);
+    else if (a === "--max-instances") o.maxInstances = num(a, argv[++i], 1, USAGE);
+    else if (a === "--max-nat") o.maxNat = num(a, argv[++i], 1, USAGE);
+    else if (a === "--seed") o.seed = num(a, argv[++i], 0, USAGE);
+    else if (a === "--jobs") o.jobs = num(a, argv[++i], 1, USAGE);
+    else if (a === "--timeout") o.timeoutMs = num(a, argv[++i], 1, USAGE);
     else if (a === "--law" || a === "--impl") {
       const v = argv[++i];
       if (v === undefined) die(`${a} needs a value\n${USAGE}`);
@@ -48,6 +57,31 @@ function parseArgs(argv: string[]) {
     else die(`one file only (got ${o.file} and ${a})\n${USAGE}`);
   }
   if (o.file === "") die(`no file given\n${USAGE}`);
+  return o;
+}
+
+function parseMutateArgs(argv: string[]) {
+  const o: MutateOptions & { file: string; json: boolean } = { file: "", json: false, size: 3, maxInstances: 50, seed: 1 };
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (a === "--json") o.json = true;
+    else if (a === "--size") o.size = num(a, argv[++i], 0, MUTATE_USAGE);
+    else if (a === "--max-instances") o.maxInstances = num(a, argv[++i], 1, MUTATE_USAGE);
+    else if (a === "--seed") o.seed = num(a, argv[++i], 0, MUTATE_USAGE);
+    else if (a === "--jobs") o.jobs = num(a, argv[++i], 1, MUTATE_USAGE);
+    else if (a === "--timeout") o.timeoutMs = num(a, argv[++i], 1, MUTATE_USAGE);
+    else if (a === "--def" || a === "--impl") {
+      const v = argv[++i];
+      if (v === undefined) die(`${a} needs a value\n${MUTATE_USAGE}`);
+      if (a === "--def") o.def = v; else o.impl = v;
+    } else if (a === "-h" || a === "--help") {
+      console.log(MUTATE_USAGE);
+      process.exit(0);
+    } else if (a.startsWith("-")) die(`unknown flag ${a}\n${MUTATE_USAGE}`);
+    else if (o.file === "") o.file = a;
+    else die(`one file only (got ${o.file} and ${a})\n${MUTATE_USAGE}`);
+  }
+  if (o.file === "") die(`no file given\n${MUTATE_USAGE}`);
   return o;
 }
 
@@ -97,17 +131,61 @@ function lawLine(l: LawResult, r: Report): string {
   }
 }
 
-const o = parseArgs(process.argv.slice(2));
-let report: Report;
-try {
-  report = await lawcheck(o.file, o);
-} catch (e) {
-  if (e instanceof UsageError) die(`${e.message}\n${USAGE}`);
-  if (e instanceof BendReadError) die(`cannot load ${o.file}:\n${e.message}`);
-  if (e instanceof SourceError) die(e.message);
-  if (e instanceof ModuleError) die(`${o.file} does not type-check, so no instance can be evaluated:\n${e.message}`);
-  throw e;
+function humanMutate(r: MutateReport): string {
+  const w = Math.max(...r.defs.map((d) => d.name.length), 4);
+  const impl = r.impl === null ? "in-file" : `impl ${path.basename(r.impl)}`;
+  const out = [`lawcheck mutate ${r.version} · ${path.relative(process.cwd(), r.file)} (${impl}) · bend ${r.bend} · ≤${r.maxInstances} instances/law`];
+  let survivors = 0;
+  for (const d of r.defs) {
+    const killed = d.mutants.filter((m) => m.status === "killed").length;
+    const survived = d.mutants.filter((m) => m.status === "survived").length;
+    const invalid = d.mutants.filter((m) => m.status === "invalid").length;
+    survivors += survived;
+    out.push(`${d.name.padEnd(w)}  ${killed}/${killed + survived} valid mutants killed · ${survived} survived · ${invalid} invalid`);
+    for (const m of d.mutants) if (m.status === "survived") out.push(`${" ".repeat(w + 2)}survived  ${m.op}  line ${m.line}  ${m.before} → ${m.after}`);
+  }
+  out.push(survivors === 0 ? "no survivors: every valid mutant broke a law." : `${survivors} survivor(s): your laws do not pin these changes. A survivor can also be an equivalent mutant (same behaviour); check it by hand.`);
+  return out.join("\n");
 }
-console.log(o.json ? JSON.stringify(report, null, 2) : human(report));
-const has = (s: LawResult["status"]) => report.laws.some((l) => l.status === s);
-process.exit(has("fail") ? 1 : has("error") ? 2 : 0);
+
+async function runLawcheck(argv: string[]) {
+  const o = parseArgs(argv);
+  let report: Report;
+  try {
+    report = await lawcheck(o.file, o);
+  } catch (e) {
+    if (e instanceof UsageError) die(`${e.message}\n${USAGE}`);
+    if (e instanceof BendReadError) die(`cannot load ${o.file}:\n${e.message}`);
+    if (e instanceof SourceError) die(e.message);
+    if (e instanceof ModuleError) die(`${o.file} does not type-check, so no instance can be evaluated:\n${e.message}`);
+    throw e;
+  }
+  console.log(o.json ? JSON.stringify(report, null, 2) : human(report));
+  const has = (s: LawResult["status"]) => report.laws.some((l) => l.status === s);
+  process.exit(has("fail") ? 1 : has("error") ? 2 : 0);
+}
+
+async function runMutate(argv: string[]) {
+  const o = parseMutateArgs(argv);
+  let report: MutateReport;
+  try {
+    report = await mutate(o.file, o);
+  } catch (e) {
+    if (e instanceof UsageError) die(`${e.message}\n${MUTATE_USAGE}`);
+    if (e instanceof BendReadError) die(`cannot load ${o.file}:\n${e.message}`);
+    if (e instanceof SourceError) die(e.message);
+    if (e instanceof ModuleError) die(`${o.file} does not type-check:\n${e.message}`);
+    throw e;
+  }
+  console.log(o.json ? JSON.stringify(report, null, 2) : humanMutate(report));
+  const ms = report.defs.flatMap((d) => d.mutants);
+  process.exit(ms.some((m) => m.status === "error") ? 2 : ms.some((m) => m.status === "survived") ? 1 : 0);
+}
+
+const argv = process.argv.slice(2);
+if (argv.includes("--version")) {
+  console.log(`lawcheck ${VERSION}`);
+  process.exit(0);
+}
+if (argv[0] === "mutate") await runMutate(argv.slice(1));
+else await runLawcheck(argv);

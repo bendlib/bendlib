@@ -40,6 +40,31 @@ Claim kinds:
 - **Implication premises** (a binder whose type is an equation or a predicate application, such as `for h: {is_sorted(xs) == True{} : Bool}` or `for ab: le(a, b)`) are evaluated first. An instance whose premise fails is dropped, and the output reports how many instances satisfied the premises. When no instance does, the law is reported as vacuous.
 - A **refutation** (claim `Empty` with premises) fails when some instance satisfies all of its premises.
 
+## Mutation mode
+
+`lawcheck mutate LAWS.bend` checks the laws against every small mutant of the target's defs. A mutant is **killed** when some law finds a counterexample on it, **survived** when every law passes (the laws do not pin that change), and **invalid** when it does not type-check (discarded, never a kill). A survivor can also be an equivalent mutant (same behaviour) — check it by hand.
+
+Operators: `arm-swap`/`arm-copy` (swap or copy `match` arm bodies), `literal` (`0n↔1n`, `True{}↔False{}`), `drop-succ` (`1n+E → E`), `drop-cons` (`A <> B → B`), `arg-swap` (swap adjacent call arguments), `projection` (replace the body with a parameter or a constant), `base-swap` (`Nat.is_le↔Nat.is_lt`, `&&↔||`, `Nat.add→Nat.sub`, …).
+
+```sh
+bun tools/lawcheck/cli.ts mutate LAWS.bend                 # all defs
+bun tools/lawcheck/cli.ts mutate LAWS.bend --def app       # one def
+bun tools/lawcheck/cli.ts mutate LAWS.bend --json          # machine output
+```
+
+```
+$ bun tools/lawcheck/cli.ts mutate tools/lawcheck/test/fixtures/mut_weak.bend
+lawcheck mutate 0.2.0 · tools/lawcheck/test/fixtures/mut_weak.bend (impl lib_ok.bend) · bend 2.0.27 · ≤50 instances/law
+size  1/4 valid mutants killed · 3 survived · 6 invalid
+      survived  arm-copy  line 12  1n+size(r) → 0n
+      survived  drop-succ  line 12  1n+size(r) → size(r)
+      survived  projection  line 8  match s: → 0n
+app   3/3 valid mutants killed · 0 survived · 7 invalid
+3 survivor(s): your laws do not pin these changes. A survivor can also be an equivalent mutant (same behaviour); check it by hand.
+```
+
+Exit codes: 0 no survivors · 1 at least one survivor · 2 usage, load, tool error, or an `error` mutant. A survivor shows a weakness of the laws for these operators; zero survivors does not prove the laws pin the def.
+
 ## Known limits (v0.1)
 
 - A law whose evaluation rests on `@unsafe` or foreign code is skipped, never passed: the checker's `All terms check, but N defs rely on unsafe or foreign code:` verdict is surfaced with its reliance count. A `✓` always means the checker's own verdict was clean.
