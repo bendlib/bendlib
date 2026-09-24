@@ -4,8 +4,9 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { decls, load, show, type Decl, type Loaded } from "../../reader/index.ts";
-import { bendBin, evaluate, evaluateAll, type Engine, type Item, type Outcome } from "./checker.ts";
+import { BendReadError, decls, load, show, type Decl, type Loaded } from "../../reader/index.ts";
+import { bendBin, evaluate, evaluateAll, ModuleError, type Engine, type Item, type Outcome } from "./checker.ts";
+import { defSpan, mutants } from "./mutate.ts";
 import { mentions, rewrite, Shadowed, splitEquation } from "./terms.ts";
 import { parseTy, showTy, substTy, type Ty } from "./types.ts";
 import { measure, mulberry32, render, Universe, Unsupported, type Adt, type Rng, type Val } from "./values.ts";
@@ -20,7 +21,11 @@ export type Options = {
   timeoutMs?: number;
   tmpDir?: string;
   maxNat?: number;
+  shrink?: boolean;
+  firstFail?: boolean;
 };
+
+export type MutateOptions = Partial<Options> & { def?: string };
 
 export type Binding = { name: string; value: string };
 
@@ -54,6 +59,17 @@ export type LawResult = {
 };
 
 export type Report = { tool: "lawcheck"; version: string; bend: string; file: string; seed: number; size: number; maxInstances: number; tmpDir: string; checkerRuns: number; laws: LawResult[] };
+
+export type MutantResult = {
+  id: string; def: string; op: string; line: number; before: string; after: string;
+  status: "killed" | "survived" | "invalid" | "error"; law?: string; detail?: string;
+};
+
+export type MutateReport = {
+  tool: "lawcheck-mutate"; version: string; bend: string; file: string; impl: string | null;
+  seed: number; maxInstances: number; tmpDir: string;
+  defs: { name: string; mutants: MutantResult[] }[];
+};
 
 export const VERSION = "0.1.0";
 
@@ -319,7 +335,17 @@ export async function lawcheck(file: string, o: Options): Promise<Report> {
   const all = own.filter((d) => d.kind === "law");
   const laws = all.filter((d) => o.law === undefined || d.name === o.law);
   if (o.law !== undefined && laws.length === 0) throw new UsageError(`no law named ${o.law} in ${file}`);
-  const results = await Promise.all(laws.map((d) => checkLaw(L, d, all.indexOf(d), o, U, predicates, E, qualify, nameOut)));
+  let results: LawResult[];
+  if (o.firstFail) {
+    results = [];
+    for (const d of laws) {
+      const r = await checkLaw(L, d, all.indexOf(d), o, U, predicates, E, qualify, nameOut);
+      results.push(r);
+      if (r.status === "fail") break;
+    }
+  } else {
+    results = await Promise.all(laws.map((d) => checkLaw(L, d, all.indexOf(d), o, U, predicates, E, qualify, nameOut)));
+  }
   for (const r of results) r.file = abs;
   return { tool: "lawcheck", version: VERSION, bend: L.source.version, file: abs, seed: o.seed, size: o.size, maxInstances: o.maxInstances, tmpDir: tmp, checkerRuns: E.runs, laws: results };
 }
@@ -419,29 +445,36 @@ async function checkLaw(L: Loaded, d: Decl, li: number, o: Options, U: Universe,
       return { ...base, status: "pass" };
     }
     const size = (x: Inst) => x.vals.reduce((s, v) => s + measure(v), 0);
-    failing.sort((a, b) => size(a.inst) - size(b.inst));
-    const original = failing[0].inst;
-    let cur = failing[0];
+    let original: Inst;
+    let cur: { inst: Inst; out?: Outcome };
     let steps = 0;
-    for (; steps < 200; steps++) {
-      const seen = new Set<string>();
-      const cands: Inst[] = [];
-      cur.inst.vals.forEach((v, i) => {
-        for (const s of U.shrink(v)) {
-          const vals = cur.inst.vals.map((w, j) => (j === i ? s : w));
-          const k = vals.map((x) => render(x)).join("|");
-          if (!seen.has(k)) { seen.add(k); cands.push({ vals, types: cur.inst.types }); }
-        }
-      });
-      cands.sort((a, b) => size(a) - size(b));
-      const ok = await holding(cands.slice(0, 300));
-      if (typeof ok === "string" || ok.kept.length === 0) break;
-      if (p.kind === "refutation") { cur = { inst: ok.kept[0] }; continue; }
-      const items = ok.kept.map((inst) => ({ id: id(), claim: texts(inst).claim }));
-      const res = await evaluate(E, items, true);
-      const hit = items.findIndex((it) => res.get(it.id)?.r === "fail");
-      if (hit < 0) break;
-      cur = { inst: ok.kept[hit], out: res.get(items[hit].id) };
+    if (o.shrink === false) {
+      original = failing[0].inst;
+      cur = failing[0];
+    } else {
+      failing.sort((a, b) => size(a.inst) - size(b.inst));
+      original = failing[0].inst;
+      cur = failing[0];
+      for (; steps < 200; steps++) {
+        const seen = new Set<string>();
+        const cands: Inst[] = [];
+        cur.inst.vals.forEach((v, i) => {
+          for (const s of U.shrink(v)) {
+            const vals = cur.inst.vals.map((w, j) => (j === i ? s : w));
+            const k = vals.map((x) => render(x)).join("|");
+            if (!seen.has(k)) { seen.add(k); cands.push({ vals, types: cur.inst.types }); }
+          }
+        });
+        cands.sort((a, b) => size(a) - size(b));
+        const ok = await holding(cands.slice(0, 300));
+        if (typeof ok === "string" || ok.kept.length === 0) break;
+        if (p.kind === "refutation") { cur = { inst: ok.kept[0] }; continue; }
+        const items = ok.kept.map((inst) => ({ id: id(), claim: texts(inst).claim }));
+        const res = await evaluate(E, items, true);
+        const hit = items.findIndex((it) => res.get(it.id)?.r === "fail");
+        if (hit < 0) break;
+        cur = { inst: ok.kept[hit], out: res.get(items[hit].id) };
+      }
     }
     const bind = (inst: Inst): Binding[] => p.values.map((v, i) => ({ name: v.name, value: render(inst.vals[i], nameOut) }));
     const t = texts(cur.inst);
@@ -454,7 +487,7 @@ async function checkLaw(L: Loaded, d: Decl, li: number, o: Options, U: Universe,
     };
     if (p.premises.length) cex.premises = t.shownPremises;
     if (cur.out?.r === "fail") { cex.expected = cur.out.expected; cex.observed = cur.out.observed; }
-    if (p.kind !== "refutation") {
+    if (o.shrink !== false && p.kind !== "refutation") {
       const hid = id();
       const g = (await evaluate(E, [{ id: hid, claim: t.claim, hole: true }])).get(hid);
       if (g?.r === "goal") {
@@ -471,4 +504,153 @@ async function checkLaw(L: Loaded, d: Decl, li: number, o: Options, U: Universe,
     if (e instanceof Skip) return { ...base, reason: e.message };
     throw e;
   }
+}
+
+/** Local `import ./x.bend` specs, in order. */
+function localImports(text: string): string[] {
+  const out: string[] = [];
+  for (const l of text.split("\n")) {
+    const m = /^import\s+(\.{1,2}\/\S+\.bend)(\s+as\s+\S+)?\s*$/.exec(l.trim());
+    if (m !== null) out.push(m[1]);
+  }
+  return out;
+}
+
+/** Removes each named def's `defSpan` lines, so the laws it filled become open. */
+function stripFills(text: string, fills: string[]): string {
+  const spans = fills.map((n) => defSpan(text, n)).filter((s): s is { start: number; end: number } => s !== null);
+  if (spans.length === 0) return text;
+  spans.sort((a, b) => b.start - a.start);
+  const lines = text.split("\n");
+  for (const s of spans) lines.splice(s.start - 1, s.end - s.start + 1);
+  return lines.join("\n");
+}
+
+/** A def header (may span lines) as text. */
+function headerText(lines: string[], start: number): string {
+  let depth = 0;
+  for (let i = start; i < lines.length; i++) {
+    for (const ch of lines[i]) { if (ch === "(") depth++; else if (ch === ")") depth--; }
+    if (depth === 0 && /:\s*$/.test(lines[i])) return lines.slice(start, i + 1).join("\n");
+  }
+  return lines[start] ?? "";
+}
+
+/** The def's parameter names, stripped of `+`/`-`/`~`, read from its source header. */
+function defParams(text: string, name: string): string[] {
+  const span = defSpan(text, name);
+  if (span === null) return [];
+  const lines = text.split("\n");
+  const header = headerText(lines, span.start - 1);
+  const open = header.indexOf("(");
+  if (open < 0) return [];
+  let d = 0, close = -1;
+  for (let i = open; i < header.length; i++) {
+    const ch = header[i];
+    if (ch === "(" || ch === "{" || ch === "[") d++;
+    else if (ch === ")" || ch === "}" || ch === "]") { d--; if (d === 0) { close = i; break; } }
+  }
+  if (close < 0) return [];
+  const out: string[] = [];
+  let depth = 0, field = "";
+  const push = () => {
+    let nm = "";
+    let pd = 0;
+    for (const ch of field) {
+      if ("([{<".includes(ch)) pd++;
+      else if (")]}>".includes(ch)) pd--;
+      else if (ch === ":" && pd === 0) break;
+      nm += ch;
+    }
+    nm = nm.trim().replace(/^[+\-~]\s*/, "").trim();
+    if (nm !== "") out.push(nm);
+  };
+  for (const ch of header.slice(open + 1, close)) {
+    if ("([{<".includes(ch)) depth++;
+    else if (")]}>".includes(ch)) depth--;
+    if (ch === "," && depth === 0) { push(); field = ""; }
+    else field += ch;
+  }
+  push();
+  return out;
+}
+
+/** Runs the laws against every mutant of the target file's defs (PLAN §4.3). */
+export async function mutate(file: string, o: MutateOptions): Promise<MutateReport> {
+  const abs = path.resolve(file);
+  if (!fs.existsSync(abs)) throw new UsageError(`no such file: ${file}`);
+  const opts: Options = {
+    size: o.size ?? 3, maxInstances: o.maxInstances ?? 50, seed: o.seed ?? 1,
+    law: o.law, impl: o.impl, jobs: o.jobs, timeoutMs: o.timeoutMs, tmpDir: o.tmpDir, maxNat: o.maxNat,
+    shrink: o.shrink, firstFail: o.firstFail,
+  };
+  const tmp = o.tmpDir ?? fs.mkdtempSync(path.join(os.tmpdir(), "lawcheck-mut-"));
+  let target: string;
+  let mode: "impl" | "in-file";
+  if (o.impl !== undefined) {
+    target = path.resolve(o.impl);
+    if (!fs.existsSync(target)) throw new UsageError(`--impl: no such file: ${o.impl}`);
+    mode = "impl";
+  } else {
+    const locals = localImports(fs.readFileSync(abs, "utf8"));
+    const rootDecls = decls(await load(abs), { scope: "own" });
+    const rootLaws = new Set(rootDecls.filter((d) => d.kind === "law").map((d) => d.name));
+    const hasDef = rootDecls.some((d) => (d.kind === "def" || d.kind === "template") && !rootLaws.has(d.name));
+    if (locals.length === 1 && !hasDef) { target = path.resolve(path.dirname(abs), locals[0]); mode = "impl"; }
+    else { target = abs; mode = "in-file"; }
+  }
+  const L = await load(target);
+  const own = decls(L, { scope: "own" });
+  const lawNames = new Set(own.filter((d) => d.kind === "law").map((d) => d.name));
+  let defs = own.filter((d) => (d.kind === "def" || d.kind === "template") && !lawNames.has(d.name) && !d.predicate && !d.statement);
+  if (o.def !== undefined) {
+    const one = defs.filter((d) => d.name === o.def);
+    if (one.length === 0) throw new UsageError(`no mutable def named ${o.def} in ${path.relative(process.cwd(), target)}`);
+    defs = one;
+  }
+  const fillNames = mode === "in-file" ? own.filter((d) => d.kind === "law" && d.proved).map((d) => d.name) : [];
+  const targetText = fs.readFileSync(target, "utf8");
+
+  const baseDir = path.join(tmp, "base");
+  fs.mkdirSync(baseDir, { recursive: true });
+  let baseReport: Report;
+  if (mode === "impl") {
+    baseReport = await lawcheck(abs, { ...opts, impl: target, tmpDir: baseDir });
+  } else {
+    const basePath = path.join(baseDir, path.basename(target));
+    fs.writeFileSync(basePath, stripFills(targetText, fillNames));
+    baseReport = await lawcheck(basePath, { ...opts, impl: undefined, tmpDir: baseDir });
+  }
+  if (baseReport.laws.some((l) => l.status === "fail")) throw new UsageError("the laws already fail on the unmutated code; fix those first");
+
+  const report: MutateReport = {
+    tool: "lawcheck-mutate", version: VERSION, bend: L.source.version, file: abs,
+    impl: mode === "impl" ? target : null, seed: opts.seed, maxInstances: opts.maxInstances, tmpDir: tmp, defs: [],
+  };
+  for (const d of defs) {
+    const ms = mutants(targetText, d.name, defParams(targetText, d.name));
+    const results: MutantResult[] = [];
+    for (let i = 0; i < ms.length; i++) {
+      const m = ms[i];
+      const dir = path.join(tmp, "mut", `${d.name}_${i}`);
+      fs.mkdirSync(dir, { recursive: true });
+      const mutantPath = path.join(dir, path.basename(target));
+      fs.writeFileSync(mutantPath, mode === "in-file" ? stripFills(m.text, fillNames) : m.text);
+      const runOpts: Options = { ...opts, shrink: false, firstFail: true, tmpDir: dir, impl: mode === "impl" ? mutantPath : undefined };
+      const res: MutantResult = { id: m.id, def: d.name, op: m.op, line: m.line, before: m.before, after: m.after, status: "survived" };
+      try {
+        const rep = mode === "impl" ? await lawcheck(abs, runOpts) : await lawcheck(mutantPath, runOpts);
+        const fail = rep.laws.find((l) => l.status === "fail");
+        const err = rep.laws.find((l) => l.status === "error");
+        if (fail) { res.status = "killed"; res.law = fail.name; }
+        else if (err) { res.status = "error"; res.detail = (err.reason ?? "").split("\n")[0]; }
+      } catch (e) {
+        if (e instanceof ModuleError || e instanceof BendReadError) { res.status = "invalid"; res.detail = e.message.split("\n")[0]; }
+        else throw e;
+      }
+      results.push(res);
+    }
+    report.defs.push({ name: d.name, mutants: results });
+  }
+  return report;
 }
