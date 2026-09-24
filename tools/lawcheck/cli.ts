@@ -6,6 +6,7 @@
 //          [--max-instances N] [--max-nat N] [--seed S] [--json] [--law name] [--jobs N] [--timeout MS]
 //        bun tools/lawcheck/cli.ts mutate <laws.bend> [--impl <file>] [--def <name>]
 //          [--json] [--max-instances N] [--seed S] [--size N] [--jobs N] [--timeout MS]
+//   --native  evaluate eligible instances with a compiled program and report checker disagreements (engine N)
 //   --impl  check the laws against another implementation: replaces the file's
 //           local import with the same basename (or its only local import)
 // exit: lawcheck 0 no counterexample · 1 counterexample found · 2 usage, load or tool error
@@ -20,7 +21,7 @@ import {
   type LawResult, type MutateOptions, type MutateReport, type Options, type Report,
 } from "./src/lawcheck.ts";
 
-const USAGE = "usage: bun tools/lawcheck/cli.ts <file.bend> [--impl <file>] [--size N] [--max-instances N] [--max-nat N] [--seed S] [--json] [--law name] [--jobs N] [--timeout MS]";
+const USAGE = "usage: bun tools/lawcheck/cli.ts <file.bend> [--impl <file>] [--size N] [--max-instances N] [--max-nat N] [--seed S] [--json] [--law name] [--native] [--jobs N] [--timeout MS]";
 const MUTATE_USAGE = "usage: bun tools/lawcheck/cli.ts mutate <laws.bend> [--impl <file>] [--def <name>] [--json] [--max-instances N] [--seed S] [--size N] [--jobs N] [--timeout MS]";
 
 function die(msg: string): never {
@@ -39,6 +40,7 @@ function parseArgs(argv: string[]) {
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--json") o.json = true;
+    else if (a === "--native") o.native = true;
     else if (a === "--size") o.size = num(a, argv[++i], 0, USAGE);
     else if (a === "--max-instances") o.maxInstances = num(a, argv[++i], 1, USAGE);
     else if (a === "--max-nat") o.maxNat = num(a, argv[++i], 1, USAGE);
@@ -93,8 +95,12 @@ function human(r: Report): string {
   const out = [`lawcheck ${r.version} · ${path.relative(process.cwd(), r.file)} · bend ${r.bend} · seed ${r.seed} · size ${r.size} · ≤${r.maxInstances} instances/law`];
   for (const l of r.laws) {
     const head = `${MARK[l.status]} ${l.name.padEnd(w)}  `;
-    const extra = l.tooLarge ? `, ${l.tooLarge} too large to evaluate` : "";
+    const extra = (l.tooLarge ? `, ${l.tooLarge} too large to evaluate` : "")
+      + (l.native ? `, native ${l.native.checked} compared${l.native.disagreements.length ? `, ${l.native.disagreements.length} DISAGREE` : ""}` : "");
     out.push(head + lawLine(l, r) + extra);
+    for (const x of l.native?.disagreements ?? []) {
+      out.push(`${pad}native DISAGREES: engine C ${x.engineC}, native ${x.engineN ? "1" : "0"} · ${x.bindings.map((b) => `${b.name} = ${b.value}`).join(", ")} · repro ${x.repro}`);
+    }
     if (l.status === "fail" && l.counterexample) {
       const c = l.counterexample;
       for (const b of [...c.types, ...c.bindings]) out.push(`${pad}${b.name} = ${b.value}`);

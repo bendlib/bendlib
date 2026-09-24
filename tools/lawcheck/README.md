@@ -13,7 +13,7 @@ bun tools/lawcheck/cli.ts LAWS.bend --json           # machine output
 bun tools/lawcheck/cli.ts LAWS.bend --impl other.bend  # swap the file's local import for another implementation
 ```
 
-Options: `--size N` sets the depth of the exhaustive small-scope phase (default 3). `--max-instances N` caps the instances per law (default 200). `--max-nat N` bounds the random `Nat`s (default 30; the exhaustive small-scope phase is unchanged). `--seed S` seeds the random phase (default 1, so runs are reproducible, including with `--law`). `--jobs N` sets how many parallel `bend` processes run (default: all cores). `--timeout MS` sets the limit for each `bend` run.
+Options: `--size N` sets the depth of the exhaustive small-scope phase (default 3). `--max-instances N` caps the instances per law (default 200). `--max-nat N` bounds the random `Nat`s (default 30; the exhaustive small-scope phase is unchanged). `--seed S` seeds the random phase (default 1, so runs are reproducible, including with `--law`). `--jobs N` sets how many parallel `bend` processes run (default: all cores). `--timeout MS` sets the limit for each `bend` run. `--native` also evaluates eligible instances with a compiled program and reports where it disagrees with the checker (possible compiler or runtime bug).
 
 Exit codes: 0 means no counterexample was found. 1 means at least one counterexample was found. 2 means a usage error, a file that does not load or type-check, or a tool error.
 
@@ -68,6 +68,10 @@ app   3/3 valid mutants killed · 0 survived · 7 invalid
 ```
 
 Exit codes: 0 no survivors · 1 at least one survivor · 2 usage, load, tool error, or an `error` mutant. A target with no mutable defs is a usage error (`no mutable defs`), never `no survivors`. A survivor shows a weakness of the laws for these operators; zero survivors does not prove the laws pin the def.
+
+## Native comparison (`--native`)
+
+For equation laws whose claim type is `Nat`, `U32`, or `Bool`, `--native` evaluates each instance a second way (engine N, PLAN §4.2 step 6): it emits one `main` that prints `lhs == rhs` for every instance, builds it with `bend -o`, runs it, and compares the result with the checker (engine C). Any instance where the two engines disagree is a likely compiler or runtime bug; it is reported with the instance bindings and a minimal reproduction file. Laws whose claim is not such an equation, or whose target does not build natively, are left to the checker alone.
 
 ## Known limits (v0.1)
 

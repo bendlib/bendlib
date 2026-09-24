@@ -24,11 +24,19 @@ export type Options = {
   maxNat?: number;
   shrink?: boolean;
   firstFail?: boolean;
+  native?: boolean;
 };
 
 export type MutateOptions = Partial<Options> & { def?: string };
 
 export type Binding = { name: string; value: string };
+
+export type NativeDisagreement = {
+  bindings: Binding[];
+  engineC: "pass" | "fail";
+  engineN: boolean;
+  repro: string;
+};
 
 export type Counterexample = {
   bindings: Binding[];
@@ -55,6 +63,7 @@ export type LawResult = {
   instances: number;
   failures: number;
   tooLarge?: number;
+  native?: { checked: number; disagreements: NativeDisagreement[] };
   premise?: { satisfied: number; total: number };
   counterexample?: Counterexample;
 };
@@ -471,6 +480,81 @@ function validate(L: Loaded): void {
   }
 }
 
+/** Base equality for the claim types engine N can compare. */
+const NATIVE_EQ: Record<string, (a: string, b: string) => string> = {
+  Nat: (a, b) => `Nat.is_eq(${a}, ${b})`,
+  U32: (a, b) => `U32.is_eq(${a}, ${b})`,
+  Bool: (a, b) => `U32.is_eq(Bool.to_u32(${a}), Bool.to_u32(${b}))`,
+};
+
+/** Pairs engine C outcomes with engine N bits; returns the indices that disagree (PLAN §4.2 step 6). */
+export function nativeDisagreements(c: (Outcome | undefined)[], n: (boolean | undefined)[]): number[] {
+  const out: number[] = [];
+  for (let i = 0; i < c.length; i++) {
+    const co = c[i], no = n[i];
+    if (co === undefined || no === undefined) continue;
+    if (co.r === "fail") { if (no) out.push(i); }
+    else if (co.r === "pass" || co.r === "open") { if (!no) out.push(i); }
+  }
+  return out;
+}
+
+/** A copy of the root with its open-law blocks removed and local imports made absolute, for engine N. */
+function nativeRoot(L: Loaded, tmp: string): string {
+  const open = decls(L, { scope: "own" }).filter((d) => d.kind === "law" && !d.proved).map((d) => d.line);
+  const dir = path.dirname(L.file);
+  const lines = fs.readFileSync(L.file, "utf8").split("\n");
+  lines.forEach((l, i) => {
+    const m = /^import\s+(\.{1,2}\/\S+\.bend)(\s+as\s+\S+)?\s*$/.exec(l.trim());
+    if (m === null) return;
+    const abs = path.resolve(dir, m[1]);
+    lines[i] = `import ${fs.existsSync(abs) ? fs.realpathSync(abs) : abs}${m[2] ?? ""}`;
+  });
+  const spans = open.map((ln) => {
+    let end = ln - 1;
+    for (let i = ln; i < lines.length; i++) {
+      if (lines[i] !== "" && !/^\s/.test(lines[i])) break;
+      if (lines[i].trim() !== "") end = i;
+    }
+    return { start: ln - 1, end };
+  });
+  spans.sort((a, b) => b.start - a.start);
+  for (const s of spans) lines.splice(s.start, s.end - s.start + 1);
+  const dirOut = path.join(tmp, "native");
+  fs.mkdirSync(dirOut, { recursive: true });
+  const out = path.join(dirOut, "U.bend");
+  fs.writeFileSync(out, lines.join("\n"));
+  return out;
+}
+
+let nativeSeq = 0;
+
+/** Builds and runs a native engine-N harness; returns its output lines, or an error string. */
+async function runNative(E: Engine, src: string): Promise<string[] | string> {
+  const dir = path.join(E.dir, "native");
+  fs.mkdirSync(dir, { recursive: true });
+  const n = nativeSeq++;
+  const file = path.join(dir, `h${n}.bend`);
+  const bin = path.join(dir, `h${n}`);
+  fs.writeFileSync(file, src);
+  const run = async (args: string[]): Promise<{ out: string; code: number | null; timedOut: boolean }> => {
+    const p = Bun.spawn(args, { env: { ...process.env, BEND_NO_TELEMETRY: "1" }, stdout: "pipe", stderr: "pipe" });
+    let timedOut = false;
+    const timer = setTimeout(() => { timedOut = true; p.kill(); }, E.timeoutMs);
+    const [o, e] = await Promise.all([new Response(p.stdout).text(), new Response(p.stderr).text()]);
+    const code = await p.exited;
+    clearTimeout(timer);
+    return { out: o + e, code, timedOut };
+  };
+  const b = await run([E.bend, file, "-o", bin]);
+  if (b.timedOut) return `native build timed out after ${E.timeoutMs} ms`;
+  if (b.code !== 0) return `native build failed: ${E.display(b.out.trim())}`;
+  const r = await run([bin]);
+  if (r.timedOut) return `native run timed out after ${E.timeoutMs} ms`;
+  if (r.code !== 0) return `native run failed: ${E.display(r.out.trim())}`;
+  return r.out.split("\n").map((l) => l.trim()).filter((l) => l !== "");
+}
+
 export async function lawcheck(file: string, o: Options): Promise<Report> {
   const abs = path.resolve(file);
   if (!fs.existsSync(abs)) throw new UsageError(`no such file: ${file}`);
@@ -593,6 +677,26 @@ async function checkLaw(L: Loaded, d: Decl, li: number, o: Options, U: Universe,
     return combos;
   };
 
+  const nativeCheck = async (sat: Inst[], items: Item[], res: Map<string, Outcome>): Promise<{ checked: number; disagreements: NativeDisagreement[] } | null> => {
+    const parts = items.map((it) => splitEquation(it.claim));
+    if (parts.some((pp) => pp === null || NATIVE_EQ[pp.type] === undefined)) return null;
+    const nroot = nativeRoot(L, E.dir);
+    const header = E.header.split(`import ${L.file} as U`).join(`import ${nroot} as U`);
+    const lineOf = (i: number) => `    IO.print(U32.show(Bool.to_u32(${NATIVE_EQ[parts[i]!.type](parts[i]!.lhs, parts[i]!.rhs)})))`;
+    const src = `${header}\ndef main() -> IO(Unit):\n  do IO<Unit>:\n${items.map((_, i) => lineOf(i)).join("\n")}\n`;
+    const ran = await runNative(E, src);
+    if (typeof ran === "string") return null;
+    const outs = items.map((it) => res.get(it.id));
+    const bits = items.map((_, i) => (ran[i] === "1" ? true : ran[i] === "0" ? false : undefined));
+    const checked = outs.filter((x) => x?.r === "pass" || x?.r === "open" || x?.r === "fail").length;
+    const disagreements: NativeDisagreement[] = nativeDisagreements(outs, bits).map((i) => {
+      const repro = path.join(E.dir, "native", `repro_${li}_${i}.bend`);
+      fs.writeFileSync(repro, `${header}\ndef main() -> IO(Unit):\n  do IO<Unit>:\n${lineOf(i)}\n`);
+      return { bindings: p.values.map((v, k) => ({ name: v.name, value: render(sat[i].vals[k], nameOut) })), engineC: outs[i]!.r as "pass" | "fail", engineN: bits[i]!, repro };
+    });
+    return { checked, disagreements };
+  };
+
   try {
     const held = await holding(insts);
     if (typeof held === "string") return { ...base, reason: held };
@@ -633,6 +737,10 @@ async function checkLaw(L: Loaded, d: Decl, li: number, o: Options, U: Universe,
       const claimTooLarge = outs.filter((o) => o.r === "toolarge").length;
       if (claimTooLarge > 0) { tooLarge += claimTooLarge; base.tooLarge = tooLarge; }
       failing = sat.map((inst, i) => ({ inst, out: res.get(items[i].id)! })).filter((x) => x.out.r === "fail");
+      if (o.native) {
+        const nat = await nativeCheck(sat, items, res);
+        if (nat !== null) base.native = nat;
+      }
     }
     base.failures = failing.length;
     if (failing.length === 0) {
