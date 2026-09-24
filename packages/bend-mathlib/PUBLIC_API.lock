@@ -35,6 +35,54 @@
     "sha256": "fc566bca72b981662c4a9f2196ba85e7bc71652052e08ded1eab530dc100df67",
     "since": "0.1.0.0"
   },
+  "bool.and_not_self": {
+    "kind": "law",
+    "text": "for a: Bool\n{Bool.and(a, Bool.not(a)) == False{} : Bool}",
+    "sha256": "be1e607b82bd9a4698e777c83ce94a943c20cfd23c07272a59f7838ad3a6ec8e",
+    "since": null
+  },
+  "bool.and_not_self_sym": {
+    "kind": "law",
+    "text": "for a: Bool\n{False{} == Bool.and(a, Bool.not(a)) : Bool}",
+    "sha256": "14c71ddc8765fc417badf2fec8c32c27b49995e970f234d542760fac79d1ee8a",
+    "since": null
+  },
+  "bool.and_or_absorb": {
+    "kind": "law",
+    "text": "for a: Bool\nfor -b: Bool\n{Bool.and(a, Bool.or(a, b)) == a : Bool}",
+    "sha256": "7fe7d84bd624a7241277260b4ec27996d62239e0f2735cea9cb05fb95bfee0ee",
+    "since": null
+  },
+  "bool.and_or_absorb_sym": {
+    "kind": "law",
+    "text": "for a: Bool\nfor -b: Bool\n{a == Bool.and(a, Bool.or(a, b)) : Bool}",
+    "sha256": "a24cd370c6261d2e3c3de264259539b234cc832feb1614108c28a667cc25cd54",
+    "since": null
+  },
+  "bool.and_or_distrib_left": {
+    "kind": "law",
+    "text": "for a: Bool\nfor -b: Bool\nfor -c: Bool\n{Bool.and(a, Bool.or(b, c)) == Bool.or(Bool.and(a, b), Bool.and(a, c)) : Bool}",
+    "sha256": "de58197fa220934348b1e787f2e6bbf44e1d15d6567debb912ef6deb6a1428b7",
+    "since": null
+  },
+  "bool.and_or_distrib_left_sym": {
+    "kind": "law",
+    "text": "for a: Bool\nfor -b: Bool\nfor -c: Bool\n{Bool.or(Bool.and(a, b), Bool.and(a, c)) == Bool.and(a, Bool.or(b, c)) : Bool}",
+    "sha256": "56838d8b1e6cd41139a1f1b5e41708ad49ebad56a598d051c1fdb3f0a15da2dd",
+    "since": null
+  },
+  "bool.and_self": {
+    "kind": "law",
+    "text": "for a: Bool\n{Bool.and(a, a) == a : Bool}",
+    "sha256": "822954753dfcdeda083a39e0a48f4fd9cc7531f81c13410b6b7f32b53c339e13",
+    "since": null
+  },
+  "bool.and_self_sym": {
+    "kind": "law",
+    "text": "for a: Bool\n{a == Bool.and(a, a) : Bool}",
+    "sha256": "1cfc7e5ae970fa4667169896f47a78afe7f40775580c3f8cb07dafcc901150a4",
+    "since": null
+  },
   "bool.and_true": {
     "kind": "law",
     "text": "for a: Bool\n{Bool.and(a, True{}) == a : Bool}",
@@ -71,6 +119,12 @@
     "sha256": "45a4a46e6e1c71b7dc1151ea742193fbd7db19a3692bdc29988880cb797dd86a",
     "since": "0.1.0.0"
   },
+  "bool.eq_true_of_ne_false": {
+    "kind": "law",
+    "text": "for a: Bool\nfor h: {a == False{} : Bool} -> Empty\n{a == True{} : Bool}",
+    "sha256": "8502f3313224f7b1734981ab2c3223c74e2b3941d44105fc95b0d3f2f6a8547c",
+    "since": null
+  },
   "bool.false_and": {
     "kind": "law",
     "text": "for -a: Bool\n{Bool.and(False{}, a) == False{} : Bool}",
@@ -95,6 +149,12 @@
     "sha256": "d6eae45e80d43146b3825fbca12db6a1e889028108d8988b967a2fe3f2535758",
     "since": "0.1.0.0"
   },
+  "bool.not_inj": {
+    "kind": "law",
+    "text": "for a: Bool\nfor b: Bool\nfor h: {Bool.not(a) == Bool.not(b) : Bool}\n{a == b : Bool}",
+    "sha256": "f1fdd0297fa054abd8ab4cda9e2044acfbb74db8ab91952d35b5a67575705405",
+    "since": null
+  },
   "bool.not_not": {
     "kind": "law",
     "text": "for b: Bool\n{Bool.not(Bool.not(b)) == b : Bool}",
@@ -106,6 +166,30 @@
     "text": "for b: Bool\n{b == Bool.not(Bool.not(b)) : Bool}",
     "sha256": "e2636d1423e2aa33e4801a62e9a0e7c347c8d0be8d6241d425fd8c7a8b786a34",
     "since": "0.1.0.0"
+  },
+  "bool.or_and_absorb": {
+    "kind": "law",
+    "text": "for a: Bool\nfor -b: Bool\n{Bool.or(a, Bool.and(a, b)) == a : Bool}",
+    "sha256": "155880a8dc908370882fa2a8bcf6aa262b36b4b6be418c1ebf55aacbd44a1d78",
+    "since": null
+  },
+  "bool.or_and_absorb_sym": {
+    "kind": "law",
+    "text": "for a: Bool\nfor -b: Bool\n{a == Bool.or(a, Bool.and(a, b)) : Bool}",
+    "sha256": "766e47df981a0bdb32847025e6aabfc7864058ccb4fab2eb9db164f03608e92f",
+    "since": null
+  },
+  "bool.or_and_distrib_left": {
+    "kind": "law",
+    "text": "for a: Bool\nfor -b: Bool\nfor -c: Bool\n{Bool.or(a, Bool.and(b, c)) == Bool.and(Bool.or(a, b), Bool.or(a, c)) : Bool}",
+    "sha256": "9abdf97fc8a919350630691bc1e1e693b4accf70be4639bf5d50453dd5755d61",
+    "since": null
+  },
+  "bool.or_and_distrib_left_sym": {
+    "kind": "law",
+    "text": "for a: Bool\nfor -b: Bool\nfor -c: Bool\n{Bool.and(Bool.or(a, b), Bool.or(a, c)) == Bool.or(a, Bool.and(b, c)) : Bool}",
+    "sha256": "84ea49141fce4a4920e28bbc26ec66299bbfe113b2c81e00fd248d1f893375bd",
+    "since": null
   },
   "bool.or_assoc": {
     "kind": "law",
@@ -142,6 +226,30 @@
     "text": "for a: Bool\n{a == Bool.or(a, False{}) : Bool}",
     "sha256": "4246d6fbd56a1fd79a2478a5bda1df60b78c65437c00e270876185e4b3ef2295",
     "since": "0.1.0.0"
+  },
+  "bool.or_not_self": {
+    "kind": "law",
+    "text": "for a: Bool\n{Bool.or(a, Bool.not(a)) == True{} : Bool}",
+    "sha256": "d47fe41e3096337fee5757511dc06ed0775de9ae64a1cb8019e65c37e10b33b8",
+    "since": null
+  },
+  "bool.or_not_self_sym": {
+    "kind": "law",
+    "text": "for a: Bool\n{True{} == Bool.or(a, Bool.not(a)) : Bool}",
+    "sha256": "c6a2e949af58e8928e32f0241c4a88ce9528fe3ee851f24692f487827f296b12",
+    "since": null
+  },
+  "bool.or_self": {
+    "kind": "law",
+    "text": "for a: Bool\n{Bool.or(a, a) == a : Bool}",
+    "sha256": "62a062b2ec6e40757ad62109ed8f97e85d26bb07cfe52e95b4c9be1a0967dcc0",
+    "since": null
+  },
+  "bool.or_self_sym": {
+    "kind": "law",
+    "text": "for a: Bool\n{a == Bool.or(a, a) : Bool}",
+    "sha256": "63be5b98fab0a3e143c02ba3331fefd479ebb5fb82c6ca07ca86007a62bf2019",
+    "since": null
   },
   "bool.or_true": {
     "kind": "law",
@@ -184,6 +292,66 @@
     "text": "for -a: Bool\n{True{} == Bool.or(True{}, a) : Bool}",
     "sha256": "928f04689739f829dfc9b2fccd3faee62e01e43a382b3964d16dbd1bc6cd9af7",
     "since": "0.1.0.0"
+  },
+  "bool.xor_assoc": {
+    "kind": "law",
+    "text": "for a: Bool\nfor b: Bool\nfor c: Bool\n{Bool.xor(Bool.xor(a, b), c) == Bool.xor(a, Bool.xor(b, c)) : Bool}",
+    "sha256": "d0354de4e2b9eac8c6946d79e79d2740a977afcf88c7f941c3d0bd079b857538",
+    "since": null
+  },
+  "bool.xor_assoc_sym": {
+    "kind": "law",
+    "text": "for a: Bool\nfor b: Bool\nfor c: Bool\n{Bool.xor(a, Bool.xor(b, c)) == Bool.xor(Bool.xor(a, b), c) : Bool}",
+    "sha256": "46390d8b5da545582c790926f87b86039c0eb90f1d7bbffbe5a4e6bc7f397a35",
+    "since": null
+  },
+  "bool.xor_comm": {
+    "kind": "law",
+    "text": "for a: Bool\nfor b: Bool\n{Bool.xor(a, b) == Bool.xor(b, a) : Bool}",
+    "sha256": "6383b8666bd70b1c1ea16b86294265872f1a67b947197d9e7791c11ee9a4d0f0",
+    "since": null
+  },
+  "bool.xor_comm_sym": {
+    "kind": "law",
+    "text": "for a: Bool\nfor b: Bool\n{Bool.xor(b, a) == Bool.xor(a, b) : Bool}",
+    "sha256": "93e944aa22b4494fb86e0ba65162f2baf523c1c3c76224edde54600d0cc2a013",
+    "since": null
+  },
+  "bool.xor_false": {
+    "kind": "law",
+    "text": "for a: Bool\n{Bool.xor(a, False{}) == a : Bool}",
+    "sha256": "73b9c00c94885c76a1d1bff5b504c829ddd733ff9cec0be155ee736752cf9737",
+    "since": null
+  },
+  "bool.xor_false_sym": {
+    "kind": "law",
+    "text": "for a: Bool\n{a == Bool.xor(a, False{}) : Bool}",
+    "sha256": "a0455fab574ca6625e2a6272a4246a2d0dab7c6c917833dfccfe7bb48421ef2e",
+    "since": null
+  },
+  "bool.xor_self": {
+    "kind": "law",
+    "text": "for a: Bool\n{Bool.xor(a, a) == False{} : Bool}",
+    "sha256": "9511535f47cb88d2f8e5869a2e2476b54fdaccdbe829059c81f648ff3075e3e9",
+    "since": null
+  },
+  "bool.xor_self_sym": {
+    "kind": "law",
+    "text": "for a: Bool\n{False{} == Bool.xor(a, a) : Bool}",
+    "sha256": "ad1c1149a4d3f85dde0bc4be395a7f37f864648b00bcbbf5789c36a802ac4aff",
+    "since": null
+  },
+  "bool.xor_true": {
+    "kind": "law",
+    "text": "for a: Bool\n{Bool.xor(a, True{}) == Bool.not(a) : Bool}",
+    "sha256": "10b17c347b0b4b8749aa89f2cd4d552e40ae74374e20685f16edeceb8403916f",
+    "since": null
+  },
+  "bool.xor_true_sym": {
+    "kind": "law",
+    "text": "for a: Bool\n{Bool.not(a) == Bool.xor(a, True{}) : Bool}",
+    "sha256": "cfb3c396a39b9e1106e094073199aec234b7d3d394d25930ae4cdcd0cea84abd",
+    "since": null
   },
   "equal.cong2": {
     "kind": "law",

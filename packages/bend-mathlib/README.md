@@ -5,6 +5,8 @@ Machine-checked lemmas for Bend 2, checked with `bend 2.0.27`.
 Rewriting: `%e : P` replaces the right side of `e` with its left side, so `name` expands the simple
 side into the compound one and `name_sym` simplifies the compound side.
 
+Rows marked `next` are proved in this repository but not yet published: the import lines above do not contain them yet.
+
 ## bool
 
 ```python
@@ -29,6 +31,21 @@ import bend-mathlib@0.1.0.1/bool.bend as MBool
 | `de_morgan_and(a, b)` | `∀ a: Bool, -b: Bool. {Bool.not(Bool.and(a, b)) == Bool.or(Bool.not(a), Bool.not(b)) : Bool}` | De Morgan: not (a and b) is (not a) or (not b). | 0.1.0.0 |
 | `de_morgan_or(a, b)` | `∀ a: Bool, -b: Bool. {Bool.not(Bool.or(a, b)) == Bool.and(Bool.not(a), Bool.not(b)) : Bool}` | De Morgan: not (a or b) is (not a) and (not b). | 0.1.0.0 |
 | `true_ne_false()` | `{True{} != False{} : Bool}` | True and False are different booleans. | 0.1.0.0 |
+| `and_self(a)` | `∀ a: Bool. {Bool.and(a, a) == a : Bool}` | And with itself: a and a is a. | next |
+| `or_self(a)` | `∀ a: Bool. {Bool.or(a, a) == a : Bool}` | Or with itself: a or a is a. | next |
+| `and_not_self(a)` | `∀ a: Bool. {Bool.and(a, Bool.not(a)) == False{} : Bool}` | A boolean and its negation are never both true: a and (not a) is false. | next |
+| `or_not_self(a)` | `∀ a: Bool. {Bool.or(a, Bool.not(a)) == True{} : Bool}` | A boolean or its negation is always true: a or (not a) is true. | next |
+| `and_or_distrib_left(a, b, c)` | `∀ a: Bool, -b: Bool, -c: Bool. {Bool.and(a, Bool.or(b, c)) == Bool.or(Bool.and(a, b), Bool.and(a, c)) : Bool}` | And distributes over or: a and (b or c) is (a and b) or (a and c). | next |
+| `or_and_distrib_left(a, b, c)` | `∀ a: Bool, -b: Bool, -c: Bool. {Bool.or(a, Bool.and(b, c)) == Bool.and(Bool.or(a, b), Bool.or(a, c)) : Bool}` | Or distributes over and: a or (b and c) is (a or b) and (a or c). | next |
+| `and_or_absorb(a, b)` | `∀ a: Bool, -b: Bool. {Bool.and(a, Bool.or(a, b)) == a : Bool}` | Absorption: a and (a or b) is a. | next |
+| `or_and_absorb(a, b)` | `∀ a: Bool, -b: Bool. {Bool.or(a, Bool.and(a, b)) == a : Bool}` | Absorption: a or (a and b) is a. | next |
+| `xor_comm(a, b)` | `∀ a: Bool, b: Bool. {Bool.xor(a, b) == Bool.xor(b, a) : Bool}` | Exclusive or is commutative. | next |
+| `xor_assoc(a, b, c)` | `∀ a: Bool, b: Bool, c: Bool. {Bool.xor(Bool.xor(a, b), c) == Bool.xor(a, Bool.xor(b, c)) : Bool}` | Exclusive or is associative. | next |
+| `xor_self(a)` | `∀ a: Bool. {Bool.xor(a, a) == False{} : Bool}` | A boolean xor itself is false. | next |
+| `xor_false(a)` | `∀ a: Bool. {Bool.xor(a, False{}) == a : Bool}` | False is an identity for xor: a xor false is a. | next |
+| `xor_true(a)` | `∀ a: Bool. {Bool.xor(a, True{}) == Bool.not(a) : Bool}` | Xor with true negates: a xor true is not a. | next |
+| `not_inj(a, b, h)` | `∀ a: Bool, b: Bool, h: {Bool.not(a) == Bool.not(b) : Bool}. {a == b : Bool}` | Negation is injective: not a = not b implies a = b. | next |
+| `eq_true_of_ne_false(a, h)` | `∀ a: Bool, h: {a == False{} : Bool} -> Empty. {a == True{} : Bool}` | A boolean that is not false is true. | next |
 | `not_not_sym(b)` | `∀ b: Bool. {b == Bool.not(Bool.not(b)) : Bool}` | Negating a boolean twice gives it back, reversed to rewrite toward the simple side. | 0.1.0.0 |
 | `and_comm_sym(a, b)` | `∀ a: Bool, b: Bool. {Bool.and(b, a) == Bool.and(a, b) : Bool}` | Boolean and is commutative, reversed to rewrite toward the simple side. | 0.1.0.0 |
 | `or_comm_sym(a, b)` | `∀ a: Bool, b: Bool. {Bool.or(b, a) == Bool.or(a, b) : Bool}` | Boolean or is commutative, reversed to rewrite toward the simple side. | 0.1.0.0 |
@@ -44,6 +61,19 @@ import bend-mathlib@0.1.0.1/bool.bend as MBool
 | `true_or_sym(a)` | `∀ -a: Bool. {True{} == Bool.or(True{}, a) : Bool}` | True absorbs or on the left: true or a is true, reversed to rewrite toward the simple side. | 0.1.0.0 |
 | `de_morgan_and_sym(a, b)` | `∀ a: Bool, -b: Bool. {Bool.or(Bool.not(a), Bool.not(b)) == Bool.not(Bool.and(a, b)) : Bool}` | De Morgan: not (a and b) is (not a) or (not b), reversed to rewrite toward the simple side. | 0.1.0.0 |
 | `de_morgan_or_sym(a, b)` | `∀ a: Bool, -b: Bool. {Bool.and(Bool.not(a), Bool.not(b)) == Bool.not(Bool.or(a, b)) : Bool}` | De Morgan: not (a or b) is (not a) and (not b), reversed to rewrite toward the simple side. | 0.1.0.0 |
+| `and_self_sym(a)` | `∀ a: Bool. {a == Bool.and(a, a) : Bool}` | And with itself: a and a is a, reversed to rewrite toward the simple side. | next |
+| `or_self_sym(a)` | `∀ a: Bool. {a == Bool.or(a, a) : Bool}` | Or with itself: a or a is a, reversed to rewrite toward the simple side. | next |
+| `and_not_self_sym(a)` | `∀ a: Bool. {False{} == Bool.and(a, Bool.not(a)) : Bool}` | A boolean and its negation are never both true: a and (not a) is false, reversed to rewrite toward the simple side. | next |
+| `or_not_self_sym(a)` | `∀ a: Bool. {True{} == Bool.or(a, Bool.not(a)) : Bool}` | A boolean or its negation is always true: a or (not a) is true, reversed to rewrite toward the simple side. | next |
+| `and_or_distrib_left_sym(a, b, c)` | `∀ a: Bool, -b: Bool, -c: Bool. {Bool.or(Bool.and(a, b), Bool.and(a, c)) == Bool.and(a, Bool.or(b, c)) : Bool}` | And distributes over or: a and (b or c) is (a and b) or (a and c), reversed to rewrite toward the simple side. | next |
+| `or_and_distrib_left_sym(a, b, c)` | `∀ a: Bool, -b: Bool, -c: Bool. {Bool.and(Bool.or(a, b), Bool.or(a, c)) == Bool.or(a, Bool.and(b, c)) : Bool}` | Or distributes over and: a or (b and c) is (a or b) and (a or c), reversed to rewrite toward the simple side. | next |
+| `and_or_absorb_sym(a, b)` | `∀ a: Bool, -b: Bool. {a == Bool.and(a, Bool.or(a, b)) : Bool}` | Absorption: a and (a or b) is a, reversed to rewrite toward the simple side. | next |
+| `or_and_absorb_sym(a, b)` | `∀ a: Bool, -b: Bool. {a == Bool.or(a, Bool.and(a, b)) : Bool}` | Absorption: a or (a and b) is a, reversed to rewrite toward the simple side. | next |
+| `xor_comm_sym(a, b)` | `∀ a: Bool, b: Bool. {Bool.xor(b, a) == Bool.xor(a, b) : Bool}` | Exclusive or is commutative, reversed to rewrite toward the simple side. | next |
+| `xor_assoc_sym(a, b, c)` | `∀ a: Bool, b: Bool, c: Bool. {Bool.xor(a, Bool.xor(b, c)) == Bool.xor(Bool.xor(a, b), c) : Bool}` | Exclusive or is associative, reversed to rewrite toward the simple side. | next |
+| `xor_self_sym(a)` | `∀ a: Bool. {False{} == Bool.xor(a, a) : Bool}` | A boolean xor itself is false, reversed to rewrite toward the simple side. | next |
+| `xor_false_sym(a)` | `∀ a: Bool. {a == Bool.xor(a, False{}) : Bool}` | False is an identity for xor: a xor false is a, reversed to rewrite toward the simple side. | next |
+| `xor_true_sym(a)` | `∀ a: Bool. {Bool.not(a) == Bool.xor(a, True{}) : Bool}` | Xor with true negates: a xor true is not a, reversed to rewrite toward the simple side. | next |
 
 ## equal
 
@@ -167,4 +197,4 @@ import bend-mathlib@0.1.0.1/nat.bend as MNat
 | `mul_add_sym(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.add(Nat.mul(a, b), Nat.mul(a, c)) == Nat.mul(a, Nat.add(b, c)) : Nat}` | Multiplication distributes over addition on the left: a * (b + c) = a * b + a * c, reversed to rewrite toward the simple side. | 0.1.0.0 |
 | `mul_assoc_sym(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.mul(a, Nat.mul(b, c)) == Nat.mul(Nat.mul(a, b), c) : Nat}` | Multiplication is associative: (a * b) * c = a * (b * c), reversed to rewrite toward the simple side. | 0.1.0.0 |
 
-119 lemmas. Generated by `tools/mathlib/index.ts`.
+147 lemmas. Generated by `tools/mathlib/index.ts`.
