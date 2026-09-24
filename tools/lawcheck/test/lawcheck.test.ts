@@ -144,6 +144,15 @@ describe("unsafe verdict", () => {
     expect(code).toBe(0);
     expect(report.laws.every((l: any) => l.status === "pass")).toBe(true);
   }, T);
+
+  test("an open law alongside @unsafe is not a clean pass", async () => {
+    const { code, report } = await json(path.join(FX, "unsafe_open.bend"), "--max-instances", "3", "--jobs", "4");
+    expect(code).toBe(0);
+    const l = law(report, "zero_is_zero");
+    expect(l.status).toBe("skip");
+    expect(l.status).not.toBe("pass");
+    expect(l.reason).toMatch(/unsafe or foreign code/);
+  }, T);
 });
 
 describe("too-large instances and --max-nat", () => {

@@ -16,6 +16,7 @@ export type Outcome =
   | { r: "illtyped"; detail: string }
   | { r: "toolarge" }
   | { r: "unsafe"; count: number }
+  | { r: "open" }
   | { r: "error"; detail: string };
 
 export class ModuleError extends Error {}
@@ -28,6 +29,7 @@ export type Engine = {
   jobs: number;
   runs: number;
   display: (s: string) => string;
+  unsafe: string[];
 };
 
 export function bendBin(): string {
@@ -92,11 +94,9 @@ function locate(out: string): Located | null {
   return { def: lines[li].slice(10).trim(), expected: field(block, "expected"), observed: field(block, "observed"), pointed, text: lines.slice(Math.max(0, errAt)).join("\n").trim() };
 }
 
-/** A checked batch: exactly `All terms check.`, or only open proofs in an imported module. */
-const cleanCheck = (out: string) => {
-  const t = out.trim();
-  return t === "All terms check." || /\d+ TODOs? found/.test(t);
-};
+/** A clean batch is exactly `All terms check.`; `Error: N TODOs found.` means open proofs in an import. */
+const cleanCheck = (out: string) => out.trim() === "All terms check.";
+const openCheck = (out: string) => /\d+ TODOs? found/.test(out);
 
 /** The "All terms check, but N defs rely on unsafe or foreign code:" verdict, with the relying defs. */
 function unsafeVerdict(out: string): { count: number; defs: string[] } | null {
@@ -146,7 +146,15 @@ export async function evaluate(E: Engine, items: Item[], stopAtFail = false): Pr
         for (const it of rest) res.set(it.id, set.has(it.id) ? { r: "unsafe", count: unsafe.count } : { r: "pass" });
         break;
       }
-      const o: Outcome = cleanCheck(out) ? { r: "pass" } : { r: "error", detail: E.display(out.trim()) };
+      if (cleanCheck(out)) {
+        for (const it of rest) res.set(it.id, { r: "pass" });
+        break;
+      }
+      if (openCheck(out)) {
+        for (const it of rest) res.set(it.id, { r: "open" });
+        break;
+      }
+      const o: Outcome = { r: "error", detail: E.display(out.trim()) };
       for (const it of rest) res.set(it.id, o);
       break;
     }

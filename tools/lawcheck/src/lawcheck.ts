@@ -5,6 +5,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { BendReadError, decls, load, show, type Decl, type Loaded } from "../../reader/index.ts";
+import { stripCommentsAndStrings } from "../../mathlib/lib.ts";
 import { bendBin, evaluate, evaluateAll, ModuleError, type Engine, type Item, type Outcome } from "./checker.ts";
 import { defSpan, mutants } from "./mutate.ts";
 import { mentions, rewrite, Shadowed, splitEquation } from "./terms.ts";
@@ -133,6 +134,9 @@ const TYPE_CHOICES = ["U32", "Nat"];
 
 /** Human text for an unsafe-reliance count. */
 const unsafeText = (n: number) => `unsafe or foreign code (${n} def${n === 1 ? "" : "s"})`;
+
+/** Human text for `@unsafe` found by the independent source scan. */
+const unsafeFilesText = (files: string[]) => `unsafe or foreign code (@unsafe in ${files.join(", ")})`;
 
 function tipOf(L: Loaded, key: string): string {
   const B = L.bend;
@@ -388,6 +392,13 @@ function rootFor(file: string, impl: string | undefined, tmp: string): string {
 
 export class UsageError extends Error {}
 
+/** Basenames of loaded non-Base files whose comment/string-stripped source has `@unsafe`. */
+function unsafeModules(L: Loaded, baseFiles: Set<string>): string[] {
+  return L.files
+    .filter((f) => !baseFiles.has(f.path) && /(^|[^\w@])@unsafe\b/.test(stripCommentsAndStrings(f.text)))
+    .map((f) => path.basename(f.path));
+}
+
 export async function lawcheck(file: string, o: Options): Promise<Report> {
   const abs = path.resolve(file);
   if (!fs.existsSync(abs)) throw new UsageError(`no such file: ${file}`);
@@ -395,10 +406,12 @@ export async function lawcheck(file: string, o: Options): Promise<Report> {
   const root = rootFor(abs, o.impl, tmp);
   const L = await load(root);
   const own = decls(L, { scope: "own" });
-  const predicates = new Set(decls(L, { scope: "all" }).filter((d) => d.predicate).map((d) => d.name));
+  const allDecls = decls(L, { scope: "all" });
+  const predicates = new Set(allDecls.filter((d) => d.predicate).map((d) => d.name));
+  const baseFiles = new Set(allDecls.filter((d) => d.origin === "base").map((d) => d.file));
   const U = universe(L, o.maxNat);
   const { header, qualify, display, nameOut } = aliasMap(L);
-  const E: Engine = { header, dir: tmp, bend: bendBin(), timeoutMs: o.timeoutMs ?? 120000, jobs: o.jobs ?? navigator.hardwareConcurrency, runs: 0, display };
+  const E: Engine = { header, dir: tmp, bend: bendBin(), timeoutMs: o.timeoutMs ?? 120000, jobs: o.jobs ?? navigator.hardwareConcurrency, runs: 0, display, unsafe: unsafeModules(L, baseFiles) };
   const all = own.filter((d) => d.kind === "law");
   const laws = all.filter((d) => o.law === undefined || d.name === o.law);
   if (o.law !== undefined && laws.length === 0) throw new UsageError(`no law named ${o.law} in ${file}`);
@@ -462,13 +475,15 @@ async function checkLaw(L: Loaded, d: Decl, li: number, o: Options, U: Universe,
     if (p.premises.length === 0) return { kept: cands, tooLarge: 0 };
     const items = cands.map((c) => texts(c).premises.map((claim) => ({ id: id(), claim })));
     const res = await evaluateAll(E, items.flat());
-    const bad = [...res.values()].find((x) => x.r === "undecidable" || x.r === "illtyped" || x.r === "error" || x.r === "unsafe");
+    const all = [...res.values()];
+    const bad = all.find((x) => x.r === "undecidable" || x.r === "illtyped" || x.r === "error" || x.r === "unsafe");
     if (bad) return bad.r === "unsafe" ? `premise relies on ${unsafeText(bad.count)}` : `premise ${bad.r === "undecidable" ? "not decidable by evaluation" : "could not be evaluated"}: ${(bad as any).detail}`;
+    if (E.unsafe.length > 0 && all.some((x) => x.r === "open")) return `premise relies on ${unsafeFilesText(E.unsafe)}`;
     let tooLarge = 0;
     const kept = cands.filter((_, i) => {
       const outs = items[i].map((it) => res.get(it.id)!);
       if (outs.some((o) => o.r === "toolarge")) { tooLarge++; return false; }
-      return outs.every((it) => it.r === "pass");
+      return outs.every((it) => it.r === "pass" || it.r === "open");
     });
     return { kept, tooLarge };
   }
@@ -476,6 +491,7 @@ async function checkLaw(L: Loaded, d: Decl, li: number, o: Options, U: Universe,
   const problem = (out: Outcome): LawResult | null => {
     if (out.r === "undecidable") return { ...base, status: "skip", reason: `not decidable by evaluation (${out.detail})` };
     if (out.r === "unsafe") return { ...base, status: "skip", reason: `the checker's verdict relies on ${unsafeText(out.count)}` };
+    if (out.r === "open" && E.unsafe.length > 0) return { ...base, status: "skip", reason: `the checker reported open proofs and the source relies on ${unsafeFilesText(E.unsafe)}` };
     if (out.r === "illtyped") return { ...base, status: "error", reason: `a generated instance does not type-check:\n${out.detail}` };
     if (out.r === "error") return { ...base, status: "error", reason: out.detail };
     return null;
@@ -503,7 +519,7 @@ async function checkLaw(L: Loaded, d: Decl, li: number, o: Options, U: Universe,
       const res = await evaluateAll(E, items);
       for (const out of res.values()) { const pr = problem(out); if (pr) return pr; }
       const outs = [...res.values()];
-      passed = outs.filter((o) => o.r === "pass").length;
+      passed = outs.filter((o) => o.r === "pass" || o.r === "open").length;
       const claimTooLarge = outs.filter((o) => o.r === "toolarge").length;
       if (claimTooLarge > 0) { tooLarge += claimTooLarge; base.tooLarge = tooLarge; }
       failing = sat.map((inst, i) => ({ inst, out: res.get(items[i].id)! })).filter((x) => x.out.r === "fail");
