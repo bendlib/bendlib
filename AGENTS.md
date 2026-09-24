@@ -80,7 +80,8 @@ why-comment instead of re-explaining it.
 bend/
 ├── PLAN.md  README.md  AGENTS.md  RELEASES.md  LICENSE  toolchain.json (pinned bend + sha256)
 ├── .beads/                     issue tracking (br); commit it with code
-├── .github/workflows/          ci.yml (gates, nightly newest-compiler job), docs.yml (site)
+├── .github/workflows/          ci.yml (gates, nightly newest-compiler job), docs.yml (site),
+│                               lawcheck-release.yml (tag-triggered lawcheck binaries)
 ├── packages/bend-mathlib/      all.bend equal.bend bool.bend nat.bend list.bend LICENSE
 │                               PUBLIC_API.lock README.md (generated)
 ├── tools/

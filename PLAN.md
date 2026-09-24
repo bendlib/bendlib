@@ -184,11 +184,11 @@ Base facts that shape proofs (verified): `Nat.add`, `Nat.mul(a, +b)` recurse on 
 - `bool.bend`: `not_not`, `and_comm`, `or_comm`, `and_assoc`, `or_assoc`, `and_true`, `true_and`,
   `and_false`, `or_false`, `de_morgan_and`, `de_morgan_or`, `true_ne_false`.
 - `nat.bend`: `add_zero`, `zero_add`, `add_succ`, `succ_add`, `add_comm`, `add_assoc`, `add_left_comm`,
-  `add_right_comm`, `add_swap` (four-way; re-proved 12× upstream), `add_left_cancel`, `succ_inj`,
+  `add_right_comm`, `add_add_add_comm` (four-way; re-proved 12× upstream), `add_left_cancel`, `succ_inj`,
   `zero_ne_succ`, `mul_zero`, `zero_mul`, `mul_one`, `mul_succ`, `mul_comm`, `mul_assoc`, `mul_add`, `add_mul`;
   order (same module): `le`, `lt`, `ge`, `gt` (Base-only `Data` predicates), `le_refl`, `le_trans`,
   `le_antisymm`, `le_total` + `le_total_d`, `le_succ`, `le_add_right`, `lt_irrefl`, `lt_trans`,
-  `lt_implies_le`, `zero_le`, `ge_iff_le` flips.
+  `le_of_lt`, `zero_le`, `le_of_ge`/`ge_of_le` flips.
 - `list.bend`: `append_nil`, `append_assoc`, `length_append`, `reverse_go_spec`, `reverse_append`,
   `reverse_reverse`, `length_reverse`, `foldr_append`, `take_append_drop`, `length_map`, `map_append`.
 
@@ -365,15 +365,21 @@ it never proves anything.
 bendlib/                     GitHub: bendlib/bendlib (monorepo)
 ├── PLAN.md  README.md  LICENSE  AGENTS.md  RELEASES.md  toolchain.json
 ├── packages/bend-mathlib/   LICENSE all.bend *.bend PUBLIC_API.lock
-├── packages/bendlib-kernel-list/   (0.2 era; published once)
-├── tools/frontend/          @bendlib/frontend (TS)
-├── tools/lawcheck/          lawcheck CLI (TS)
-├── tools/docs/              docs generator + site templates (TS)
-├── tools/mathlib/           check.ts names.ts lock.ts devlib.ts release.ts
-├── research/experiments/    evidence for F1–F24;  research/predicates/ (candidates)
-└── .github/workflows/       ci.yml (mathlib gates, tool tests)  nightly.yml  docs.yml
+├── packages/bendlib-kernel-list/   (0.2 era; planned — not yet created)
+├── tools/
+│   ├── comments.ts          comment lint
+│   ├── install-bend.ts      installs the pinned compiler
+│   ├── reader/              @bendlib/reader (TS; planned as `frontend`, §2)
+│   ├── lawcheck/            lawcheck CLI (TS)
+│   ├── docs/                docs generator + site templates (TS)
+│   └── mathlib/             check.ts lint.ts twins.ts lock.ts index.ts hash.ts release.ts
+│                            lib.ts (+ fixtures, tools.test.ts)
+├── examples/demo/           launch demo (before.bend, after.bend, demo.gif, demo.mp4, demo.sh)
+├── research/experiments/    evidence for F1–F34;  research/candidates/ (mathlib-0.2/, predicates/, perm/)
+└── .github/workflows/       ci.yml (mathlib gates, tool tests, nightly latest-compiler job)
+                             docs.yml  lawcheck-release.yml (tag-triggered binaries)
 ```
-Monorepo because a compiler change usually touches mathlib, frontend and tools together.
+Monorepo because a compiler change usually touches mathlib, reader and tools together.
 
 **Language split.** Everything users import is Bend. Tool *shells* are TypeScript on Bun because
 (1) the official parser/checker is `bend.ts` — reusing it is the only way to read code exactly like
@@ -479,7 +485,7 @@ these; they prepare the dry run and stop.
 | Single publisher (bus factor) | Keep hub login recoverable (GitHub 2FA recovery codes); document the release steps in the repo; README always carries hash imports too |
 | Base absorbs the basics (a Base `Nat.add_comm` needs no import) | Naming prevents errors, not irrelevance: value moves to perm/sorted/algebra/kernels and the tools; upstreaming basics ourselves is a credit win |
 | Base definitions churn (argument order, fuel) | Published statements are Base terms and immutable; nightly detects, new versions + a compatibility table repair; kernel encodings are immune |
-| Checker conversion rules change | F4/F4b/F25–F28 experiments run nightly (`research/experiments/run.sh`) so a rule change is flagged the day it ships |
+| Checker conversion rules change | No automated runner: `research/experiments/run.sh` does not exist and no workflow references it. The nightly `latest-compiler` job (`ci.yml`, run on `schedule`) only re-checks mathlib and runs the reader/lawcheck tests on the newest Bend release, so a conversion-rule change is caught via the lemmas/tests that depend on it, not by re-running the F-experiments (gap) |
 
 ---
 
