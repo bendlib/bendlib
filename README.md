@@ -48,4 +48,24 @@ bun tools/mathlib/check.ts packages/bend-mathlib   # every module checks
 bun tools/mathlib/lint.ts packages/bend-mathlib --erasure
 ```
 
+## Add a lemma
+
+Put the statement in a module above the `# --- generated: _sym twins …` line, with one `#` doc
+sentence above the `law`, one-line claim, proof `def` below. Lawcheck it first, then run the gate:
+
+```sh
+bun tools/lawcheck/cli.ts packages/bend-mathlib/nat.bend --law add_comm   # ✓ = no counterexample
+bun test tools/
+bun tools/comments.ts
+bun tools/mathlib/check.ts packages/bend-mathlib
+for m in packages/bend-mathlib/*.bend; do bun tools/lawcheck/cli.ts "$m" --max-instances 100 || exit 1; done
+bun tools/mathlib/lint.ts packages/bend-mathlib --erasure
+bun tools/mathlib/twins.ts packages/bend-mathlib --check
+bun tools/mathlib/lock.ts packages/bend-mathlib --check
+bun tools/mathlib/index.ts packages/bend-mathlib bend-mathlib 0.1.0.1 --check
+```
+
+Published statements never change: a fix gets a new name (`PLAN.md` §3.1 rule 2). Full procedure and
+proof patterns: `AGENTS.md` → "Adding a lemma to bend-mathlib".
+
 Apache-2.0.
