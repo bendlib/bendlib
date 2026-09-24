@@ -256,6 +256,22 @@ function localName(key: string, ns: string): string {
   return ns !== "" && key.startsWith(ns + ".") ? key.slice(ns.length + 1) : key;
 }
 
+// A `type …:` body: from the line after its header to the next top-level item (a
+// non-blank line at column 0) or EOF; ctors carry no span, so this bounds the search.
+function typeBody(src: string, headerPos: number): { start: number; end: number } {
+  const nl = src.indexOf("\n", headerPos);
+  const start = nl === -1 ? src.length : nl + 1;
+  let pos = start;
+  while (pos < src.length) {
+    const eol = src.indexOf("\n", pos);
+    const stop = eol === -1 ? src.length : eol;
+    const line = src.slice(pos, stop);
+    if (line.trim() !== "" && line[0] !== " " && line[0] !== "\t") return { start, end: pos };
+    pos = eol === -1 ? src.length : eol + 1;
+  }
+  return { start, end: src.length };
+}
+
 export type Scope = "own" | "all-non-base" | "all";
 
 export function decls(L: Loaded, opts: { scope?: Scope } = {}): Decl[] {
@@ -287,17 +303,29 @@ export function decls(L: Loaded, opts: { scope?: Scope } = {}): Decl[] {
         throw new BendReadError(`Error: reader expected 'type ${local}', found '${h.kw}'`, f.path, h.line, h.column, k);
       }
       out.push({ ...base, kind: "type", ctors: t.c.map((c: any) => c.k) });
-      // ctor types carry no span of their own; find them after the type header, in order
-      let from = h.pos;
+      // ctor types carry no span of their own; find them in the type's body, in order
+      const body = typeBody(f.parsed, h.pos);
+      let from = body.start;
       for (const c of t.c) {
         const cl = localName(c.k, f.namespace);
-        const re = new RegExp(`(^|\\n)([ \\t]*)${esc(cl)}\\s*\\{`, "g");
+        const re = new RegExp(`${esc(cl)}[ \\t]*\\{`, "g");
         re.lastIndex = from;
-        const m = re.exec(f.parsed);
-        if (m === null) {
+        let at = -1;
+        for (let m; (m = re.exec(f.parsed)) !== null;) {
+          const p = m.index;
+          if (p >= body.end) break;
+          // matched when preceded by line-start indentation or a `}` (plus spaces) on this line
+          const lineStart = f.parsed.lastIndexOf("\n", p - 1) + 1;
+          let i = p;
+          while (i > lineStart && (f.parsed[i - 1] === " " || f.parsed[i - 1] === "\t")) i--;
+          if (i === lineStart || f.parsed[i - 1] === "}") {
+            at = p;
+            break;
+          }
+        }
+        if (at === -1) {
           throw new BendReadError(`Error: reader found no constructor '${cl}' after type ${local}`, f.path, h.line, null, c.k);
         }
-        const at = m.index + m[1].length + m[2].length;
         from = at + cl.length;
         const lc = lineCol(f.parsed, at);
         out.push({

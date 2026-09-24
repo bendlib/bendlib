@@ -103,6 +103,17 @@ describe("decls", () => {
     expect(k.le_refl.statement).toBeUndefined();
   });
 
+  test("constructors sharing one line: each is placed at its declaration", async () => {
+    const src = fs.readFileSync(path.join(FIX, "ctors_one_line.bend"), "utf8");
+    const line4 = src.split("\n")[3];
+    const col = (n: string) => line4.indexOf(n) + 1;
+    const k = Object.fromEntries(decls(await load(path.join(FIX, "ctors_one_line.bend"))).map((d) => [d.name, d]));
+    for (const n of ["PTag", "RLen", "PKey"]) {
+      expect(k[n]).toMatchObject({ kind: "ctor", line: 4, column: col(n), type: "Phase" });
+    }
+    expect(k.first).toMatchObject({ kind: "def", line: 6 });
+  });
+
   test("templates, effects and unsafe defs in Base are classified", async () => {
     const L = await load(path.join(REPO, "research/experiments/v1/order.bend"));
     const base = decls(L, { scope: "all" }).filter((d) => d.origin === "base");
