@@ -1,3 +1,4 @@
+# bend-mathlib/list.bend: List lemmas (append, reverse, length, take, drop, map, fold, filter).
 import Base
 import ./nat.bend as MNat
 import ./bool.bend as MBool

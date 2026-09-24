@@ -1,3 +1,4 @@
+# bend-mathlib/nat.bend: Nat arithmetic (add, mul, sub, min, max, pow) and order (le, lt, ge, gt).
 import Base
 
 # Zero is a right identity for addition: x + 0 = x.

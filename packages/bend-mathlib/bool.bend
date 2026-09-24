@@ -1,3 +1,4 @@
+# bend-mathlib/bool.bend: Bool algebra (not, and, or, xor).
 import Base
 
 # Negating a boolean twice gives it back.

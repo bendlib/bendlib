@@ -1,3 +1,4 @@
+# bend-mathlib/equal.bend: equality lemmas (congruence, substitution, chains).
 import Base
 
 # Applying a two-argument function to equal arguments gives equal results.
