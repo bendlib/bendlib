@@ -8,7 +8,7 @@ import instead of re-proving, and tools that keep laws honest.
 | [`bend-mathlib`](packages/bend-mathlib) | 119 lemmas about `Nat`, `Bool`, `List`, equality — generic, proved, zero `@unsafe` | **0.1.0.1 on BendHub** |
 | [`@bendlib/reader`](tools/reader) | Reads Bend source with the official parser of your installed compiler version | working |
 | [`lawcheck`](tools/lawcheck) | Finds counterexamples to laws before you try to prove them, and shrinks them | v0.1 working |
-| Bend docs | Rendered API docs and lemma search for every BendHub package | planned |
+| [Bend Docs](https://bendlib.github.io/bendlib/) | API docs, checker status and law-shape search for every BendHub package | **live**, rebuilt hourly |
 
 ## Use it
 
