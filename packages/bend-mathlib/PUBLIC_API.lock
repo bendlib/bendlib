@@ -473,6 +473,18 @@
     "sha256": "88adecf62ec0a098b3efa20087d02dbcce0f55254a962ede2e794f503f8266d8",
     "since": null
   },
+  "list.foldl_append": {
+    "kind": "law",
+    "text": "for ~a: Quant\nfor ~A: Kind(a)\nfor ~B: Type\nfor ~f: B -> A -> B\nfor xs: List<a, A>\nfor -ys: List<a, A>\nfor -z: B\n{List.foldl(~a, ~A, ~B, ~f, List.append(a, A, xs, ys), z) == List.foldl(~a, ~A, ~B, ~f, ys, List.foldl(~a, ~A, ~B, ~f, xs, z)) : B}",
+    "sha256": "e5193bdc75a8898c58741db766231a75b2d8a95a8291bc382a09b74b9ddf09c0",
+    "since": null
+  },
+  "list.foldl_append_sym": {
+    "kind": "law",
+    "text": "for ~a: Quant\nfor ~A: Kind(a)\nfor ~B: Type\nfor ~f: B -> A -> B\nfor xs: List<a, A>\nfor -ys: List<a, A>\nfor -z: B\n{List.foldl(~a, ~A, ~B, ~f, ys, List.foldl(~a, ~A, ~B, ~f, xs, z)) == List.foldl(~a, ~A, ~B, ~f, List.append(a, A, xs, ys), z) : B}",
+    "sha256": "401458bbb8854381dfa643c75d496b3ac36aa3c08765daeb7f583b6f950c2f97",
+    "since": null
+  },
   "list.foldr_append": {
     "kind": "law",
     "text": "for ~a: Quant\nfor ~A: Kind(a)\nfor ~B: Type\nfor ~f: A -> B -> B\nfor xs: List<a, A>\nfor -ys: List<a, A>\nfor -z: B\n{List.foldr(~a, ~A, ~B, ~f, List.append(a, A, xs, ys), z) == List.foldr(~a, ~A, ~B, ~f, xs, List.foldr(~a, ~A, ~B, ~f, ys, z)) : B}",
@@ -628,6 +640,18 @@
     "text": "for ~A: Type\nfor ~B: Type\nfor ~C: Type\nfor ~f: A -> B\nfor ~g: B -> C\nfor xs: List<A>\n{List.map(~A, ~C, ~(x => g(f(x))), xs) == List.map(~B, ~C, ~g, List.map(~A, ~B, ~f, xs)) : List<C>}",
     "sha256": "f8b2e3aaf90230df6bfcd210586cc3f5d197720fddecf18f99775d4da27c3ebb",
     "since": "0.1.0.0"
+  },
+  "list.map_reverse": {
+    "kind": "law",
+    "text": "for ~A: Type\nfor ~B: Type\nfor ~f: A -> B\nfor xs: List<A>\n{List.map(~A, ~B, ~f, List.reverse(&1, A, xs)) == List.reverse(&1, B, List.map(~A, ~B, ~f, xs)) : List<B>}",
+    "sha256": "663faaab75bff3aa04633e96b03bc8cf1f4db2791ba67292b26afff8780f680f",
+    "since": null
+  },
+  "list.map_reverse_sym": {
+    "kind": "law",
+    "text": "for ~A: Type\nfor ~B: Type\nfor ~f: A -> B\nfor xs: List<A>\n{List.reverse(&1, B, List.map(~A, ~B, ~f, xs)) == List.map(~A, ~B, ~f, List.reverse(&1, A, xs)) : List<B>}",
+    "sha256": "41531d58eb632baada1c58d167cb0384d350545e01ccbad67249dcd2506bafb6",
+    "since": null
   },
   "list.nil_append": {
     "kind": "law",

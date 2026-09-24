@@ -490,6 +490,42 @@ def concat_append(a, A, xss, yss):
       %Equal.sym(List<a, A>, List.concat(a, A, List.append(a, List<a, A>, t, yss)), List.append(a, A, List.concat(a, A, t), List.concat(a, A, yss)), concat_append(a, A, t, yss)) : {List.append(a, A, h, _) == List.append(a, A, List.append(a, A, h, List.concat(a, A, t)), List.concat(a, A, yss)) : List<a, A>}
       Equal.sym(List<a, A>, List.append(a, A, List.append(a, A, h, List.concat(a, A, t)), List.concat(a, A, yss)), List.append(a, A, h, List.append(a, A, List.concat(a, A, t), List.concat(a, A, yss))), append_assoc(a, A, h, List.concat(a, A, t), List.concat(a, A, yss)))
 
+# A left fold over an append folds the second part from the fold of the first.
+law foldl_append:
+  for ~a: Quant
+  for ~A: Kind(a)
+  for ~B: Type
+  for ~f: B -> A -> B
+  for xs: List<a, A>
+  for -ys: List<a, A>
+  for -z: B
+  {List.foldl(~a, ~A, ~B, ~f, List.append(a, A, xs, ys), z) == List.foldl(~a, ~A, ~B, ~f, ys, List.foldl(~a, ~A, ~B, ~f, xs, z)) : B}
+
+def foldl_append(a, A, B, f, xs, ys, z):
+  match xs:
+    case Nil{}:
+      {==}
+    case h <> t:
+      foldl_append(~a, ~A, ~B, ~f, t, ys, f(z, h))
+
+# Mapping commutes with reversing: map f (reverse xs) = reverse (map f xs).
+law map_reverse:
+  for ~A: Type
+  for ~B: Type
+  for ~f: A -> B
+  for xs: List<A>
+  {List.map(~A, ~B, ~f, List.reverse(&1, A, xs)) == List.reverse(&1, B, List.map(~A, ~B, ~f, xs)) : List<B>}
+
+def internal_map_reverse_go(~A: Type, ~B: Type, ~f: A -> B, xs: List<A>, acc: List<A>) -> {List.map(~A, ~B, ~f, List.reverse.go(&1, A, xs, acc)) == List.reverse.go(&1, B, List.map(~A, ~B, ~f, xs), List.map(~A, ~B, ~f, acc)) : List<B>}:
+  match xs:
+    case Nil{}:
+      {==}
+    case h <> t:
+      internal_map_reverse_go(~A, ~B, ~f, t, h <> acc)
+
+def map_reverse(A, B, f, xs):
+  internal_map_reverse_go(~A, ~B, ~f, xs, Nil{})
+
 # --- generated: _sym twins (tools/mathlib/twins.ts), do not edit ---
 
 # The empty list is a right identity for append: xs ++ [] = xs, reversed to rewrite toward the simple side.
@@ -832,3 +868,28 @@ law concat_append_sym:
 
 def concat_append_sym(a, A, xss, yss):
   Equal.sym(List<a, A>, List.concat(a, A, List.append(a, List<a, A>, xss, yss)), List.append(a, A, List.concat(a, A, xss), List.concat(a, A, yss)), concat_append(a, A, xss, yss))
+
+# A left fold over an append folds the second part from the fold of the first, reversed to rewrite toward the simple side.
+law foldl_append_sym:
+  for ~a: Quant
+  for ~A: Kind(a)
+  for ~B: Type
+  for ~f: B -> A -> B
+  for xs: List<a, A>
+  for -ys: List<a, A>
+  for -z: B
+  {List.foldl(~a, ~A, ~B, ~f, ys, List.foldl(~a, ~A, ~B, ~f, xs, z)) == List.foldl(~a, ~A, ~B, ~f, List.append(a, A, xs, ys), z) : B}
+
+def foldl_append_sym(a, A, B, f, xs, ys, z):
+  Equal.sym(B, List.foldl(~a, ~A, ~B, ~f, List.append(a, A, xs, ys), z), List.foldl(~a, ~A, ~B, ~f, ys, List.foldl(~a, ~A, ~B, ~f, xs, z)), foldl_append(~a, ~A, ~B, ~f, xs, ys, z))
+
+# Mapping commutes with reversing: map f (reverse xs) = reverse (map f xs), reversed to rewrite toward the simple side.
+law map_reverse_sym:
+  for ~A: Type
+  for ~B: Type
+  for ~f: A -> B
+  for xs: List<A>
+  {List.reverse(&1, B, List.map(~A, ~B, ~f, xs)) == List.map(~A, ~B, ~f, List.reverse(&1, A, xs)) : List<B>}
+
+def map_reverse_sym(A, B, f, xs):
+  Equal.sym(List<B>, List.map(~A, ~B, ~f, List.reverse(&1, A, xs)), List.reverse(&1, B, List.map(~A, ~B, ~f, xs)), map_reverse(~A, ~B, ~f, xs))
