@@ -104,7 +104,7 @@ form.q input:focus{border-color:var(--vio)}
 form.q input::placeholder{color:var(--b1)}
 .btn{display:inline-block;background:var(--vio);color:#fff;font:inherit;font-weight:600;font-size:1.1em;padding:.1em 1.6ch;border-radius:5px;border:0;cursor:pointer}
 .btn:hover{background:#7a72a8}
-.find{max-width:80ch;margin:1.1em auto 0;font-size:1.25em}
+.find{max-width:none;margin:1.1em 0 0;font-size:1.25em}
 .find input{padding:.35em 1.2ch}
 .find .btn{font-size:1em}
 .hint{margin:.6em 0 0;color:var(--b1);font-size:.8em}
