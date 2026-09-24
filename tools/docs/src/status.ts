@@ -4,6 +4,7 @@
 import { existsSync, readFileSync, writeFileSync, mkdirSync, renameSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { homedir } from "node:os";
+import { stripCommentsAndStrings } from "../../mathlib/lib.ts";
 
 export const BEND = process.env.BEND_CLI ?? join(homedir(), ".bend", "bin", "bend");
 
@@ -67,6 +68,37 @@ function unsafeDefs(rest: string[]): string[] {
     out.push(m[1]);
   }
   return out;
+}
+
+// Def names that follow an `@unsafe` token in stripped source, in source order.
+function unsafeDefNames(src: string): string[] {
+  const out: string[] = [];
+  const lines = src.split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    const m = /(^|[^\w@])@unsafe\b/.exec(lines[i]);
+    if (m === null) continue;
+    const same = lines[i].slice(m.index + m[0].length).match(/^\s*def\s+([A-Za-z_][A-Za-z0-9_.]*)/);
+    if (same !== null) { out.push(same[1]); continue; }
+    for (let j = i + 1; j < lines.length; j++) {
+      const t = lines[j].trim();
+      if (t === "") continue;
+      const d = t.match(/^(?:@unsafe\s+)?def\s+([A-Za-z_][A-Za-z0-9_.]*)/);
+      if (d !== null) out.push(d[1]);
+      break;
+    }
+  }
+  return [...new Set(out)];
+}
+
+// Catches @unsafe in the package's own files only; @unsafe in a dependency is visible on that
+// package's page. bend issue #1001: the checker prints a clean verdict despite an unsafe fill.
+export function crossCheck(s: FileStatus, source: string): FileStatus {
+  const src = stripCommentsAndStrings(source);
+  if (s.class !== "checks" || !/(^|[^\w@])@unsafe\b/.test(src)) return s;
+  return {
+    ...s, class: "unsafe", summary: "source has @unsafe, but bend printed a clean verdict (bend issue #1001)",
+    unsafeDefs: unsafeDefNames(src), detail: s.detail,
+  };
 }
 
 export type CheckOptions = { bendLib: string; timeoutSec: number; memMb: number; cwd: string };

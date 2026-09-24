@@ -2,7 +2,7 @@
 // `bend <file> --check-only` on 2.0.27 for hub files (named in each test).
 
 import { describe, expect, test } from "bun:test";
-import { classify, worst } from "../src/status.ts";
+import { classify, crossCheck, worst } from "../src/status.ts";
 
 describe("classify", () => {
   test("exactly 'All terms check.' with exit 0 is checks", () => {
@@ -41,5 +41,30 @@ describe("classify", () => {
     expect(worst(["open", "timeout", "unsafe"])).toBe("timeout");
     expect(worst(["checks", "fails", "timeout"])).toBe("fails");
     expect(worst([])).toBe("checks");
+  });
+});
+
+describe("crossCheck", () => {
+  const clean = () => classify("All terms check.\n", 0, false, 1);
+  test("a clean verdict over @unsafe source is downgraded to unsafe (bend issue #1001)", () => {
+    const s = crossCheck(clean(), "@unsafe\ndef f() -> Nat:\n  0n\n");
+    expect(s.class).toBe("unsafe");
+    expect(s.unsafeDefs).toEqual(["f"]);
+    expect(s.summary).toBe("source has @unsafe, but bend printed a clean verdict (bend issue #1001)");
+  });
+  test("every def after an @unsafe is named, including the ? form", () => {
+    const src = "@unsafe\ndef f() -> Nat:\n  0n\n\n@unsafe\ndef g?(x) -> Nat:\n  x\n";
+    expect(crossCheck(clean(), src).unsafeDefs).toEqual(["f", "g"]);
+  });
+  test("planted negative: @unsafe in a comment is not counted", () => {
+    expect(crossCheck(clean(), "# @unsafe\ndef f() -> Nat:\n  0n\n").class).toBe("checks");
+  });
+  test("planted negative: @unsafe inside a string is not counted", () => {
+    expect(crossCheck(clean(), 'def f() -> String:\n  "@unsafe"\n').class).toBe("checks");
+  });
+  test("planted negative: @unsafe never upgrades a fails status", () => {
+    const fails = classify("Error:\n- expected : a fresh constructor name (duplicate declaration: Zero)\n", 1, false, 1);
+    expect(fails.class).toBe("fails");
+    expect(crossCheck(fails, "@unsafe\ndef f() -> Nat:\n  0n\n").class).toBe("fails");
   });
 });

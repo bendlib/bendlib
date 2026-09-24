@@ -17,7 +17,7 @@ import { attachEdges, displayOrder, finishPackage, moduleHeader, namesByHash, ty
 import { renderIndex, renderModule, renderName, renderPackage, renderSearch, modPage, pkgPage, namePage, setBaseNamespaces } from "./src/render.ts";
 import { baseNamespaces } from "./src/status.ts";
 import { buildSearchIndex } from "./src/searchindex.ts";
-import { checkFile, compilerVersion, readStatusCache, statusKey, writeStatusCache, type FileClass } from "./src/status.ts";
+import { checkFile, compilerVersion, crossCheck, readStatusCache, statusKey, writeStatusCache, type FileClass } from "./src/status.ts";
 
 const HERE = import.meta.dir;
 const ROOT = resolve(HERE, "../..");
@@ -164,10 +164,11 @@ async function main() {
       const text = readFileSync(join(lib, e.hash, path), "utf8");
       const r = rec[path];
       if (r.ok) fills.set(path, r.fills);
+      const cached = args.check ? cache[statusKey(e.hash, path, compiler)] ?? null : null;
       return {
         path, header: moduleHeader(text), imports: parseImports(text), foreign: foreignImports(text),
         decls: r.ok ? r.decls : null, error: r.ok ? null : r.error,
-        status: args.check ? cache[statusKey(e.hash, path, compiler)] ?? null : null, provedIn: {},
+        status: cached === null ? null : crossCheck(cached, text), provedIn: {},
       };
     });
     const p: Package = {
