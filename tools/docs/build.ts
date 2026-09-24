@@ -10,6 +10,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSy
 import { dirname, join, resolve } from "node:path";
 import { bendSource } from "../reader/index.ts";
 import { packageFiles, hubHash } from "../mathlib/hash.ts";
+import { PkgError } from "../mathlib/lib.ts";
 import { ensurePackage, fetchIndex, fetchNames, pool, seedNames, sha256, underRoot, type IndexEntry, type ManifestLine } from "./src/hub.ts";
 import { extractFile, type FileDecls } from "./src/extract.ts";
 import { dependencyEdges, foreignImports, parseImports } from "./src/imports.ts";
@@ -128,7 +129,10 @@ async function main() {
   let local: { hash: string; files: Record<string, number>; bytes: number; manifest: ManifestLine[] } | null = null;
   let entries: IndexEntry[] = index;
   if (args.local !== null) {
-    local = stageLocal(args.local, lib);
+    let staged: ReturnType<typeof stageLocal>;
+    try { staged = stageLocal(args.local, lib); }
+    catch (e) { if (e instanceof PkgError) usage(e.message); throw e; }
+    local = staged;
     entries = [{ hash: local.hash, files: local.files, bytes: local.bytes, ts: Date.now(), desc: "" }];
     log(`local: staged ${args.local} as ${local.hash} (${Object.keys(local.files).length} files) (${secs(t)})`);
   } else if (args.only !== null) {

@@ -2,7 +2,7 @@
 // verify, extract, check on the installed bend) and inspects the generated site.
 
 import { beforeAll, describe, expect, test } from "bun:test";
-import { existsSync, mkdtempSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { compile, matchStatement } from "../src/shape.ts";
@@ -163,5 +163,19 @@ describe("--local preview", () => {
       expect(msg).not.toContain("ENOENT");
       expect(msg).not.toContain("EISDIR");
     }
+  });
+
+  test("--local rejects a climbing package with a typed usage error", () => {
+    const root = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "bend-docs-climb-"));
+    mkdirSync(join(root, "pkg"));
+    writeFileSync(join(root, "other.bend"), "import Base\n\ndef other() -> U32:\n  7\n");
+    writeFileSync(join(root, "pkg", "all.bend"), "import Base\nimport ../other.bend as Other\n\ndef f() -> U32:\n  Other.other()\n");
+    const p = Bun.spawnSync([process.execPath, join(import.meta.dir, "..", "build.ts"),
+      "--local", join(root, "pkg", "all.bend"), "--out", join(root, "dist"), "--cache", join(root, "cache")]);
+    const msg = new TextDecoder().decode(p.stdout) + new TextDecoder().decode(p.stderr);
+    expect(p.exitCode).toBe(2);
+    expect(msg).toContain("is outside the entry directory");
+    expect(msg).toContain("usage: bun tools/docs/build.ts");
+    expect(msg).not.toMatch(/\n\s+at /);
   });
 });

@@ -9,14 +9,16 @@
 import { appendFileSync, cpSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative, basename, resolve } from "node:path";
-import { BEND, ROOT, packageModules } from "./lib.ts";
+import { BEND, PkgError, ROOT, packageModules } from "./lib.ts";
 import { hubHash, packageFiles } from "./hash.ts";
+
+const USAGE = "usage: release.ts <pkgdir> <name(12-64 chars)> <a.b.c.d> [--publish]";
+const usage = (msg: string): never => { console.error(`release: ${msg}\n${USAGE}`); process.exit(2); };
 
 const [pkgArg, name, version] = process.argv.slice(2).filter((a) => !a.startsWith("--"));
 const doPublish = process.argv.includes("--publish");
 if (!pkgArg || !/^[a-z][a-z0-9-]{11,63}$/.test(name ?? "") || !/^\d+\.\d+\.\d+\.\d+$/.test(version ?? "")) {
-  console.error("usage: release.ts <pkgdir> <name(12-64 chars)> <a.b.c.d> [--publish]");
-  process.exit(2);
+  usage("need <pkgdir> <name(12-64 chars)> <a.b.c.d>");
 }
 const pkg = resolve(pkgArg);
 if (!existsSync(pkg)) {
@@ -55,7 +57,8 @@ for (const [label, cmd] of gates) {
 }
 
 const entry = join(pkg, "all.bend");
-const files = packageFiles(entry);
+let files: Record<string, string>;
+try { files = packageFiles(entry); } catch (e) { if (e instanceof PkgError) usage(e.message); throw e; }
 const expected = hubHash(files);
 console.log(`expected hash ${expected} (${Object.keys(files).length} files)`);
 const taken = await fetch(`https://hub.bend-lang.com/name/${name}@${version}`);

@@ -170,6 +170,18 @@ test("release resolves an absolute existing pkgdir instead of mangling it", () =
   expect(r.out).toContain("FAIL check");
 });
 
+test("release: a climbing package is a typed usage error, exit 2, no stack", () => {
+  const tmp = mkdtempSync(join(tmpdir(), "bend-release-climb-"));
+  mkdirSync(join(tmp, "pkg"));
+  writeFileSync(join(tmp, "other.bend"), "import Base\n\ndef other() -> U32:\n  7\n");
+  writeFileSync(join(tmp, "pkg", "all.bend"), "import Base\nimport ../other.bend as Other\n\ndef f() -> U32:\n  Other.other()\n");
+  const r = run("release.ts", join(tmp, "pkg"), "some-package-name", "0.1.0.0");
+  expect(r.code).toBe(2);
+  expect(r.out).toContain("is outside the entry directory");
+  expect(r.out).toContain("usage: release.ts <pkgdir>");
+  expect(r.out).not.toMatch(STACK);
+});
+
 test("a missing or non-directory package path is a typed usage error, exit 2, no stack", () => {
   const parent = mkdtempSync(join(tmpdir(), "bend-missing-"));
   const missing = join(parent, "nope");
