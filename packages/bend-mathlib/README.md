@@ -109,6 +109,16 @@ import bend-mathlib@0.1.0.1/list.bend as MList
 | `length_map(~A, ~B, ~f, xs)` | `∀ ~A: Type, ~B: Type, ~f: A -> B, xs: List<A>. {List.length(&1, B, List.map(~A, ~B, ~f, xs)) == List.length(&1, A, xs) : Nat}` | Mapping preserves the length. | 0.1.0.0 |
 | `map_append(~A, ~B, ~f, xs, ys)` | `∀ ~A: Type, ~B: Type, ~f: A -> B, xs: List<A>, -ys: List<A>. {List.map(~A, ~B, ~f, List.append(&1, A, xs, ys)) == List.append(&1, B, List.map(~A, ~B, ~f, xs), List.map(~A, ~B, ~f, ys)) : List<B>}` | Mapping over an append maps each part: map f (xs ++ ys) = map f xs ++ map f ys. | 0.1.0.0 |
 | `map_map(~A, ~B, ~C, ~f, ~g, xs)` | `∀ ~A: Type, ~B: Type, ~C: Type, ~f: A -> B, ~g: B -> C, xs: List<A>. {List.map(~B, ~C, ~g, List.map(~A, ~B, ~f, xs)) == List.map(~A, ~C, ~(x => g(f(x))), xs) : List<C>}` | Mapping twice is mapping the composition: map g (map f xs) = map (g . f) xs. | 0.1.0.0 |
+| `take_zero(a, A, xs)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>. {List.take(a, A, xs, 0n) == Nil{} : List<a, A>}` | Taking zero elements gives the empty list. | next |
+| `drop_zero(a, A, xs)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>. {List.drop(a, A, xs, 0n) == xs : List<a, A>}` | Dropping zero elements gives the list back. | next |
+| `take_nil(a, A, n)` | `∀ -a: Quant, -A: Kind(a), -n: Nat. {List.take(a, A, Nil{}, n) == Nil{} : List<a, A>}` | Taking from the empty list gives the empty list. | next |
+| `drop_nil(a, A, n)` | `∀ -a: Quant, -A: Kind(a), -n: Nat. {List.drop(a, A, Nil{}, n) == Nil{} : List<a, A>}` | Dropping from the empty list gives the empty list. | next |
+| `length_take(a, A, xs, n)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>, n: Nat. {List.length(a, A, List.take(a, A, xs, n)) == Nat.min(n, List.length(a, A, xs)) : Nat}` | Taking n elements leaves min(n, length) of them. | next |
+| `length_drop(a, A, xs, n)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>, n: Nat. {List.length(a, A, List.drop(a, A, xs, n)) == Nat.sub(List.length(a, A, xs), n) : Nat}` | Dropping n elements leaves length - n of them. | next |
+| `take_length(A, xs)` | `∀ -A: Data, +xs: List<&2, A>. {List.take(&2, A, xs, List.length(&2, A, xs)) == xs : List<&2, A>}` | Taking as many elements as the list has gives the list back. | next |
+| `drop_length(A, xs)` | `∀ -A: Data, +xs: List<&2, A>. {List.drop(&2, A, xs, List.length(&2, A, xs)) == Nil{} : List<&2, A>}` | Dropping as many elements as the list has gives the empty list. | next |
+| `take_take(a, A, xs, n, m)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>, n: Nat, m: Nat. {List.take(a, A, List.take(a, A, xs, n), m) == List.take(a, A, xs, Nat.min(n, m)) : List<a, A>}` | Taking m from the first n is taking min(n, m). | next |
+| `drop_drop(a, A, xs, n, m)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>, n: Nat, -m: Nat. {List.drop(a, A, List.drop(a, A, xs, n), m) == List.drop(a, A, xs, Nat.add(n, m)) : List<a, A>}` | Dropping m after dropping n is dropping n + m. | next |
 | `append_nil_sym(a, A, xs)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>. {xs == List.append(a, A, xs, Nil{}) : List<a, A>}` | The empty list is a right identity for append: xs ++ [] = xs, reversed to rewrite toward the simple side. | 0.1.0.0 |
 | `nil_append_sym(a, A, xs)` | `∀ -a: Quant, -A: Kind(a), -xs: List<a, A>. {xs == List.append(a, A, Nil{}, xs) : List<a, A>}` | The empty list is a left identity for append: [] ++ xs = xs, reversed to rewrite toward the simple side. | 0.1.0.0 |
 | `append_assoc_sym(a, A, xs, ys, zs)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>, -ys: List<a, A>, -zs: List<a, A>. {List.append(a, A, xs, List.append(a, A, ys, zs)) == List.append(a, A, List.append(a, A, xs, ys), zs) : List<a, A>}` | Append is associative: (xs ++ ys) ++ zs = xs ++ (ys ++ zs), reversed to rewrite toward the simple side. | 0.1.0.0 |
@@ -122,6 +132,16 @@ import bend-mathlib@0.1.0.1/list.bend as MList
 | `length_map_sym(~A, ~B, ~f, xs)` | `∀ ~A: Type, ~B: Type, ~f: A -> B, xs: List<A>. {List.length(&1, A, xs) == List.length(&1, B, List.map(~A, ~B, ~f, xs)) : Nat}` | Mapping preserves the length, reversed to rewrite toward the simple side. | 0.1.0.0 |
 | `map_append_sym(~A, ~B, ~f, xs, ys)` | `∀ ~A: Type, ~B: Type, ~f: A -> B, xs: List<A>, -ys: List<A>. {List.append(&1, B, List.map(~A, ~B, ~f, xs), List.map(~A, ~B, ~f, ys)) == List.map(~A, ~B, ~f, List.append(&1, A, xs, ys)) : List<B>}` | Mapping over an append maps each part: map f (xs ++ ys) = map f xs ++ map f ys, reversed to rewrite toward the simple side. | 0.1.0.0 |
 | `map_map_sym(~A, ~B, ~C, ~f, ~g, xs)` | `∀ ~A: Type, ~B: Type, ~C: Type, ~f: A -> B, ~g: B -> C, xs: List<A>. {List.map(~A, ~C, ~(x => g(f(x))), xs) == List.map(~B, ~C, ~g, List.map(~A, ~B, ~f, xs)) : List<C>}` | Mapping twice is mapping the composition: map g (map f xs) = map (g . f) xs, reversed to rewrite toward the simple side. | 0.1.0.0 |
+| `take_zero_sym(a, A, xs)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>. {Nil{} == List.take(a, A, xs, 0n) : List<a, A>}` | Taking zero elements gives the empty list, reversed to rewrite toward the simple side. | next |
+| `drop_zero_sym(a, A, xs)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>. {xs == List.drop(a, A, xs, 0n) : List<a, A>}` | Dropping zero elements gives the list back, reversed to rewrite toward the simple side. | next |
+| `take_nil_sym(a, A, n)` | `∀ -a: Quant, -A: Kind(a), -n: Nat. {Nil{} == List.take(a, A, Nil{}, n) : List<a, A>}` | Taking from the empty list gives the empty list, reversed to rewrite toward the simple side. | next |
+| `drop_nil_sym(a, A, n)` | `∀ -a: Quant, -A: Kind(a), -n: Nat. {Nil{} == List.drop(a, A, Nil{}, n) : List<a, A>}` | Dropping from the empty list gives the empty list, reversed to rewrite toward the simple side. | next |
+| `length_take_sym(a, A, xs, n)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>, n: Nat. {Nat.min(n, List.length(a, A, xs)) == List.length(a, A, List.take(a, A, xs, n)) : Nat}` | Taking n elements leaves min(n, length) of them, reversed to rewrite toward the simple side. | next |
+| `length_drop_sym(a, A, xs, n)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>, n: Nat. {Nat.sub(List.length(a, A, xs), n) == List.length(a, A, List.drop(a, A, xs, n)) : Nat}` | Dropping n elements leaves length - n of them, reversed to rewrite toward the simple side. | next |
+| `take_length_sym(A, xs)` | `∀ -A: Data, +xs: List<&2, A>. {xs == List.take(&2, A, xs, List.length(&2, A, xs)) : List<&2, A>}` | Taking as many elements as the list has gives the list back, reversed to rewrite toward the simple side. | next |
+| `drop_length_sym(A, xs)` | `∀ -A: Data, +xs: List<&2, A>. {Nil{} == List.drop(&2, A, xs, List.length(&2, A, xs)) : List<&2, A>}` | Dropping as many elements as the list has gives the empty list, reversed to rewrite toward the simple side. | next |
+| `take_take_sym(a, A, xs, n, m)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>, n: Nat, m: Nat. {List.take(a, A, xs, Nat.min(n, m)) == List.take(a, A, List.take(a, A, xs, n), m) : List<a, A>}` | Taking m from the first n is taking min(n, m), reversed to rewrite toward the simple side. | next |
+| `drop_drop_sym(a, A, xs, n, m)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>, n: Nat, -m: Nat. {List.drop(a, A, xs, Nat.add(n, m)) == List.drop(a, A, List.drop(a, A, xs, n), m) : List<a, A>}` | Dropping m after dropping n is dropping n + m, reversed to rewrite toward the simple side. | next |
 
 ## nat
 
@@ -274,4 +294,4 @@ import bend-mathlib@0.1.0.1/nat.bend as MNat
 | `not_is_le_sym(a, b)` | `∀ a: Nat, b: Nat. {Nat.is_lt(b, a) == Bool.not(Nat.is_le(a, b)) : Bool}` | Not (a <= b) tests the same as b < a, reversed to rewrite toward the simple side. | next |
 | `not_is_lt_sym(a, b)` | `∀ a: Nat, b: Nat. {Nat.is_le(b, a) == Bool.not(Nat.is_lt(a, b)) : Bool}` | Not (a < b) tests the same as b <= a, reversed to rewrite toward the simple side. | next |
 
-224 lemmas. Generated by `tools/mathlib/index.ts`.
+244 lemmas. Generated by `tools/mathlib/index.ts`.

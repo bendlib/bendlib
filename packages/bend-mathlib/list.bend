@@ -223,6 +223,155 @@ def map_map(A, B, C, f, g, xs):
       %map_map(~A, ~B, ~C, ~f, ~g, t) : {g(f(h)) <> List.map(~B, ~C, ~g, List.map(~A, ~B, ~f, t)) == g(f(h)) <> _ : List<C>}
       {==}
 
+# Taking zero elements gives the empty list.
+law take_zero:
+  for -a: Quant
+  for -A: Kind(a)
+  for xs: List<a, A>
+  {List.take(a, A, xs, 0n) == Nil{} : List<a, A>}
+
+def take_zero(a, A, xs):
+  match xs:
+    case Nil{}:
+      {==}
+    case h <> t:
+      {==}
+
+# Dropping zero elements gives the list back.
+law drop_zero:
+  for -a: Quant
+  for -A: Kind(a)
+  for xs: List<a, A>
+  {List.drop(a, A, xs, 0n) == xs : List<a, A>}
+
+def drop_zero(a, A, xs):
+  match xs:
+    case Nil{}:
+      {==}
+    case h <> t:
+      {==}
+
+# Taking from the empty list gives the empty list.
+law take_nil:
+  for -a: Quant
+  for -A: Kind(a)
+  for -n: Nat
+  {List.take(a, A, Nil{}, n) == Nil{} : List<a, A>}
+
+def take_nil(a, A, n):
+  {==}
+
+# Dropping from the empty list gives the empty list.
+law drop_nil:
+  for -a: Quant
+  for -A: Kind(a)
+  for -n: Nat
+  {List.drop(a, A, Nil{}, n) == Nil{} : List<a, A>}
+
+def drop_nil(a, A, n):
+  {==}
+
+# Taking n elements leaves min(n, length) of them.
+law length_take:
+  for -a: Quant
+  for -A: Kind(a)
+  for xs: List<a, A>
+  for n: Nat
+  {List.length(a, A, List.take(a, A, xs, n)) == Nat.min(n, List.length(a, A, xs)) : Nat}
+
+def length_take(a, A, xs, n):
+  match xs n:
+    case Nil{} _:
+      Equal.sym(Nat, Nat.min(n, 0n), 0n, MNat.min_zero(n))
+    case h <> t 0n:
+      {==}
+    case h <> t 1n+p:
+      %length_take(a, A, t, p) : {1n+List.length(a, A, List.take(a, A, t, p)) == 1n+_ : Nat}
+      {==}
+
+# Dropping n elements leaves length - n of them.
+law length_drop:
+  for -a: Quant
+  for -A: Kind(a)
+  for xs: List<a, A>
+  for n: Nat
+  {List.length(a, A, List.drop(a, A, xs, n)) == Nat.sub(List.length(a, A, xs), n) : Nat}
+
+def length_drop(a, A, xs, n):
+  match xs n:
+    case Nil{} _:
+      Equal.sym(Nat, Nat.sub(0n, n), 0n, MNat.zero_sub(n))
+    case h <> t 0n:
+      {==}
+    case h <> t 1n+p:
+      length_drop(a, A, t, p)
+
+# Taking as many elements as the list has gives the list back.
+law take_length:
+  for -A: Data
+  for +xs: List<&2, A>
+  {List.take(&2, A, xs, List.length(&2, A, xs)) == xs : List<&2, A>}
+
+def take_length(A, xs):
+  match xs:
+    case Nil{}:
+      {==}
+    case h <> t:
+      %take_length(A, t) : {h <> List.take(&2, A, t, List.length(&2, A, t)) == h <> _ : List<&2, A>}
+      {==}
+
+# Dropping as many elements as the list has gives the empty list.
+law drop_length:
+  for -A: Data
+  for +xs: List<&2, A>
+  {List.drop(&2, A, xs, List.length(&2, A, xs)) == Nil{} : List<&2, A>}
+
+def drop_length(A, xs):
+  match xs:
+    case Nil{}:
+      {==}
+    case h <> t:
+      drop_length(A, t)
+
+# Taking m from the first n is taking min(n, m).
+law take_take:
+  for -a: Quant
+  for -A: Kind(a)
+  for xs: List<a, A>
+  for n: Nat
+  for m: Nat
+  {List.take(a, A, List.take(a, A, xs, n), m) == List.take(a, A, xs, Nat.min(n, m)) : List<a, A>}
+
+def take_take(a, A, xs, n, m):
+  match xs n m:
+    case Nil{} _ _:
+      {==}
+    case h <> t 0n _:
+      {==}
+    case h <> t 1n+p 0n:
+      {==}
+    case h <> t 1n+p 1n+q:
+      %take_take(a, A, t, p, q) : {h <> List.take(a, A, List.take(a, A, t, p), q) == h <> _ : List<a, A>}
+      {==}
+
+# Dropping m after dropping n is dropping n + m.
+law drop_drop:
+  for -a: Quant
+  for -A: Kind(a)
+  for xs: List<a, A>
+  for n: Nat
+  for -m: Nat
+  {List.drop(a, A, List.drop(a, A, xs, n), m) == List.drop(a, A, xs, Nat.add(n, m)) : List<a, A>}
+
+def drop_drop(a, A, xs, n, m):
+  match xs n m:
+    case Nil{} _ _:
+      {==}
+    case h <> t 0n _:
+      {==}
+    case h <> t 1n+p _:
+      drop_drop(a, A, t, p, m)
+
 # --- generated: _sym twins (tools/mathlib/twins.ts), do not edit ---
 
 # The empty list is a right identity for append: xs ++ [] = xs, reversed to rewrite toward the simple side.
@@ -370,3 +519,107 @@ law map_map_sym:
 
 def map_map_sym(A, B, C, f, g, xs):
   Equal.sym(List<C>, List.map(~B, ~C, ~g, List.map(~A, ~B, ~f, xs)), List.map(~A, ~C, ~(x => g(f(x))), xs), map_map(~A, ~B, ~C, ~f, ~g, xs))
+
+# Taking zero elements gives the empty list, reversed to rewrite toward the simple side.
+law take_zero_sym:
+  for -a: Quant
+  for -A: Kind(a)
+  for xs: List<a, A>
+  {Nil{} == List.take(a, A, xs, 0n) : List<a, A>}
+
+def take_zero_sym(a, A, xs):
+  Equal.sym(List<a, A>, List.take(a, A, xs, 0n), Nil{}, take_zero(a, A, xs))
+
+# Dropping zero elements gives the list back, reversed to rewrite toward the simple side.
+law drop_zero_sym:
+  for -a: Quant
+  for -A: Kind(a)
+  for xs: List<a, A>
+  {xs == List.drop(a, A, xs, 0n) : List<a, A>}
+
+def drop_zero_sym(a, A, xs):
+  Equal.sym(List<a, A>, List.drop(a, A, xs, 0n), xs, drop_zero(a, A, xs))
+
+# Taking from the empty list gives the empty list, reversed to rewrite toward the simple side.
+law take_nil_sym:
+  for -a: Quant
+  for -A: Kind(a)
+  for -n: Nat
+  {Nil{} == List.take(a, A, Nil{}, n) : List<a, A>}
+
+def take_nil_sym(a, A, n):
+  Equal.sym(List<a, A>, List.take(a, A, Nil{}, n), Nil{}, take_nil(a, A, n))
+
+# Dropping from the empty list gives the empty list, reversed to rewrite toward the simple side.
+law drop_nil_sym:
+  for -a: Quant
+  for -A: Kind(a)
+  for -n: Nat
+  {Nil{} == List.drop(a, A, Nil{}, n) : List<a, A>}
+
+def drop_nil_sym(a, A, n):
+  Equal.sym(List<a, A>, List.drop(a, A, Nil{}, n), Nil{}, drop_nil(a, A, n))
+
+# Taking n elements leaves min(n, length) of them, reversed to rewrite toward the simple side.
+law length_take_sym:
+  for -a: Quant
+  for -A: Kind(a)
+  for xs: List<a, A>
+  for n: Nat
+  {Nat.min(n, List.length(a, A, xs)) == List.length(a, A, List.take(a, A, xs, n)) : Nat}
+
+def length_take_sym(a, A, xs, n):
+  Equal.sym(Nat, List.length(a, A, List.take(a, A, xs, n)), Nat.min(n, List.length(a, A, xs)), length_take(a, A, xs, n))
+
+# Dropping n elements leaves length - n of them, reversed to rewrite toward the simple side.
+law length_drop_sym:
+  for -a: Quant
+  for -A: Kind(a)
+  for xs: List<a, A>
+  for n: Nat
+  {Nat.sub(List.length(a, A, xs), n) == List.length(a, A, List.drop(a, A, xs, n)) : Nat}
+
+def length_drop_sym(a, A, xs, n):
+  Equal.sym(Nat, List.length(a, A, List.drop(a, A, xs, n)), Nat.sub(List.length(a, A, xs), n), length_drop(a, A, xs, n))
+
+# Taking as many elements as the list has gives the list back, reversed to rewrite toward the simple side.
+law take_length_sym:
+  for -A: Data
+  for +xs: List<&2, A>
+  {xs == List.take(&2, A, xs, List.length(&2, A, xs)) : List<&2, A>}
+
+def take_length_sym(A, xs):
+  Equal.sym(List<&2, A>, List.take(&2, A, xs, List.length(&2, A, xs)), xs, take_length(A, xs))
+
+# Dropping as many elements as the list has gives the empty list, reversed to rewrite toward the simple side.
+law drop_length_sym:
+  for -A: Data
+  for +xs: List<&2, A>
+  {Nil{} == List.drop(&2, A, xs, List.length(&2, A, xs)) : List<&2, A>}
+
+def drop_length_sym(A, xs):
+  Equal.sym(List<&2, A>, List.drop(&2, A, xs, List.length(&2, A, xs)), Nil{}, drop_length(A, xs))
+
+# Taking m from the first n is taking min(n, m), reversed to rewrite toward the simple side.
+law take_take_sym:
+  for -a: Quant
+  for -A: Kind(a)
+  for xs: List<a, A>
+  for n: Nat
+  for m: Nat
+  {List.take(a, A, xs, Nat.min(n, m)) == List.take(a, A, List.take(a, A, xs, n), m) : List<a, A>}
+
+def take_take_sym(a, A, xs, n, m):
+  Equal.sym(List<a, A>, List.take(a, A, List.take(a, A, xs, n), m), List.take(a, A, xs, Nat.min(n, m)), take_take(a, A, xs, n, m))
+
+# Dropping m after dropping n is dropping n + m, reversed to rewrite toward the simple side.
+law drop_drop_sym:
+  for -a: Quant
+  for -A: Kind(a)
+  for xs: List<a, A>
+  for n: Nat
+  for -m: Nat
+  {List.drop(a, A, xs, Nat.add(n, m)) == List.drop(a, A, List.drop(a, A, xs, n), m) : List<a, A>}
+
+def drop_drop_sym(a, A, xs, n, m):
+  Equal.sym(List<a, A>, List.drop(a, A, List.drop(a, A, xs, n), m), List.drop(a, A, xs, Nat.add(n, m)), drop_drop(a, A, xs, n, m))
