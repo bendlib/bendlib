@@ -8,7 +8,7 @@
 //              `match` that calls only Base functions (so it unifies across versions)
 //   erasure    (--erasure) every binder that CAN be erased is: tried in a scratch copy
 // usage: bun tools/mathlib/lint.ts [pkgdir] [--erasure] [--allow-types]
-// exit: 0 clean · 1 findings · 2 usage
+// exit: 0 clean · 1 findings · 2 usage/toolchain error
 
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -28,7 +28,7 @@ const at = (m: Module, line: number, msg: string) => findings.push(`${relative(R
 const NAME = /^[a-z][a-z0-9_]*$/;
 let files: string[];
 try { files = packageModules(pkg); } catch (e) { if (e instanceof PkgError) usage(e.message); throw e; }
-const base = await baseNames();
+const base = await baseNames().catch((e: unknown) => usage(e instanceof Error ? e.message : String(e)));
 const mods = files.map((f) => parseModule(f));
 
 for (const m of mods) {

@@ -1,10 +1,12 @@
 // Tests for the bend-mathlib tools against committed fixtures (real compiler runs).
 import { expect, test } from "bun:test";
-import { cpSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { baseNames, parseModule, packageModules } from "./lib.ts";
+import { hubHash, packageFiles } from "./hash.ts";
+import { baseNames, BEND, parseModule, packageModules } from "./lib.ts";
 
 const dir = import.meta.dir;
 const run = (script: string, ...args: string[]) => {
@@ -15,6 +17,7 @@ const runWith = (env: Record<string, string>, script: string, ...args: string[])
   const p = Bun.spawnSync([process.execPath, join(dir, script), ...args], { env: { ...process.env, ...env } });
   return { code: p.exitCode, out: new TextDecoder().decode(p.stdout) + new TextDecoder().decode(p.stderr) };
 };
+const STACK = /\n\s+at /;
 
 test("check: the good fixture is green on the pinned compiler", () => {
   const r = run("check.ts", join(dir, "fixtures/good"));
@@ -144,9 +147,10 @@ test("baseNames lists the compiler's Base names", async () => {
 
 test("lint fails cleanly when `bend base` is broken instead of trusting an empty Base set", () => {
   const r = runWith({ BEND_CLI: "/bin/false" }, "lint.ts", join(dir, "fixtures/good"));
-  expect(r.code).not.toBe(0);
+  expect(r.code).toBe(2);
   expect(r.out).toMatch(/base' failed/);
   expect(r.out).not.toContain("0 finding(s)");
+  expect(r.out).not.toMatch(STACK);
 });
 
 test("release fails cleanly for a missing absolute pkgdir (no mangled join, no EINVAL)", () => {
@@ -165,8 +169,6 @@ test("release resolves an absolute existing pkgdir instead of mangling it", () =
   expect(r.out).not.toContain("does not exist");
   expect(r.out).toContain("FAIL check");
 });
-
-const STACK = /\n\s+at /;
 
 test("a missing or non-directory package path is a typed usage error, exit 2, no stack", () => {
   const parent = mkdtempSync(join(tmpdir(), "bend-missing-"));
@@ -208,5 +210,67 @@ test("twins: a byte-empty module is up to date, not perpetually stale", () => {
   expect(r.code).toBe(0);
   expect(r.out).toContain("twins up to date");
   expect(readFileSync(join(empty, "empty.bend"), "utf8")).toBe("");
+});
+
+const foreign = join(dir, "fixtures/foreign");
+const refHash = (rec: Record<string, string>) =>
+  "0x" + createHash("sha256").update(Object.keys(rec).sort()
+    .map((p) => createHash("sha256").update(rec[p]).digest("hex") + " " + p + "\n").join(""))
+    .digest("hex").slice(0, 32);
+const foreignRecord = () => ({
+  "main.bend": readFileSync(join(foreign, "main.bend"), "utf8"),
+  "shout.c": readFileSync(join(foreign, "shout.c"), "utf8"),
+  "sub/helper.js": readFileSync(join(foreign, "sub/helper.js"), "utf8"),
+  "sub/mod.bend": readFileSync(join(foreign, "sub/mod.bend"), "utf8"),
+  "LICENSE": readFileSync(join(foreign, "LICENSE"), "utf8"),
+});
+
+test("the foreign fixture is genuinely foreign to the pinned compiler", () => {
+  const p = Bun.spawnSync([BEND, join(foreign, "main.bend"), "--check-only"], { env: { ...process.env, BEND_NO_TELEMETRY: "1" } });
+  expect(new TextDecoder().decode(p.stdout) + new TextDecoder().decode(p.stderr)).toMatch(/defs? rely on unsafe or foreign code/);
+});
+
+test("packageFiles collects a def's foreign .c and .js imports at their paths", () => {
+  expect(Object.keys(packageFiles(join(foreign, "main.bend"))).sort())
+    .toEqual(["LICENSE", "main.bend", "shout.c", "sub/helper.js", "sub/mod.bend"]);
+});
+
+test("hash: the CLI hash covers the foreign files, computed over the exact manifest", () => {
+  const r = run("hash.ts", join(foreign, "main.bend"));
+  expect(r.code).toBe(0);
+  expect(r.out).toContain("shout.c");
+  expect(r.out).toContain("sub/helper.js");
+  expect(r.out).toContain(refHash(foreignRecord()));
+});
+
+test("packageFiles: a package with no foreign files is byte-identical to before (planted negative)", () => {
+  expect(hubHash(packageFiles(join(subdir, "all.bend")))).toBe("0xdfe38237eb381cd99fcdc0bc22bf893b");
+  expect(hubHash(packageFiles(join(dir, "fixtures/good/list.bend")))).toBe("0x872818a5c5997957f8e2324698c1296e");
+});
+
+test("packageFiles: an indented `import` inside a comment is not a foreign file (planted negative)", () => {
+  const tmp = mkdtempSync(join(tmpdir(), "bend-hash-comment-"));
+  writeFileSync(join(tmp, "main.bend"), 'import Base\n\ndef f(x: U32) -> IO(U32):\n  # import "./ghost.c" is only a note\n  x\n');
+  expect(Object.keys(packageFiles(join(tmp, "main.bend")))).toEqual(["main.bend"]);
+});
+
+test("hash: a missing, non-file or climbing entry is a typed usage error, exit 2, no stack", () => {
+  const tmp = mkdtempSync(join(tmpdir(), "bend-hash-bad-"));
+  const climb = join(tmp, "pkg", "sub", "main.bend");
+  mkdirSync(join(tmp, "pkg", "sub"), { recursive: true });
+  writeFileSync(join(tmp, "pkg", "other.bend"), "import Base\n\ndef other() -> Nat:\n  7\n");
+  writeFileSync(climb, "import Base\nimport ../other.bend as Other\n\ndef f() -> Nat:\n  Other.other()\n");
+  const cases: [string, string][] = [
+    ["not a .bend file", join(tmp, "nope.bend")],
+    ["not a .bend file", tmp],
+    ["is outside the entry directory", climb],
+  ];
+  for (const [needle, arg] of cases) {
+    const r = run("hash.ts", arg);
+    expect(r.code).toBe(2);
+    expect(r.out).toContain(needle);
+    expect(r.out).toContain("usage: bun tools/mathlib/hash.ts");
+    expect(r.out).not.toMatch(STACK);
+  }
 });
 
