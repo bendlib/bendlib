@@ -905,6 +905,74 @@ def min_add_max(a, b):
       %min_add_max(p, q) : {2n+Nat.add(Nat.min(p, q), Nat.max(p, q)) == 2n+_ : Nat}
       {==}
 
+# The minimum is at most its left argument.
+law min_le_left:
+  for a: Nat
+  for b: Nat
+  le(Nat.min(a, b), a)
+
+def min_le_left(a, b):
+  match a b:
+    case 0n 0n:
+      {==}
+    case 0n 1n+q:
+      {==}
+    case 1n+p 0n:
+      {==}
+    case 1n+p 1n+q:
+      min_le_left(p, q)
+
+# The minimum is at most its right argument.
+law min_le_right:
+  for a: Nat
+  for b: Nat
+  le(Nat.min(a, b), b)
+
+def min_le_right(a, b):
+  match a b:
+    case 0n 0n:
+      {==}
+    case 0n 1n+q:
+      {==}
+    case 1n+p 0n:
+      {==}
+    case 1n+p 1n+q:
+      min_le_right(p, q)
+
+# The left argument is at most the maximum.
+law le_max_left:
+  for a: Nat
+  for b: Nat
+  le(a, Nat.max(a, b))
+
+def le_max_left(a, b):
+  match a b:
+    case 0n 0n:
+      {==}
+    case 0n 1n+q:
+      {==}
+    case 1n+p 0n:
+      le_refl(1n+p)
+    case 1n+p 1n+q:
+      le_max_left(p, q)
+
+# The right argument is at most the maximum.
+law le_max_right:
+  for a: Nat
+  for b: Nat
+  le(b, Nat.max(a, b))
+
+def le_max_right(a, b):
+  match a b:
+    case 0n 0n:
+      {==}
+    case 0n 1n+q:
+      le_refl(1n+q)
+    case 1n+p 0n:
+      {==}
+    case 1n+p 1n+q:
+      le_max_right(p, q)
+
 # --- generated: _sym twins (tools/mathlib/twins.ts), do not edit ---
 
 # Zero is a right identity for addition: x + 0 = x, reversed to rewrite toward the simple side.

@@ -707,6 +707,18 @@
     "sha256": "c146305b982172057055b3d88e882cb729588f8184703672184f6d8f96c449ab",
     "since": "0.1.0.0"
   },
+  "nat.le_max_left": {
+    "kind": "law",
+    "text": "for a: Nat\nfor b: Nat\nle(a, Nat.max(a, b))",
+    "sha256": "cf48cf263b68cf8ec69b4db5921ec8d4c9cbe7b170ea21b64c31c68a437179c9",
+    "since": null
+  },
+  "nat.le_max_right": {
+    "kind": "law",
+    "text": "for a: Nat\nfor b: Nat\nle(b, Nat.max(a, b))",
+    "sha256": "0d88f2db786e05ddcddd73631bb4d20eae4acf621ec09017f302c513ed65d1af",
+    "since": null
+  },
   "nat.le_of_ge": {
     "kind": "law",
     "text": "for a: Nat\nfor b: Nat\nfor h: ge(a, b)\nle(b, a)",
@@ -855,6 +867,18 @@
     "kind": "law",
     "text": "for a: Nat\nfor b: Nat\n{Nat.min(b, a) == Nat.min(a, b) : Nat}",
     "sha256": "57abfefeac5038c2f946803c876555df46fc41f83affdf08bfbf6c5ccba567f0",
+    "since": null
+  },
+  "nat.min_le_left": {
+    "kind": "law",
+    "text": "for a: Nat\nfor b: Nat\nle(Nat.min(a, b), a)",
+    "sha256": "24da47dca0a3b660acc2090d72603054434d16f689a812cab2d93e11a72a5ea7",
+    "since": null
+  },
+  "nat.min_le_right": {
+    "kind": "law",
+    "text": "for a: Nat\nfor b: Nat\nle(Nat.min(a, b), b)",
+    "sha256": "b5afcea4312abc3454aa2f1e66a86d5384ea7f94a12ac2c29dec38d4953be3b6",
     "since": null
   },
   "nat.min_self": {
