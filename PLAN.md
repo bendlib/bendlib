@@ -60,10 +60,15 @@ structures (`bendlib-heap`, `bendlib-rbmap` over frozen kernels, §3.4), lawful 
 | F27 | A count-based `perm` hypothesis (a function type) is single-use, even when erased | `review2/t5a` ✓, `t5b` ✗, `t5c` ✗ | `perm` design must weigh an inductive `Perm is Data` (reusable) — decided in the kernel design note |
 | F28 | `map_map` with a composed closed template `~(x => g(f(x)))` checks; `Equal.sym(T, l, r, e)` twins check at generic quantity, and the reversed (`{r == l}`) form is the one that **simplifies** under `%` | `review2/t3_map_map`, `t6_twins` | Twins are the common rewrite direction (§3.1.6) |
 | F29 | Bare `(a <= b)` without `: Nat` is a hard error since 2.0.16; `bend link <name>@<ver> 0x<hash>` names an already-published hash; `BEND_HUB` env overrides the hub URL; `names/` cache entries are never re-validated | `review2/t2a`; CLI help; binary strings | Docs show `(a <= b : Nat)`; release = anonymous publish → verify → `bend link`; dev caches start empty |
+| F30 | `bun build --compile tools/lawcheck/cli.ts` gives a standalone binary that runs lawcheck, also from an empty `BENDLIB_CACHE` (it fetches and imports `bend.ts` at run time) | 2026-09-24, linux-x64, `correct.bend`/`buggy.bend` fixtures | lawcheck binary release is packaging work only |
+| F31 | lawcheck's random `Nat` values (up to 30) make `Nat.pow` laws overflow the checker ("the machine stack overflowed"); the whole law then reports `!` instead of dropping that one instance | `research/candidates/mathlib-0.2/nat.bend`, laws `pow_succ`, `pow_add` | Per-instance "too large" handling and a `--max-nat` bound (bead) |
+| F32 | Every bend-mathlib 0.1 law is lawcheck-clean: 107 ✓, 12 skipped (template or function binders), 0 ✗, about 30 s for the four modules on 32 cores | `bun tools/lawcheck/cli.ts packages/bend-mathlib/<m>.bend` | lawcheck can gate mathlib CI |
+| F33 | Open bend issue #1001: one `@unsafe` law fill in an imported file makes `bend PROOF.bend` print a clean `All terms check.` | github.com/bendlang/bend/issues/1001 | A clean verdict alone is not a trustworthy status: docs cross-check the source for `@unsafe`; mathlib's `check.ts` already scans source |
+| F34 | 80 candidate 0.2 statements (Nat `sub`/`min`/`max`/`pow`/reflection/order, List `take`/`drop`/`length`, Bool) type-check and have no counterexample (78 ✓, 2 `!` from F31, 1 skipped); 7 template statements type-check (lawcheck skips them) | `research/candidates/mathlib-0.2/*.bend` | 0.2 lemma beads copy statements verbatim from there |
 
 ---
 
-## 2. Keystone: `@bendlib/frontend` (TypeScript, Bun)
+## 2. Keystone: `@bendlib/reader` (TypeScript, Bun; planned as `frontend`, built in `tools/reader`)
 
 **Job:** give any tool a faithful, version-matched view of Bend source.
 
@@ -381,41 +386,65 @@ modules from JS). Dogfooding where laws add value; TypeScript for plumbing.
 
 ---
 
-## 7. Build order (fast turnover)
+## 7. Build order
 
-Each step ends with something that runs. Parallel lanes where independent.
+### 7.1 Done (2026-09-24)
 
-**Step 1 (days 1–2)**
-- A. `toolchain.json` + pinned install script; CI skeleton for mathlib (check, names). 
-- B. `@bendlib/frontend`: version-matched `bend.ts` loader, `decls`, `show` (find the readable
-  printer path), `lawShape`, goldens on experiments + 5 hub packages.
-- C. mathlib 0.1 modules `equal`, `bool`, `nat` (incl. order), `list` (25–40 lemmas + generated
-  `_sym` twins), `all.bend`, `tools/lint` (names, erasure, one-line claims, encoding rule), `devlib`,
-  `PUBLIC_API.lock`. 0.1 contains no nominal definitions (only Base-only predicates and lemmas), so
-  it needs no kernel yet.
-- Owner: create GitHub org `bendlib` + repo; `bend login`.
+Steps 1–3 of the first build order shipped in one day: pinned toolchain and CI; `@bendlib/reader`
+(the §2 keystone, renamed); bend-mathlib 0.1.0.0 and 0.1.0.1 on the hub (72 lemmas, 47 `_sym` twins,
+4 predicates) with lint, erasure, twins, lock, index and release tools; lawcheck v0.1 (engine C,
+shrinking, premises, user datatypes, `--json`, `--impl`); Bend Docs v0.1 live at
+https://bendlib.github.io/bendlib/ (every hub package, checked status, reverse deps, law-shape search,
+hourly rebuild); launch demo, hub post and X thread. Not built: `devlib` (no second package needs it
+yet), a sandbox for docs checking, mutation mode, template generators, API diff, source view,
+`bend-docs build <dir>`, agent-facing files.
 
-**Step 2 (days 3–5)**
-- lawcheck v0.1: engine C, built-in generators + user ADTs, shrinking, premises/vacuity, `--json`.
-  Dogfood on mathlib statements and on the planted-bug fixtures.
-- mathlib: `tools/release`; **publish `bend-mathlib@0.1.0.0`**; README with import + before/after proof.
-- Launch post on X (tag @VictorTaelin, @bendlang) with a terminal clip; invite other lemma authors to
-  contribute.
+### 7.2 Next phase: mathlib → lawcheck → docs
 
-**Step 3 (days 5–10)**
-- lawcheck `mutate` + projection sweep; binary release; launch post ("lawcheck broke this law in 40 ms").
-- Docs v0.1: pipeline steps 1–5 over all hub packages, package + module pages, name search; deploy.
-- mathlib 0.2 work: `bendlib-kernel-list` design (§3.3: `count`, `perm` vs `Perm`), owner picks,
-  publish kernel 1.0.0.0 by hash; `order`/`algebra`; structural merge sort proved sorted + perm.
+Priority order is the owner's: mathlib first, then lawcheck, then docs. The work is in beads
+(`br ready`); each bead is self-contained with commands and expected output. This section says
+what the work is and why it is ordered this way.
 
-**Step 4 (days 10–20)**
-- Docs: status-per-compiler, reverse deps, law-shape search, API diff, `bend-docs build`.
-- mathlib 0.2/0.3 releases (`perm`, `sorted_by`, `mem`, `string`, `algebra`); `base_sort` stays a stretch.
-- lawcheck engine N (native) + template-hypothesis generators.
+**Why this order is the most accretive.** Every Bend proof bottoms out in basic facts; each lemma
+we add is one fewer re-proof in every project, and the hub has no other shared lemma base. Lemma
+work is also where an agent swarm is safest: the checker is the judge, so a wrong proof cannot
+land (statements are pre-screened by lawcheck, F34). lawcheck's mutation mode answers Bend's main
+criticism (laws too weak to pin the code) and is the best launch story after mathlib. Docs work
+compounds on both (mathlib is its showcase package) but is already live, so it goes last.
 
-Critical path to first public value: A → C → release → publish (day ~4); B → lawcheck (day ~5).
+**Track M: bend-mathlib 0.2** (no kernel needed)
+1. `index.ts` marks lemmas by the version that published them (from `PUBLIC_API.lock` `since`), so
+   the README can list unreleased lemmas honestly. Blocks every lemma bead.
+2. Lemma batches, statements copied from `research/candidates/mathlib-0.2/`: Bool (15, the
+   calibration batch: easy proofs), Nat `sub` (9), `min`/`max` (15, two beads), `pow`/`double` (6),
+   `Nat.is_*` reflection (8), order (8), List `take`/`drop` (10), List basics (9), List templates (7,
+   two beads). Each batch passes the same gates as 0.1 (check, lint `--erasure`, twins, lock, index).
+3. lawcheck becomes a mathlib CI gate (after the F31 fix).
+4. Release 0.2.0.0 (owner: publishing is permanent and tied to the owner's login).
+5. Frozen definitions (§3.3), research first, owner decides: `mem`/`sorted_by` Base-only
+   predicates; `perm` count-based vs inductive (D3). Then the kernel package, published once by the
+   owner, and the perm lemmas that import it by hash.
 
----
+**Track L: lawcheck 0.2**
+1. Fixes: too-large instances (F31); the reader bug with several constructors on one line.
+2. `lawcheck mutate` (PLAN §4.3), built in three beads: pure mutation operators
+   (`src/mutate.ts`, unit-tested without bend), a runner that re-uses the `--impl` machinery per
+   mutant (killed / survived / invalid), and the CLI with human and `--json` output. A planted
+   "weak laws" fixture must show survivors; a strong one must show none.
+3. Template binders from a catalog of closed functions (unskips `foldr_append`, `map_append`, …).
+4. Binary release (F30): a tag-triggered workflow builds four targets; the owner pushes the tag.
+5. Nightly: reader and lawcheck tests on the newest compiler (early warning, like mathlib's).
+
+**Track D: docs**
+1. Module header comments on module pages; a "Document your package" page; `llms.txt` and
+   `lemmas.txt` for AI agents.
+2. Status honesty: a file whose source holds `@unsafe` is never shown as `checks` (F33).
+3. API diff between consecutive versions of a named package; `bend-docs build <dir>` local preview.
+4. Later: source view, sandboxed checking, the domain (owner buys; D2).
+
+**Owner-only beads** (label `owner`): releases and hub publishing, `bend link`, frozen-definition
+decisions, git tags that trigger releases, contacting people, buying the domain. Agents never do
+these; they prepare the dry run and stop.
 
 ## 8. Risks that change the design
 
@@ -439,5 +468,5 @@ Critical path to first public value: A → C → release → publish (day ~4); B
 ## 9. Open decisions
 
 - **D1 — flagship name: DECIDED `bend-mathlib`** (owner, 2026-09-24).
-- **D2 — docs site name/domain.**
+- **D2 — docs site name/domain.** Candidates `benddocs.dev`, `bendlib.dev` (both available on 2026-09-24).
 - **D3 — `perm_by` definition** (at §3.3 selection time).

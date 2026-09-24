@@ -58,44 +58,56 @@ If that audit trail is missing, then you must act as if the operation never happ
 
 ## Project Architecture
 
-<!-- CUSTOMIZE: Describe your project's architecture here -->
+bendlib is the foundation library for Bend 2 (https://github.com/bendlang/bend). Design, verified
+facts F1–F34 about bend 2.0.27, and the build order are in `PLAN.md`; cite a fact ID in a
+why-comment instead of re-explaining it.
 
-### Components
-
-<!-- CUSTOMIZE: List your project's main components/domains -->
-
-Example structure:
-- **A) Backend API** — Framework, database, main responsibilities
-- **B) Frontend** — Framework, UI library, key patterns
-- **C) Shared** — Common utilities, types, constants
+- **A) bend-mathlib** (`packages/bend-mathlib`, Bend): proved lemmas and Base-only predicates,
+  published on BendHub. Its public API is append-only (`PUBLIC_API.lock`, PLAN §3.1).
+- **B) lawcheck** (`tools/lawcheck`, TypeScript/Bun): finds counterexamples to laws by having
+  the bend checker evaluate closed instances (PLAN §4).
+- **C) Bend Docs** (`tools/docs`, TypeScript/Bun): static docs for every hub package, deployed
+  hourly to https://bendlib.github.io/bendlib/ by `.github/workflows/docs.yml` (PLAN §5).
+- **Keystone `@bendlib/reader`** (`tools/reader`): reads Bend with the official `bend.ts` of the
+  installed compiler version. lawcheck and docs sit on it.
+- **mathlib tools** (`tools/mathlib`): `check`, `lint`, `twins`, `lock`, `index`, `hash`, `release`.
 
 ---
 
 ## Repo Layout
 
-<!-- CUSTOMIZE: Document your actual directory structure -->
-
 ```
 bend/
-├── README.md
-├── AGENTS.md
-├── .beads/                        # Issue tracking (br)
-├── .claude/                       # Claude Code settings
-│
-└── src/                           # Your source code
+├── PLAN.md  README.md  AGENTS.md  RELEASES.md  LICENSE  toolchain.json (pinned bend + sha256)
+├── .beads/                     issue tracking (br); commit it with code
+├── .github/workflows/          ci.yml (gates, nightly newest-compiler job), docs.yml (site)
+├── packages/bend-mathlib/      all.bend equal.bend bool.bend nat.bend list.bend LICENSE
+│                               PUBLIC_API.lock README.md (generated)
+├── tools/
+│   ├── comments.ts             comment lint (see "Comments" below)
+│   ├── install-bend.ts         installs the pinned compiler
+│   ├── mathlib/                check lint twins lock index hash release (+ fixtures, tools.test.ts)
+│   ├── reader/                 @bendlib/reader (src/, test/, cli.ts)
+│   ├── lawcheck/               cli.ts, src/{lawcheck,checker,values,terms,types}.ts, test/
+│   └── docs/                   build.ts, src/, assets/, test/  (dist/ and .cache/ are git-ignored)
+├── examples/demo/              launch demo (before.bend, after.bend, demo.gif)
+└── research/
+    ├── experiments/            the evidence behind F1–F29
+    └── candidates/             lawchecked statements waiting to be proved (mathlib-0.2/)
 ```
 
 ---
 
 ## Generated Files — NEVER Edit Manually
 
-<!-- CUSTOMIZE: If you have generated files, document them here -->
-
-**Current state:** There are no generated files in this repo.
-
-If/when you add generated artifacts:
-- **Rule:** Never hand-edit generated outputs.
-- **Convention:** Put generated outputs in a clearly labeled directory and document the generator command.
+| File | Regenerate with |
+|---|---|
+| `packages/bend-mathlib/README.md` | `bun tools/mathlib/index.ts packages/bend-mathlib bend-mathlib <latest version in RELEASES.md>` |
+| Everything below the line `# --- generated: _sym twins (tools/mathlib/twins.ts), do not edit ---` in a mathlib module | `bun tools/mathlib/twins.ts packages/bend-mathlib` |
+| `packages/bend-mathlib/PUBLIC_API.lock` | `bun tools/mathlib/lock.ts packages/bend-mathlib --update` (entries with a `since` version are frozen forever; only `--freeze` in a release sets `since`) |
+| `tools/reader/test/golden/*.json` | `bun tools/reader/test/golden.ts`, only after reviewing the diff a compiler bump caused |
+| `RELEASES.md` rows | `tools/mathlib/release.ts` (owner) |
+| `tools/docs/dist/` (git-ignored) | `bun tools/docs/build.ts` |
 
 ---
 
@@ -243,6 +255,83 @@ Never:
 - Use markdown TODO lists.
 - Use other trackers.
 - Duplicate tracking.
+
+---
+
+## Working the beads (agents)
+
+The beads are the work queue. Each one is self-contained: context, steps, acceptance commands with
+their expected output, and what not to do. Read the whole bead before starting.
+
+1. `br ready --label agent --json` lists the beads agents may take; take the highest-priority one.
+   Beads labelled `owner` need the owner's hub login, a decision only the owner makes, or contact
+   with people: never start them. `br show <id>`, then `br update <id> --status in_progress`.
+2. Environment: `~/.bend/bin/bend version` must print `bend 2.0.27` (else `bun tools/install-bend.ts`).
+   Run commands from the repository root. For Bend itself: `bend guide`, `bend base <Name>` (e.g.
+   `bend base List`), and `~/.claude/skills/bend2-mega-skill/references/` (`CHEATSHEET.md`,
+   `LAWS-AND-PROOFS.md`, `PROOF-COOKBOOK.md`, `ERROR-TAXONOMY.md`).
+3. The full gate, the same list as `.github/workflows/ci.yml`. Run it before every commit:
+   ```sh
+   bun test tools/                 # includes a docs end-to-end test against the live hub (minutes)
+   bun tools/comments.ts
+   bun tools/mathlib/check.ts packages/bend-mathlib
+   bun tools/mathlib/lint.ts packages/bend-mathlib --erasure
+   bun tools/mathlib/twins.ts packages/bend-mathlib --check
+   bun tools/mathlib/lock.ts packages/bend-mathlib --check
+   bun tools/mathlib/index.ts packages/bend-mathlib bend-mathlib 0.1.0.1 --check   # version: latest row of RELEASES.md
+   ```
+4. One commit per bead: `<area>: <what>` and a last line `Closes <id>`. Run `br sync --flush-only`
+   and include `.beads/` in the commit. Push to `origin main` only when the whole gate passed.
+   Never force-push or rewrite history.
+5. Close with evidence: `br close <id> --reason "<each acceptance command and its last output lines>"`.
+6. **When a bead cannot be finished** (a proof that will not check, a statement lawcheck refutes, a
+   missing capability): never weaken a statement, a test, an assertion or a gate to get green. Keep
+   the bead open, record what you tried and the exact error with `br comments add <id> "..."`, and
+   take the next bead. Partial work that passes the full gate may be committed; the comment says
+   what is missing.
+7. **Never**: publish, name or link anything on BendHub (`--publish`, `bend link`, `bend login`);
+   create git tags or GitHub releases; change an entry of `PUBLIC_API.lock` that has a `since`;
+   put `@unsafe`, `?holes` or `def f?(` into `packages/`; delete files (RULE 1); read or print
+   `~/.bend/bender.json`; contact anyone; install anything globally.
+8. New work you discover: `br create "<title>" -p 2 --deps discovered-from:<id> --description-file <file>`
+   with a self-contained description.
+
+### Adding a lemma to bend-mathlib
+
+1. Copy the statement **verbatim** from the candidate file the bead names
+   (`research/candidates/mathlib-0.2/`). Put the law and its proof into the target module, above
+   the line `# --- generated: _sym twins ...` (never below it). Layout, exactly:
+   ```python
+   # <One sentence, ending with a period.>
+   law name:
+     for x: Nat
+     {claim on exactly one line}
+
+   def name(x):
+     <proof>
+   ```
+   The proof `def` comes directly after its law. Helpers are named `internal_<something>` and go
+   above their first use (Bend resolves definitions in source order).
+2. `bun tools/lawcheck/cli.ts packages/bend-mathlib/<module>.bend --law <name>` must print `✓` (or
+   `~ skipped` for template binders). A `✗` means the statement is false: stop and comment.
+3. Prove it. While working, a `?goal` hole makes the checker print the goal; none may remain.
+   `~/.bend/bin/bend packages/bend-mathlib/<module>.bend --check-only` must print exactly
+   `All terms check.`
+4. `bun tools/mathlib/lint.ts packages/bend-mathlib --erasure`: for each "can be erased" finding,
+   change `for x:` to `for -x:` and re-check (PLAN F26).
+5. Regenerate: `bun tools/mathlib/twins.ts packages/bend-mathlib`, then
+   `bun tools/mathlib/lock.ts packages/bend-mathlib --update`, then the index command from step 3
+   of the bead workflow above without `--check`.
+6. Run the full gate.
+
+Proof patterns already in the package, to copy:
+- Induction with a rewrite by the induction hypothesis: `add_assoc` (nat.bend), `append_assoc` (list.bend).
+- Two-argument induction with rewrites by earlier lemmas: `add_comm`.
+- Order facts with impossible cases: `le_trans`, `le_antisymm`, `lt_trans`
+  (`Empty.absurd(<goal>, internal_false_ne_true(h))`).
+- Case splits on Bool: any law in bool.bend.
+- A rewrite `%e : P` replaces the right side of `e` with its left side inside `P`; `_` in `P`
+  marks the spot. `Equal.sym(T, l, r, e)` flips an equation.
 
 ---
 
