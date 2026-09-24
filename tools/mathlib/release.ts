@@ -6,7 +6,7 @@
 //   with --publish: also publishes, verifies, links the name, freezes the lock, updates RELEASES.md
 // exit: 0 ok · 1 a gate or verification failed · 2 usage
 
-import { appendFileSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, cpSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative, basename } from "node:path";
 import { BEND, ROOT, packageModules } from "./lib.ts";
@@ -26,13 +26,20 @@ const sh = (cmd: string[], extra: Record<string, string> = {}) => {
 };
 const fail = (msg: string) => { console.error(`release: ${msg}`); process.exit(1); };
 
+// The index README embeds the release version; validate it for the target version on a copy,
+// leaving the working tree (checked against the current version by CI) untouched.
+const staged = join(mkdtempSync(join(tmpdir(), "bendlib-release-")), "pkg");
+cpSync(pkg, staged, { recursive: true });
+const regen = sh([process.execPath, "tools/mathlib/index.ts", staged, name, version]);
+if (regen.code !== 0) fail(`index regeneration for ${version} failed:\n${regen.out}`);
+
 const gates: [string, string[]][] = [
   ["check", [process.execPath, "tools/mathlib/check.ts", pkg]],
   ["lint", [process.execPath, "tools/mathlib/lint.ts", pkg, "--erasure"]],
   ["twins", [process.execPath, "tools/mathlib/twins.ts", pkg, "--check"]],
   ["comments", [process.execPath, "tools/comments.ts", ...["packages", "tools"].map((d) => join(ROOT, d))]],
   ["lock", [process.execPath, "tools/mathlib/lock.ts", pkg, "--check"]],
-  ["index", [process.execPath, "tools/mathlib/index.ts", pkg, name, version, "--check"]],
+  ["index", [process.execPath, "tools/mathlib/index.ts", staged, name, version, "--check"]],
 ];
 for (const m of packageModules(pkg)) {
   gates.push(["lawcheck " + basename(m, ".bend"), [process.execPath, "tools/lawcheck/cli.ts", m, "--max-instances", "100"]]);
