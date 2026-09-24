@@ -2,7 +2,7 @@
 // usage: bun tools/mathlib/index.ts <pkgdir> <name> <version> [--check] [--stdout]
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { join, relative, resolve } from "node:path";
 import { ROOT, packageModules, parseModule } from "./lib.ts";
 
 const [dirArg, name, version] = process.argv.slice(2).filter((a) => !a.startsWith("--"));
@@ -38,7 +38,8 @@ for (const file of packageModules(dir)) {
   const preds = m.defs.filter((d) => !d.name.startsWith("internal_") && /->\s*(Data|Type)\s*:\s*$/.test(d.header));
   if (laws.length + preds.length === 0) continue;
   total += laws.length;
-  body.push(`## ${m.name}`, "", "```python", `import ${name}@${version}/${m.name}.bend as ${alias(m.name)}`, "```", "");
+  const rel = relative(dir, file).replace(/\.bend$/, "");
+  body.push(`## ${m.name}`, "", "```python", `import ${name}@${version}/${rel}.bend as ${alias(m.name)}`, "```", "");
   if (preds.length) {
     body.push("| predicate | definition | since |", "|---|---|---|");
     for (const p of preds) body.push(`| ${cell(p.header.replace(/^def\s+/, "").replace(/:\s*$/, ""))} | ${cell(p.body.map((l) => l.trim()).join(" "))} | ${sinceCell(m.name, p.name)} |`);

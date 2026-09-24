@@ -4,7 +4,7 @@ import { cpSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { packageModules } from "./lib.ts";
+import { parseModule, packageModules } from "./lib.ts";
 
 const dir = import.meta.dir;
 const run = (script: string, ...args: string[]) => {
@@ -67,14 +67,14 @@ const subdir = join(dir, "fixtures/subdir");
 
 test("packageModules recurses into subdirectories", () => {
   const rel = packageModules(subdir).map((p) => p.slice(subdir.length + 1));
-  expect(rel).toEqual(["all.bend", "src/mod.bend"]);
+  expect(rel).toEqual(["all.bend", "src/helper.bend", "src/inner.bend", "src/mod.bend"]);
 });
 
 test("lint reads a module in a subdirectory", () => {
   const r = run("lint.ts", subdir);
   expect(r.code).toBe(1);
   expect(r.out).toContain("src/mod.bend");
-  expect(r.out).toContain("in 2 module(s)");
+  expect(r.out).toContain("in 4 module(s)");
 });
 
 test("lock reads a module in a subdirectory", () => {
@@ -88,5 +88,47 @@ test("index reads a module in a subdirectory", () => {
   expect(r.code).toBe(0);
   expect(r.out).toContain("## mod");
   expect(r.out).toContain("add_ident");
+});
+
+test("parseModule keeps a one-line def header as the physical line", () => {
+  const m = parseModule("m.bend", "import Base\n\ndef f(a: Nat) -> Data:\n  {g(a) == True{} : Bool}\n");
+  expect(m.defs[0].header).toBe("def f(a: Nat) -> Data:");
+  expect(m.defs[0].body).toEqual(["  {g(a) == True{} : Bool}"]);
+});
+
+test("parseModule accumulates a multi-line def header and starts the body after it", () => {
+  const m = parseModule("m.bend", "import Base\n\ndef f(\n  a: Nat\n) -> Data:\n  {g(a) == True{} : Bool}\n");
+  expect(m.defs[0].header).toBe("def f(\n  a: Nat\n) -> Data:");
+  expect(m.defs[0].body).toEqual(["  {g(a) == True{} : Bool}"]);
+});
+
+const multiline = join(dir, "fixtures/multiline");
+
+test("lint flags a predicate whose -> Data is on a continuation line, and the one-line control", () => {
+  const r = run("lint.ts", multiline);
+  expect(r.code).toBe(1);
+  expect(r.out).toContain("predicate 'multiline_pred' calls 'Frobnicate', which is not a Base function");
+  expect(r.out).toContain("predicate 'single_pred' calls 'Frobnicate', which is not a Base function");
+});
+
+test("lock locks a predicate whose -> Data is on a continuation line, and the one-line control", () => {
+  const tmp = mkdtempSync(join(tmpdir(), "bend-multiline-"));
+  cpSync(multiline, tmp, { recursive: true });
+  const r = run("lock.ts", tmp, "--update");
+  expect(r.code).toBe(0);
+  const lock: Record<string, { kind: string }> = JSON.parse(readFileSync(join(tmp, "PUBLIC_API.lock"), "utf8"));
+  expect(lock["pred.multiline_pred"]?.kind).toBe("predicate");
+  expect(lock["pred.single_pred"]?.kind).toBe("predicate");
+});
+
+test("index keeps a subdir module's relative path in the generated import", () => {
+  const r = run("index.ts", subdir, "fixture-package", "0.1.0.0", "--stdout");
+  expect(r.out).toContain("import fixture-package@0.1.0.0/src/mod.bend as MMod");
+  expect(r.out).toContain("import fixture-package@0.1.0.0/src/inner.bend as MInner");
+});
+
+test("lint --erasure checks a subdir module that imports a sibling", () => {
+  const r = run("lint.ts", subdir, "--erasure");
+  expect(r.out).toContain("binder 'y' of 'inner_id' can be erased");
 });
 

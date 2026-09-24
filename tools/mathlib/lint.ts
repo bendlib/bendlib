@@ -10,9 +10,9 @@
 // usage: bun tools/mathlib/lint.ts [pkgdir] [--erasure] [--allow-types]
 // exit: 0 clean · 1 findings · 2 usage
 
-import { cpSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { basename, join, relative, resolve } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 import { BEND, ROOT, baseNames, packageModules, parseModule, type Module } from "./lib.ts";
 
 const args = process.argv.slice(2);
@@ -63,12 +63,14 @@ if (doErasure) {
         if (b.mark === "-" || b.mark === "~" || /^(Type|Data|Kind\b)/.test(b.type)) continue;
         const idx = lines.findIndex((l, i) => i >= law.line && l.trim() === b.raw);
         if (idx < 0) continue;
+        const target = join(dir, relative(pkg, m.file));
         const mutated = lines.slice();
         mutated[idx] = mutated[idx].replace(/for\s+[+]?/, "for -");
-        writeFileSync(join(dir, basename(m.file)), mutated.join("\n"));
-        const p = Bun.spawnSync([BEND, join(dir, basename(m.file)), "--check-only"], { cwd: dir, env: { ...process.env, BEND_NO_TELEMETRY: "1" } });
+        mkdirSync(dirname(target), { recursive: true });
+        writeFileSync(target, mutated.join("\n"));
+        const p = Bun.spawnSync([BEND, target, "--check-only"], { cwd: dir, env: { ...process.env, BEND_NO_TELEMETRY: "1" } });
         const out = (new TextDecoder().decode(p.stdout) + new TextDecoder().decode(p.stderr)).trim();
-        writeFileSync(join(dir, basename(m.file)), m.text);
+        writeFileSync(target, m.text);
         if (out === "All terms check.") at(m, idx + 1, `binder '${b.name}' of '${law.name}' can be erased (write 'for -${b.name}')`);
       }
     }

@@ -45,6 +45,16 @@ function parseBinder(line: string): Binder | null {
   return { raw: line.trim(), mark: m[1] as Binder["mark"], name: m[2], type: (w >= 0 ? rest.slice(0, w) : rest).trim(), where: w >= 0 };
 }
 
+// 0-based index of the last physical line of a `def` header: the first line at paren depth 0 that ends with `:`.
+function headerEnd(lines: string[], start: number): number {
+  let depth = 0;
+  for (let i = start; i < lines.length; i++) {
+    for (const ch of lines[i]) { if (ch === "(") depth++; else if (ch === ")") depth--; }
+    if (depth === 0 && /:\s*$/.test(lines[i])) return i;
+  }
+  return start;
+}
+
 export function parseModule(file: string, source?: string): Module {
   const text = source ?? readFileSync(file, "utf8");
   const lines = text.split("\n");
@@ -78,12 +88,13 @@ export function parseModule(file: string, source?: string): Module {
     } else if ((m = l.match(/^(?:@unsafe\s+)?def\s+([A-Za-z_][A-Za-z0-9_.]*)(\??)\s*\((.*)$/))) {
       const name = m[1];
       const law = lawByName.get(name);
-      const body = block(i);
+      const end = headerEnd(lines, i);
+      const body = block(end);
       if (law && !law.proof) {
         const args = (l.match(/^def\s+[^(]+\(([^)]*)\)/)?.[1] ?? "").split(",").map((s) => s.trim()).filter(Boolean);
         law.proof = { line: i + 1, args, body };
       } else {
-        mod.defs.push({ name, line: i + 1, header: l, body });
+        mod.defs.push({ name, line: i + 1, header: lines.slice(i, end + 1).join("\n"), body });
       }
     } else if ((m = l.match(/^type\s+([A-Za-z_][A-Za-z0-9_.]*)/))) mod.types.push({ name: m[1], line: i + 1 });
   }
