@@ -14,7 +14,8 @@ import { extractFile, type FileDecls } from "./src/extract.ts";
 import { dependencyEdges, foreignImports, parseImports } from "./src/imports.ts";
 import { licenses } from "./src/license.ts";
 import { attachEdges, displayOrder, finishPackage, namesByHash, type Module, type Package, type Site } from "./src/model.ts";
-import { renderIndex, renderModule, renderName, renderPackage, renderSearch, modPage, pkgPage, namePage } from "./src/render.ts";
+import { renderIndex, renderModule, renderName, renderPackage, renderSearch, modPage, pkgPage, namePage, setBaseNamespaces } from "./src/render.ts";
+import { baseNamespaces } from "./src/status.ts";
 import { buildSearchIndex } from "./src/searchindex.ts";
 import { checkFile, compilerVersion, readStatusCache, statusKey, writeStatusCache, type FileClass } from "./src/status.ts";
 
@@ -192,6 +193,7 @@ async function main() {
   t = performance.now();
   const out = args.out;
   mkdirSync(out, { recursive: true });
+  setBaseNamespaces(baseNamespaces());
   write(out, "index.html", renderIndex(site));
   write(out, "search.html", renderSearch(site));
   write(out, "search-index.json", JSON.stringify(buildSearchIndex(site)));

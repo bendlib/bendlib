@@ -106,3 +106,13 @@ export function writeStatusCache(file: string, c: StatusCache): void {
   writeFileSync(file + ".part", JSON.stringify(c));
   renameSync(file + ".part", file);
 }
+
+/** Namespaces of the installed compiler's Base: `Nat` from `def Nat.add`, `List` from `type List<…>`. */
+export function baseNamespaces(): Set<string> {
+  const p = Bun.spawnSync([BEND, "base"], { env: { ...process.env, BEND_NO_TELEMETRY: "1" } });
+  const out = new TextDecoder().decode(p.stdout);
+  const names = new Set<string>(["Base"]);
+  for (const m of out.matchAll(/^(?:def|law|type)\s+([A-Z][A-Za-z0-9_]*)/gm)) names.add(m[1]);
+  if (names.size < 10) throw new Error(`'${BEND} base' listed only ${names.size} namespaces: ${new TextDecoder().decode(p.stderr)}`);
+  return names;
+}

@@ -106,12 +106,17 @@ ${rows}
 }
 
 // An alias spelled like a Base namespace (Nat, List, …) lets a future Base def shadow the module's (PLAN F16).
-const BASE_NAMESPACES = new Set(["Nat", "U32", "F32", "Char", "String", "Bool", "Cmp", "Maybe", "Result", "List", "Array", "Map", "Set", "IO", "Word", "Pair", "Equal", "Image", "Event", "App", "File", "TCP", "UDP", "Chan", "Window", "Audio", "Either", "Sigma", "Empty", "Unit", "Base"]);
+let baseNamespaces = new Set<string>();
+
+/** The namespaces the pinned compiler's Base defines (from `bend base`), so suggested aliases never shadow them. */
+export function setBaseNamespaces(names: Iterable<string>) {
+  baseNamespaces = new Set(names);
+}
 
 function aliasFor(path: string): string {
   const base = posix.basename(path, ".bend").replace(/[^A-Za-z0-9_]/g, "_");
   const a = base.charAt(0).toUpperCase() + base.slice(1);
-  return /^[A-Za-z_]/.test(a) && !BASE_NAMESPACES.has(a) ? a : `M${a}`;
+  return /^[A-Za-z_]/.test(a) && !baseNamespaces.has(a) ? a : `M${a}`;
 }
 
 function edgeList(path: string, edges: Edge[], side: "from" | "to", site: Site, empty: string): string {
