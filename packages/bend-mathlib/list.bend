@@ -1,5 +1,6 @@
 import Base
 import ./nat.bend as MNat
+import ./bool.bend as MBool
 
 # The empty list is a right identity for append: xs ++ [] = xs.
 law append_nil:
@@ -526,6 +527,104 @@ def internal_map_reverse_go(~A: Type, ~B: Type, ~f: A -> B, xs: List<A>, acc: Li
 def map_reverse(A, B, f, xs):
   internal_map_reverse_go(~A, ~B, ~f, xs, Nil{})
 
+# All over an append is all over each part, joined by and.
+law all_append:
+  for ~a: Quant
+  for ~A: Kind(a)
+  for ~f: A -> Bool
+  for xs: List<a, A>
+  for -ys: List<a, A>
+  {List.all(~a, ~A, ~f, List.append(a, A, xs, ys)) == Bool.and(List.all(~a, ~A, ~f, xs), List.all(~a, ~A, ~f, ys)) : Bool}
+
+def all_append(a, A, f, xs, ys):
+  match xs:
+    case Nil{}:
+      {==}
+    case h <> t:
+      %Equal.sym(Bool, List.all(~a, ~A, ~f, List.append(a, A, t, ys)), Bool.and(List.all(~a, ~A, ~f, t), List.all(~a, ~A, ~f, ys)), all_append(~a, ~A, ~f, t, ys)) : {Bool.and(f(h), _) == Bool.and(Bool.and(f(h), List.all(~a, ~A, ~f, t)), List.all(~a, ~A, ~f, ys)) : Bool}
+      Equal.sym(Bool, Bool.and(Bool.and(f(h), List.all(~a, ~A, ~f, t)), List.all(~a, ~A, ~f, ys)), Bool.and(f(h), Bool.and(List.all(~a, ~A, ~f, t), List.all(~a, ~A, ~f, ys))), MBool.and_assoc(f(h), List.all(~a, ~A, ~f, t), List.all(~a, ~A, ~f, ys)))
+
+# Any over an append is any over each part, joined by or.
+law any_append:
+  for ~a: Quant
+  for ~A: Kind(a)
+  for ~f: A -> Bool
+  for xs: List<a, A>
+  for -ys: List<a, A>
+  {List.any(~a, ~A, ~f, List.append(a, A, xs, ys)) == Bool.or(List.any(~a, ~A, ~f, xs), List.any(~a, ~A, ~f, ys)) : Bool}
+
+def any_append(a, A, f, xs, ys):
+  match xs:
+    case Nil{}:
+      {==}
+    case h <> t:
+      %Equal.sym(Bool, List.any(~a, ~A, ~f, List.append(a, A, t, ys)), Bool.or(List.any(~a, ~A, ~f, t), List.any(~a, ~A, ~f, ys)), any_append(~a, ~A, ~f, t, ys)) : {Bool.or(f(h), _) == Bool.or(Bool.or(f(h), List.any(~a, ~A, ~f, t)), List.any(~a, ~A, ~f, ys)) : Bool}
+      Equal.sym(Bool, Bool.or(Bool.or(f(h), List.any(~a, ~A, ~f, t)), List.any(~a, ~A, ~f, ys)), Bool.or(f(h), Bool.or(List.any(~a, ~A, ~f, t), List.any(~a, ~A, ~f, ys))), MBool.or_assoc(f(h), List.any(~a, ~A, ~f, t), List.any(~a, ~A, ~f, ys)))
+
+# Filtering an append filters each part.
+law filter_append:
+  for ~A: Data
+  for ~f: A -> Bool
+  for xs: List<&2, A>
+  for ys: List<&2, A>
+  {List.filter(~A, ~f, List.append(&2, A, xs, ys)) == List.append(&2, A, List.filter(~A, ~f, xs), List.filter(~A, ~f, ys)) : List<&2, A>}
+
+def internal_filter_put_append(-A: Data, h: A, r: List<&2, A>, s: List<&2, A>, b: Bool) -> {List.append(&2, A, List.filter.put(A, h, r, b), s) == List.filter.put(A, h, List.append(&2, A, r, s), b) : List<&2, A>}:
+  match b:
+    case False{}:
+      {==}
+    case True{}:
+      {==}
+
+def filter_append(A, f, xs, ys):
+  match xs:
+    case Nil{}:
+      {==}
+    case +h <> t:
+      +ys = ys
+      +t = t
+      %Equal.sym(List<&2, A>, List.filter(~A, ~f, List.append(&2, A, t, ys)), List.append(&2, A, List.filter(~A, ~f, t), List.filter(~A, ~f, ys)), filter_append(~A, ~f, t, ys)) : {List.filter.put(A, h, _, f(h)) == List.append(&2, A, List.filter.put(A, h, List.filter(~A, ~f, t), f(h)), List.filter(~A, ~f, ys)) : List<&2, A>}
+      Equal.sym(List<&2, A>, List.append(&2, A, List.filter.put(A, h, List.filter(~A, ~f, t), f(h)), List.filter(~A, ~f, ys)), List.filter.put(A, h, List.append(&2, A, List.filter(~A, ~f, t), List.filter(~A, ~f, ys)), f(h)), internal_filter_put_append(A, h, List.filter(~A, ~f, t), List.filter(~A, ~f, ys), f(h)))
+
+# An append contains x iff either part does.
+law contains_append:
+  for ~A: Data
+  for ~eq: A -> A -> Bool
+  for xs: List<&2, A>
+  for -ys: List<&2, A>
+  for +x: A
+  {List.contains(~A, ~eq, List.append(&2, A, xs, ys), x) == Bool.or(List.contains(~A, ~eq, xs, x), List.contains(~A, ~eq, ys, x)) : Bool}
+
+def contains_append(A, eq, xs, ys, x):
+  match xs:
+    case Nil{}:
+      {==}
+    case h <> t:
+      %Equal.sym(Bool, List.contains(~A, ~eq, List.append(&2, A, t, ys), x), Bool.or(List.contains(~A, ~eq, t, x), List.contains(~A, ~eq, ys, x)), contains_append(~A, ~eq, t, ys, x)) : {Bool.or(eq(h, x), _) == Bool.or(Bool.or(eq(h, x), List.contains(~A, ~eq, t, x)), List.contains(~A, ~eq, ys, x)) : Bool}
+      Equal.sym(Bool, Bool.or(Bool.or(eq(h, x), List.contains(~A, ~eq, t, x)), List.contains(~A, ~eq, ys, x)), Bool.or(eq(h, x), Bool.or(List.contains(~A, ~eq, t, x), List.contains(~A, ~eq, ys, x))), MBool.or_assoc(eq(h, x), List.contains(~A, ~eq, t, x), List.contains(~A, ~eq, ys, x)))
+
+# Filtering never makes a list longer.
+law length_filter_le:
+  for ~A: Data
+  for ~f: A -> Bool
+  for xs: List<&2, A>
+  {Nat.is_le(List.length(&2, A, List.filter(~A, ~f, xs)), List.length(&2, A, xs)) == True{} : Bool}
+
+def internal_length_filter_put_le(-A: Data, h: A, r: List<&2, A>, b: Bool) -> {Nat.is_le(List.length(&2, A, List.filter.put(A, h, r, b)), 1n+List.length(&2, A, r)) == True{} : Bool}:
+  match b:
+    case False{}:
+      MNat.le_succ(List.length(&2, A, r))
+    case True{}:
+      MNat.le_refl(1n+List.length(&2, A, r))
+
+def length_filter_le(A, f, xs):
+  match xs:
+    case Nil{}:
+      {==}
+    case +h <> t:
+      +t = t
+      MNat.le_trans(List.length(&2, A, List.filter.put(A, h, List.filter(~A, ~f, t), f(h))), 1n+List.length(&2, A, List.filter(~A, ~f, t)), 1n+List.length(&2, A, t), internal_length_filter_put_le(A, h, List.filter(~A, ~f, t), f(h)), MNat.succ_le_succ(List.length(&2, A, List.filter(~A, ~f, t)), List.length(&2, A, t), length_filter_le(~A, ~f, t)))
+
 # --- generated: _sym twins (tools/mathlib/twins.ts), do not edit ---
 
 # The empty list is a right identity for append: xs ++ [] = xs, reversed to rewrite toward the simple side.
@@ -893,3 +992,60 @@ law map_reverse_sym:
 
 def map_reverse_sym(A, B, f, xs):
   Equal.sym(List<B>, List.map(~A, ~B, ~f, List.reverse(&1, A, xs)), List.reverse(&1, B, List.map(~A, ~B, ~f, xs)), map_reverse(~A, ~B, ~f, xs))
+
+# All over an append is all over each part, joined by and, reversed to rewrite toward the simple side.
+law all_append_sym:
+  for ~a: Quant
+  for ~A: Kind(a)
+  for ~f: A -> Bool
+  for xs: List<a, A>
+  for -ys: List<a, A>
+  {Bool.and(List.all(~a, ~A, ~f, xs), List.all(~a, ~A, ~f, ys)) == List.all(~a, ~A, ~f, List.append(a, A, xs, ys)) : Bool}
+
+def all_append_sym(a, A, f, xs, ys):
+  Equal.sym(Bool, List.all(~a, ~A, ~f, List.append(a, A, xs, ys)), Bool.and(List.all(~a, ~A, ~f, xs), List.all(~a, ~A, ~f, ys)), all_append(~a, ~A, ~f, xs, ys))
+
+# Any over an append is any over each part, joined by or, reversed to rewrite toward the simple side.
+law any_append_sym:
+  for ~a: Quant
+  for ~A: Kind(a)
+  for ~f: A -> Bool
+  for xs: List<a, A>
+  for -ys: List<a, A>
+  {Bool.or(List.any(~a, ~A, ~f, xs), List.any(~a, ~A, ~f, ys)) == List.any(~a, ~A, ~f, List.append(a, A, xs, ys)) : Bool}
+
+def any_append_sym(a, A, f, xs, ys):
+  Equal.sym(Bool, List.any(~a, ~A, ~f, List.append(a, A, xs, ys)), Bool.or(List.any(~a, ~A, ~f, xs), List.any(~a, ~A, ~f, ys)), any_append(~a, ~A, ~f, xs, ys))
+
+# Filtering an append filters each part, reversed to rewrite toward the simple side.
+law filter_append_sym:
+  for ~A: Data
+  for ~f: A -> Bool
+  for xs: List<&2, A>
+  for ys: List<&2, A>
+  {List.append(&2, A, List.filter(~A, ~f, xs), List.filter(~A, ~f, ys)) == List.filter(~A, ~f, List.append(&2, A, xs, ys)) : List<&2, A>}
+
+def filter_append_sym(A, f, xs, ys):
+  Equal.sym(List<&2, A>, List.filter(~A, ~f, List.append(&2, A, xs, ys)), List.append(&2, A, List.filter(~A, ~f, xs), List.filter(~A, ~f, ys)), filter_append(~A, ~f, xs, ys))
+
+# An append contains x iff either part does, reversed to rewrite toward the simple side.
+law contains_append_sym:
+  for ~A: Data
+  for ~eq: A -> A -> Bool
+  for xs: List<&2, A>
+  for -ys: List<&2, A>
+  for +x: A
+  {Bool.or(List.contains(~A, ~eq, xs, x), List.contains(~A, ~eq, ys, x)) == List.contains(~A, ~eq, List.append(&2, A, xs, ys), x) : Bool}
+
+def contains_append_sym(A, eq, xs, ys, x):
+  Equal.sym(Bool, List.contains(~A, ~eq, List.append(&2, A, xs, ys), x), Bool.or(List.contains(~A, ~eq, xs, x), List.contains(~A, ~eq, ys, x)), contains_append(~A, ~eq, xs, ys, x))
+
+# Filtering never makes a list longer, reversed to rewrite toward the simple side.
+law length_filter_le_sym:
+  for ~A: Data
+  for ~f: A -> Bool
+  for xs: List<&2, A>
+  {True{} == Nat.is_le(List.length(&2, A, List.filter(~A, ~f, xs)), List.length(&2, A, xs)) : Bool}
+
+def length_filter_le_sym(A, f, xs):
+  Equal.sym(Bool, Nat.is_le(List.length(&2, A, List.filter(~A, ~f, xs)), List.length(&2, A, xs)), True{}, length_filter_le(~A, ~f, xs))
