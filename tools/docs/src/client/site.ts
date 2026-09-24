@@ -16,6 +16,8 @@ function filter() {
     }
     shown.textContent = words.length ? `${n} of ${rows.length} shown` : "";
   };
+  const q = new URLSearchParams(location.search).get("q");
+  if (q !== null) input.value = q;
   input.addEventListener("input", apply);
   apply();
 }

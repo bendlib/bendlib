@@ -59,7 +59,6 @@ export function page(o: PageOpts): string {
 <header class="top"><div class="wrap">
 <a class="brand" href="${r("index.html")}">~/bend-docs<span class="pill">community</span></a>
 <nav aria-label="Site"><a href="${r("index.html")}">Packages</a><a href="${r("search.html")}">Search</a></nav>
-<form class="hsearch" role="search" action="${r("search.html")}" method="get"><label class="vh" for="hq">Search the hub</label><input id="hq" name="q" type="search" placeholder="Search names, docs, or List.append(_, Nil{})" autocomplete="off"></form>
 </div></header>
 <main id="main" class="wrap">
 ${o.body}
@@ -94,9 +93,9 @@ export function renderIndex(site: Site): string {
   const body = `<div id="hero"><h1>Bend Docs</h1>
 <p class="sub">every <b>BendHub</b> package, documented</p>
 <p class="tag">${totals.decls.toLocaleString("en")} declarations and ${totals.laws.toLocaleString("en")} laws, each package checked on bend ${esc(site.compiler)}</p>
-<form class="find" role="search" action="${rel(path, "search.html")}" method="get"><label class="vh" for="fq">Search</label><input id="fq" name="q" type="search" placeholder="a name, a word of a doc, or a law shape like Nat.add(_, 0n)" autocomplete="off"><button class="btn" type="submit">find</button></form></div>
+<form class="q find" role="search" action="${rel(path, "search.html")}" method="get"><label class="vh" for="filter">Search packages, declarations and laws</label><input id="filter" name="q" type="search" placeholder="a package, a name, a doc word, or a law shape like Nat.add(_, 0n)" spellcheck="false" autocomplete="off"><button class="btn" type="submit">find</button></form>
+<p class="hint">typing filters the packages below · <b>find</b> searches every declaration and law <span id="shown" aria-live="polite"></span></p></div>
 <section><h2>Packages <span class="n">${groups.length} packages · ${site.packages.length} uploads</span></h2>
-<div class="filter"><label for="filter">filter</label> <input id="filter" type="search" placeholder="name, hash, owner or description" autocomplete="off"> <span id="shown" aria-live="polite"></span></div>
 <div class="tablewrap"><table class="pkgs" id="pkgs">
 <thead><tr><th scope="col">name / version</th><th scope="col">description</th><th scope="col">status</th><th scope="col" class="num">laws</th><th scope="col" class="num">used by</th><th scope="col" class="num">updated</th></tr></thead>
 <tbody>
@@ -293,8 +292,8 @@ export function renderName(site: Site, name: string): string {
 export function renderSearch(site: Site): string {
   const path = "search.html";
   const body = `<h1>Search</h1>
-<form id="sf" class="sform" role="search" onsubmit="return false">
-<label for="q">Query</label>
+<form id="sf" class="q sform" role="search" onsubmit="return false">
+<label class="vh" for="q">Query</label>
 <input id="q" name="q" type="search" autocomplete="off" spellcheck="false" placeholder="add_comm, reverse, or List.append(_, Nil{})" aria-describedby="how">
 <fieldset class="modes"><legend class="vh">Mode</legend>
 <label><input type="radio" name="mode" value="auto" checked> auto</label>
