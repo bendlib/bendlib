@@ -677,6 +677,12 @@
     "sha256": "d051b0fb7bbecacf80a841ac3c29917a0992b4c0a788d2bd47d1fdd4759edbd4",
     "since": null
   },
+  "nat.eq_of_is_eq": {
+    "kind": "law",
+    "text": "for a: Nat\nfor b: Nat\nfor h: {Nat.is_eq(a, b) == True{} : Bool}\n{a == b : Nat}",
+    "sha256": "516db709c7bc5c29406fc8de5b64b3120433216b6d78c574e484e7831449be7f",
+    "since": null
+  },
   "nat.ge": {
     "kind": "predicate",
     "text": "def ge(a: Nat, b: Nat) -> Data:\n{Nat.is_ge(a, b) == True{} : Bool}",
@@ -700,6 +706,66 @@
     "text": "for a: Nat\nfor b: Nat\nfor h: lt(b, a)\ngt(a, b)",
     "sha256": "7e116e71933026d3843f35dce798b88993f5ce4c5954c7839cf548ce6b70c165",
     "since": "0.1.0.0"
+  },
+  "nat.is_eq_comm": {
+    "kind": "law",
+    "text": "for a: Nat\nfor b: Nat\n{Nat.is_eq(a, b) == Nat.is_eq(b, a) : Bool}",
+    "sha256": "abd3e5cae69f7d1c6ec0b185262bdeef40d5e5b7d9780dc97baf45f6f5de1949",
+    "since": null
+  },
+  "nat.is_eq_comm_sym": {
+    "kind": "law",
+    "text": "for a: Nat\nfor b: Nat\n{Nat.is_eq(b, a) == Nat.is_eq(a, b) : Bool}",
+    "sha256": "6aba88484fe373bb6011fca481e9fbbf3277f24718f2d1b14591123c2d6a9ed6",
+    "since": null
+  },
+  "nat.is_eq_refl": {
+    "kind": "law",
+    "text": "for n: Nat\n{Nat.is_eq(n, n) == True{} : Bool}",
+    "sha256": "80861121a3b65ce7d35c354dc58cf29aeb9fe1892996d9e8b22fd36beb42e781",
+    "since": null
+  },
+  "nat.is_eq_refl_sym": {
+    "kind": "law",
+    "text": "for n: Nat\n{True{} == Nat.is_eq(n, n) : Bool}",
+    "sha256": "ebd9269dcd71796d49b65eea29b0d5e208d547c2d3fdd2c13ad135189ce9d2e0",
+    "since": null
+  },
+  "nat.is_ge_eq_is_le": {
+    "kind": "law",
+    "text": "for a: Nat\nfor b: Nat\n{Nat.is_ge(a, b) == Nat.is_le(b, a) : Bool}",
+    "sha256": "7b3310a80b0a4cda06beeb1bb68a9222d98167847080abdad5ee57e3a8c07372",
+    "since": null
+  },
+  "nat.is_ge_eq_is_le_sym": {
+    "kind": "law",
+    "text": "for a: Nat\nfor b: Nat\n{Nat.is_le(b, a) == Nat.is_ge(a, b) : Bool}",
+    "sha256": "483b9215837648baf069139dda3b881a2fab33a35a4a4a4dc700a7151f646c8f",
+    "since": null
+  },
+  "nat.is_gt_eq_is_lt": {
+    "kind": "law",
+    "text": "for a: Nat\nfor b: Nat\n{Nat.is_gt(a, b) == Nat.is_lt(b, a) : Bool}",
+    "sha256": "0613ea02789d6279427a4fba5cc7286440b74e64cefe95e5799cac0c5b6166d8",
+    "since": null
+  },
+  "nat.is_gt_eq_is_lt_sym": {
+    "kind": "law",
+    "text": "for a: Nat\nfor b: Nat\n{Nat.is_lt(b, a) == Nat.is_gt(a, b) : Bool}",
+    "sha256": "049f08a345c2ff4ca7c257c538b76b399e20861f4055c1cbb724ae05f725d9fa",
+    "since": null
+  },
+  "nat.is_lt_eq_succ_le": {
+    "kind": "law",
+    "text": "for a: Nat\nfor b: Nat\n{Nat.is_lt(a, b) == Nat.is_le(1n+a, b) : Bool}",
+    "sha256": "9fe0dfc736a895b2bc75b2931703e00453bf7eec9f9584fa1acc47ddda58838d",
+    "since": null
+  },
+  "nat.is_lt_eq_succ_le_sym": {
+    "kind": "law",
+    "text": "for a: Nat\nfor b: Nat\n{Nat.is_le(1n+a, b) == Nat.is_lt(a, b) : Bool}",
+    "sha256": "86574f6f96af05615c840b429ed2a56ea241db643f48bfc55d2cb032ec814f6e",
+    "since": null
   },
   "nat.le": {
     "kind": "predicate",
@@ -988,6 +1054,30 @@
     "text": "for x: Nat\n{0n == Nat.mul(x, 0n) : Nat}",
     "sha256": "47c05f37991f14895edcbf0a04415faeee15578284cbad488a4200b1a561376e",
     "since": "0.1.0.0"
+  },
+  "nat.not_is_le": {
+    "kind": "law",
+    "text": "for a: Nat\nfor b: Nat\n{Bool.not(Nat.is_le(a, b)) == Nat.is_lt(b, a) : Bool}",
+    "sha256": "d855a43f0fd95ac3c8af338e6e07c6469829951af8b23abfef4eac7caa8e3381",
+    "since": null
+  },
+  "nat.not_is_le_sym": {
+    "kind": "law",
+    "text": "for a: Nat\nfor b: Nat\n{Nat.is_lt(b, a) == Bool.not(Nat.is_le(a, b)) : Bool}",
+    "sha256": "a10ccfab697eb515f99b30a6e2f14b1fbbfb9f4ff79c07ae5c8f5a301f2e99ab",
+    "since": null
+  },
+  "nat.not_is_lt": {
+    "kind": "law",
+    "text": "for a: Nat\nfor b: Nat\n{Bool.not(Nat.is_lt(a, b)) == Nat.is_le(b, a) : Bool}",
+    "sha256": "bd7807dca2340dcb4a623e6c6a9989cd804347c404f329f64136332fa2c82960",
+    "since": null
+  },
+  "nat.not_is_lt_sym": {
+    "kind": "law",
+    "text": "for a: Nat\nfor b: Nat\n{Nat.is_le(b, a) == Bool.not(Nat.is_lt(a, b)) : Bool}",
+    "sha256": "ea34b827faed05dd4b5df399011e266d674e3bbb3d134388e13fe0f968a56f0a",
+    "since": null
   },
   "nat.one_mul": {
     "kind": "law",

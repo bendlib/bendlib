@@ -1045,6 +1045,146 @@ def double_eq_add(n):
       %double_eq_add(p) : {2n+Nat.double(p) == 2n+_ : Nat}
       {==}
 
+# Every natural tests equal to itself.
+law is_eq_refl:
+  for n: Nat
+  {Nat.is_eq(n, n) == True{} : Bool}
+
+def is_eq_refl(n):
+  match n:
+    case 0n:
+      {==}
+    case 1n+p:
+      is_eq_refl(p)
+
+# The equality test is symmetric.
+law is_eq_comm:
+  for a: Nat
+  for b: Nat
+  {Nat.is_eq(a, b) == Nat.is_eq(b, a) : Bool}
+
+def is_eq_comm(a, b):
+  match a b:
+    case 0n 0n:
+      {==}
+    case 0n 1n+q:
+      {==}
+    case 1n+p 0n:
+      {==}
+    case 1n++p 1n++q:
+      %is_eq_comm(p, q) : {Nat.is_eq(p, q) == _ : Bool}
+      {==}
+
+# If the equality test says true, the naturals are equal.
+law eq_of_is_eq:
+  for a: Nat
+  for b: Nat
+  for h: {Nat.is_eq(a, b) == True{} : Bool}
+  {a == b : Nat}
+
+def eq_of_is_eq(a, b, h):
+  match a b:
+    case 0n 0n:
+      {==}
+    case 0n 1n+q:
+      Empty.absurd({0n == 1n+q : Nat}, internal_false_ne_true(h))
+    case 1n+p 0n:
+      Empty.absurd({1n+p == 0n : Nat}, internal_false_ne_true(h))
+    case 1n++p 1n++q:
+      %eq_of_is_eq(p, q, h) : {1n+p == 1n+_ : Nat}
+      {==}
+
+# A >= b tests the same as b <= a.
+law is_ge_eq_is_le:
+  for a: Nat
+  for b: Nat
+  {Nat.is_ge(a, b) == Nat.is_le(b, a) : Bool}
+
+def is_ge_eq_is_le(a, b):
+  match a b:
+    case 0n 0n:
+      {==}
+    case 0n 1n+q:
+      {==}
+    case 1n+p 0n:
+      {==}
+    case 1n++p 1n++q:
+      %is_ge_eq_is_le(p, q) : {Nat.is_ge(p, q) == _ : Bool}
+      {==}
+
+# A > b tests the same as b < a.
+law is_gt_eq_is_lt:
+  for a: Nat
+  for b: Nat
+  {Nat.is_gt(a, b) == Nat.is_lt(b, a) : Bool}
+
+def is_gt_eq_is_lt(a, b):
+  match a b:
+    case 0n 0n:
+      {==}
+    case 0n 1n+q:
+      {==}
+    case 1n+p 0n:
+      {==}
+    case 1n++p 1n++q:
+      %is_gt_eq_is_lt(p, q) : {Nat.is_gt(p, q) == _ : Bool}
+      {==}
+
+# A < b tests the same as a + 1 <= b.
+law is_lt_eq_succ_le:
+  for a: Nat
+  for b: Nat
+  {Nat.is_lt(a, b) == Nat.is_le(1n+a, b) : Bool}
+
+def is_lt_eq_succ_le(a, b):
+  match a b:
+    case 0n 0n:
+      {==}
+    case 0n 1n+q:
+      match q:
+        case 0n:
+          {==}
+        case 1n+r:
+          {==}
+    case 1n+p 0n:
+      {==}
+    case 1n+p 1n+q:
+      is_lt_eq_succ_le(p, q)
+
+# Not (a <= b) tests the same as b < a.
+law not_is_le:
+  for a: Nat
+  for b: Nat
+  {Bool.not(Nat.is_le(a, b)) == Nat.is_lt(b, a) : Bool}
+
+def not_is_le(a, b):
+  match a b:
+    case 0n 0n:
+      {==}
+    case 0n 1n+q:
+      {==}
+    case 1n+p 0n:
+      {==}
+    case 1n+p 1n+q:
+      not_is_le(p, q)
+
+# Not (a < b) tests the same as b <= a.
+law not_is_lt:
+  for a: Nat
+  for b: Nat
+  {Bool.not(Nat.is_lt(a, b)) == Nat.is_le(b, a) : Bool}
+
+def not_is_lt(a, b):
+  match a b:
+    case 0n 0n:
+      {==}
+    case 0n 1n+q:
+      {==}
+    case 1n+p 0n:
+      {==}
+    case 1n+p 1n+q:
+      not_is_lt(p, q)
+
 # --- generated: _sym twins (tools/mathlib/twins.ts), do not edit ---
 
 # Zero is a right identity for addition: x + 0 = x, reversed to rewrite toward the simple side.
@@ -1426,3 +1566,65 @@ law double_eq_add_sym:
 
 def double_eq_add_sym(n):
   Equal.sym(Nat, Nat.double(n), Nat.add(n, n), double_eq_add(n))
+
+# Every natural tests equal to itself, reversed to rewrite toward the simple side.
+law is_eq_refl_sym:
+  for n: Nat
+  {True{} == Nat.is_eq(n, n) : Bool}
+
+def is_eq_refl_sym(n):
+  Equal.sym(Bool, Nat.is_eq(n, n), True{}, is_eq_refl(n))
+
+# The equality test is symmetric, reversed to rewrite toward the simple side.
+law is_eq_comm_sym:
+  for a: Nat
+  for b: Nat
+  {Nat.is_eq(b, a) == Nat.is_eq(a, b) : Bool}
+
+def is_eq_comm_sym(a, b):
+  Equal.sym(Bool, Nat.is_eq(a, b), Nat.is_eq(b, a), is_eq_comm(a, b))
+
+# A >= b tests the same as b <= a, reversed to rewrite toward the simple side.
+law is_ge_eq_is_le_sym:
+  for a: Nat
+  for b: Nat
+  {Nat.is_le(b, a) == Nat.is_ge(a, b) : Bool}
+
+def is_ge_eq_is_le_sym(a, b):
+  Equal.sym(Bool, Nat.is_ge(a, b), Nat.is_le(b, a), is_ge_eq_is_le(a, b))
+
+# A > b tests the same as b < a, reversed to rewrite toward the simple side.
+law is_gt_eq_is_lt_sym:
+  for a: Nat
+  for b: Nat
+  {Nat.is_lt(b, a) == Nat.is_gt(a, b) : Bool}
+
+def is_gt_eq_is_lt_sym(a, b):
+  Equal.sym(Bool, Nat.is_gt(a, b), Nat.is_lt(b, a), is_gt_eq_is_lt(a, b))
+
+# A < b tests the same as a + 1 <= b, reversed to rewrite toward the simple side.
+law is_lt_eq_succ_le_sym:
+  for a: Nat
+  for b: Nat
+  {Nat.is_le(1n+a, b) == Nat.is_lt(a, b) : Bool}
+
+def is_lt_eq_succ_le_sym(a, b):
+  Equal.sym(Bool, Nat.is_lt(a, b), Nat.is_le(1n+a, b), is_lt_eq_succ_le(a, b))
+
+# Not (a <= b) tests the same as b < a, reversed to rewrite toward the simple side.
+law not_is_le_sym:
+  for a: Nat
+  for b: Nat
+  {Nat.is_lt(b, a) == Bool.not(Nat.is_le(a, b)) : Bool}
+
+def not_is_le_sym(a, b):
+  Equal.sym(Bool, Bool.not(Nat.is_le(a, b)), Nat.is_lt(b, a), not_is_le(a, b))
+
+# Not (a < b) tests the same as b <= a, reversed to rewrite toward the simple side.
+law not_is_lt_sym:
+  for a: Nat
+  for b: Nat
+  {Nat.is_le(b, a) == Bool.not(Nat.is_lt(a, b)) : Bool}
+
+def not_is_lt_sym(a, b):
+  Equal.sym(Bool, Bool.not(Nat.is_lt(a, b)), Nat.is_le(b, a), not_is_lt(a, b))
