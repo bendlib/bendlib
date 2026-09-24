@@ -186,6 +186,17 @@ import bend-mathlib@0.1.0.1/nat.bend as MNat
 | `sub_add_cancel(n, m, h)` | `∀ n: Nat, m: Nat, h: le(m, n). {Nat.add(Nat.sub(n, m), m) == n : Nat}` | If m <= n, subtracting and adding m back gives n: (n - m) + m = n. | next |
 | `sub_sub(n, m, k)` | `∀ n: Nat, m: Nat, k: Nat. {Nat.sub(Nat.sub(n, m), k) == Nat.sub(n, Nat.add(m, k)) : Nat}` | Subtracting twice is subtracting the sum: (n - m) - k = n - (m + k). | next |
 | `sub_le(n, m)` | `∀ n: Nat, m: Nat. le(Nat.sub(n, m), n)` | Truncated subtraction never increases: n - m <= n. | next |
+| `min_comm(a, b)` | `∀ a: Nat, b: Nat. {Nat.min(a, b) == Nat.min(b, a) : Nat}` | Minimum is commutative. | next |
+| `max_comm(a, b)` | `∀ a: Nat, b: Nat. {Nat.max(a, b) == Nat.max(b, a) : Nat}` | Maximum is commutative. | next |
+| `min_self(a)` | `∀ a: Nat. {Nat.min(a, a) == a : Nat}` | The minimum of a natural and itself is itself. | next |
+| `max_self(a)` | `∀ a: Nat. {Nat.max(a, a) == a : Nat}` | The maximum of a natural and itself is itself. | next |
+| `min_zero(a)` | `∀ a: Nat. {Nat.min(a, 0n) == 0n : Nat}` | The minimum with zero is zero: min(a, 0) = 0. | next |
+| `zero_min(a)` | `∀ a: Nat. {Nat.min(0n, a) == 0n : Nat}` | The minimum with zero is zero: min(0, a) = 0. | next |
+| `max_zero(a)` | `∀ a: Nat. {Nat.max(a, 0n) == a : Nat}` | Zero is an identity for maximum: max(a, 0) = a. | next |
+| `zero_max(a)` | `∀ a: Nat. {Nat.max(0n, a) == a : Nat}` | Zero is an identity for maximum: max(0, a) = a. | next |
+| `min_assoc(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.min(Nat.min(a, b), c) == Nat.min(a, Nat.min(b, c)) : Nat}` | Minimum is associative. | next |
+| `max_assoc(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.max(Nat.max(a, b), c) == Nat.max(a, Nat.max(b, c)) : Nat}` | Maximum is associative. | next |
+| `min_add_max(a, b)` | `∀ a: Nat, b: Nat. {Nat.add(Nat.min(a, b), Nat.max(a, b)) == Nat.add(a, b) : Nat}` | The minimum plus the maximum is the sum: min(a, b) + max(a, b) = a + b. | next |
 | `add_zero_sym(x)` | `∀ x: Nat. {x == Nat.add(x, 0n) : Nat}` | Zero is a right identity for addition: x + 0 = x, reversed to rewrite toward the simple side. | 0.1.0.0 |
 | `zero_add_sym(x)` | `∀ -x: Nat. {x == Nat.add(0n, x) : Nat}` | Zero is a left identity for addition: 0 + x = x, reversed to rewrite toward the simple side. | 0.1.0.0 |
 | `add_succ_sym(n, m)` | `∀ n: Nat, -m: Nat. {1n+Nat.add(n, m) == Nat.add(n, 1n+m) : Nat}` | Adding a successor on the right: n + (m + 1) = (n + m) + 1, reversed to rewrite toward the simple side. | 0.1.0.0 |
@@ -212,5 +223,16 @@ import bend-mathlib@0.1.0.1/nat.bend as MNat
 | `add_sub_cancel_sym(n, m)` | `∀ n: Nat, m: Nat. {n == Nat.sub(Nat.add(n, m), m) : Nat}` | Adding then subtracting m cancels: (n + m) - m = n, reversed to rewrite toward the simple side. | next |
 | `add_sub_cancel_left_sym(n, m)` | `∀ n: Nat, m: Nat. {m == Nat.sub(Nat.add(n, m), n) : Nat}` | Adding then subtracting n cancels: (n + m) - n = m, reversed to rewrite toward the simple side. | next |
 | `sub_sub_sym(n, m, k)` | `∀ n: Nat, m: Nat, k: Nat. {Nat.sub(n, Nat.add(m, k)) == Nat.sub(Nat.sub(n, m), k) : Nat}` | Subtracting twice is subtracting the sum: (n - m) - k = n - (m + k), reversed to rewrite toward the simple side. | next |
+| `min_comm_sym(a, b)` | `∀ a: Nat, b: Nat. {Nat.min(b, a) == Nat.min(a, b) : Nat}` | Minimum is commutative, reversed to rewrite toward the simple side. | next |
+| `max_comm_sym(a, b)` | `∀ a: Nat, b: Nat. {Nat.max(b, a) == Nat.max(a, b) : Nat}` | Maximum is commutative, reversed to rewrite toward the simple side. | next |
+| `min_self_sym(a)` | `∀ a: Nat. {a == Nat.min(a, a) : Nat}` | The minimum of a natural and itself is itself, reversed to rewrite toward the simple side. | next |
+| `max_self_sym(a)` | `∀ a: Nat. {a == Nat.max(a, a) : Nat}` | The maximum of a natural and itself is itself, reversed to rewrite toward the simple side. | next |
+| `min_zero_sym(a)` | `∀ a: Nat. {0n == Nat.min(a, 0n) : Nat}` | The minimum with zero is zero: min(a, 0) = 0, reversed to rewrite toward the simple side. | next |
+| `zero_min_sym(a)` | `∀ a: Nat. {0n == Nat.min(0n, a) : Nat}` | The minimum with zero is zero: min(0, a) = 0, reversed to rewrite toward the simple side. | next |
+| `max_zero_sym(a)` | `∀ a: Nat. {a == Nat.max(a, 0n) : Nat}` | Zero is an identity for maximum: max(a, 0) = a, reversed to rewrite toward the simple side. | next |
+| `zero_max_sym(a)` | `∀ a: Nat. {a == Nat.max(0n, a) : Nat}` | Zero is an identity for maximum: max(0, a) = a, reversed to rewrite toward the simple side. | next |
+| `min_assoc_sym(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.min(a, Nat.min(b, c)) == Nat.min(Nat.min(a, b), c) : Nat}` | Minimum is associative, reversed to rewrite toward the simple side. | next |
+| `max_assoc_sym(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.max(a, Nat.max(b, c)) == Nat.max(Nat.max(a, b), c) : Nat}` | Maximum is associative, reversed to rewrite toward the simple side. | next |
+| `min_add_max_sym(a, b)` | `∀ a: Nat, b: Nat. {Nat.add(a, b) == Nat.add(Nat.min(a, b), Nat.max(a, b)) : Nat}` | The minimum plus the maximum is the sum: min(a, b) + max(a, b) = a + b, reversed to rewrite toward the simple side. | next |
 
-163 lemmas. Generated by `tools/mathlib/index.ts`.
+185 lemmas. Generated by `tools/mathlib/index.ts`.

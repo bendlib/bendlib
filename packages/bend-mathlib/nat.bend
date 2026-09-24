@@ -736,6 +736,175 @@ def sub_le(n, m):
     case 1n++p 1n++q:
       le_trans(Nat.sub(p, q), p, 1n+p, sub_le(p, q), le_succ(p))
 
+# Minimum is commutative.
+law min_comm:
+  for a: Nat
+  for b: Nat
+  {Nat.min(a, b) == Nat.min(b, a) : Nat}
+
+def min_comm(a, b):
+  match a b:
+    case 0n 0n:
+      {==}
+    case 0n 1n+q:
+      {==}
+    case 1n+p 0n:
+      {==}
+    case 1n++p 1n++q:
+      %min_comm(p, q) : {1n+Nat.min(p, q) == 1n+_ : Nat}
+      {==}
+
+# Maximum is commutative.
+law max_comm:
+  for a: Nat
+  for b: Nat
+  {Nat.max(a, b) == Nat.max(b, a) : Nat}
+
+def max_comm(a, b):
+  match a b:
+    case 0n 0n:
+      {==}
+    case 0n 1n+q:
+      {==}
+    case 1n+p 0n:
+      {==}
+    case 1n++p 1n++q:
+      %max_comm(p, q) : {1n+Nat.max(p, q) == 1n+_ : Nat}
+      {==}
+
+# The minimum of a natural and itself is itself.
+law min_self:
+  for a: Nat
+  {Nat.min(a, a) == a : Nat}
+
+def min_self(a):
+  match a:
+    case 0n:
+      {==}
+    case 1n++p:
+      %min_self(p) : {1n+Nat.min(p, p) == 1n+_ : Nat}
+      {==}
+
+# The maximum of a natural and itself is itself.
+law max_self:
+  for a: Nat
+  {Nat.max(a, a) == a : Nat}
+
+def max_self(a):
+  match a:
+    case 0n:
+      {==}
+    case 1n++p:
+      %max_self(p) : {1n+Nat.max(p, p) == 1n+_ : Nat}
+      {==}
+
+# The minimum with zero is zero: min(a, 0) = 0.
+law min_zero:
+  for a: Nat
+  {Nat.min(a, 0n) == 0n : Nat}
+
+def min_zero(a):
+  match a:
+    case 0n:
+      {==}
+    case 1n+p:
+      {==}
+
+# The minimum with zero is zero: min(0, a) = 0.
+law zero_min:
+  for a: Nat
+  {Nat.min(0n, a) == 0n : Nat}
+
+def zero_min(a):
+  match a:
+    case 0n:
+      {==}
+    case 1n+p:
+      {==}
+
+# Zero is an identity for maximum: max(a, 0) = a.
+law max_zero:
+  for a: Nat
+  {Nat.max(a, 0n) == a : Nat}
+
+def max_zero(a):
+  match a:
+    case 0n:
+      {==}
+    case 1n+p:
+      {==}
+
+# Zero is an identity for maximum: max(0, a) = a.
+law zero_max:
+  for a: Nat
+  {Nat.max(0n, a) == a : Nat}
+
+def zero_max(a):
+  match a:
+    case 0n:
+      {==}
+    case 1n+p:
+      {==}
+
+# Minimum is associative.
+law min_assoc:
+  for a: Nat
+  for b: Nat
+  for c: Nat
+  {Nat.min(Nat.min(a, b), c) == Nat.min(a, Nat.min(b, c)) : Nat}
+
+def min_assoc(a, b, c):
+  match a b c:
+    case 0n _ _:
+      {==}
+    case 1n+p 0n _:
+      {==}
+    case 1n+p 1n+q 0n:
+      {==}
+    case 1n++p 1n++q 1n++r:
+      %min_assoc(p, q, r) : {1n+Nat.min(Nat.min(p, q), r) == 1n+_ : Nat}
+      {==}
+
+# Maximum is associative.
+law max_assoc:
+  for a: Nat
+  for b: Nat
+  for c: Nat
+  {Nat.max(Nat.max(a, b), c) == Nat.max(a, Nat.max(b, c)) : Nat}
+
+def max_assoc(a, b, c):
+  match a b c:
+    case 0n _ _:
+      {==}
+    case 1n+p 0n _:
+      {==}
+    case 1n+p 1n+q 0n:
+      {==}
+    case 1n++p 1n++q 1n++r:
+      %max_assoc(p, q, r) : {1n+Nat.max(Nat.max(p, q), r) == 1n+_ : Nat}
+      {==}
+
+# The minimum plus the maximum is the sum: min(a, b) + max(a, b) = a + b.
+law min_add_max:
+  for a: Nat
+  for b: Nat
+  {Nat.add(Nat.min(a, b), Nat.max(a, b)) == Nat.add(a, b) : Nat}
+
+def min_add_max(a, b):
+  match a b:
+    case 0n 0n:
+      {==}
+    case 0n 1n+q:
+      {==}
+    case 1n++p 0n:
+      %add_zero(p) : {1n+_ == 1n+Nat.add(p, 0n) : Nat}
+      {==}
+    case 1n++p 1n++q:
+      %Equal.sym(Nat, Nat.add(Nat.min(p, q), 1n+Nat.max(p, q)), 1n+Nat.add(Nat.min(p, q), Nat.max(p, q)), add_succ(Nat.min(p, q), Nat.max(p, q))) : {1n+_ == 1n+Nat.add(p, 1n+q) : Nat}
+      %Equal.sym(Nat, Nat.add(p, 1n+q), 1n+Nat.add(p, q), add_succ(p, q)) : {2n+Nat.add(Nat.min(p, q), Nat.max(p, q)) == 1n+_ : Nat}
+      %min_add_max(p, q) : {2n+Nat.add(Nat.min(p, q), Nat.max(p, q)) == 2n+_ : Nat}
+      {==}
+
 # --- generated: _sym twins (tools/mathlib/twins.ts), do not edit ---
 
 # Zero is a right identity for addition: x + 0 = x, reversed to rewrite toward the simple side.
@@ -971,3 +1140,98 @@ law sub_sub_sym:
 
 def sub_sub_sym(n, m, k):
   Equal.sym(Nat, Nat.sub(Nat.sub(n, m), k), Nat.sub(n, Nat.add(m, k)), sub_sub(n, m, k))
+
+# Minimum is commutative, reversed to rewrite toward the simple side.
+law min_comm_sym:
+  for a: Nat
+  for b: Nat
+  {Nat.min(b, a) == Nat.min(a, b) : Nat}
+
+def min_comm_sym(a, b):
+  Equal.sym(Nat, Nat.min(a, b), Nat.min(b, a), min_comm(a, b))
+
+# Maximum is commutative, reversed to rewrite toward the simple side.
+law max_comm_sym:
+  for a: Nat
+  for b: Nat
+  {Nat.max(b, a) == Nat.max(a, b) : Nat}
+
+def max_comm_sym(a, b):
+  Equal.sym(Nat, Nat.max(a, b), Nat.max(b, a), max_comm(a, b))
+
+# The minimum of a natural and itself is itself, reversed to rewrite toward the simple side.
+law min_self_sym:
+  for a: Nat
+  {a == Nat.min(a, a) : Nat}
+
+def min_self_sym(a):
+  Equal.sym(Nat, Nat.min(a, a), a, min_self(a))
+
+# The maximum of a natural and itself is itself, reversed to rewrite toward the simple side.
+law max_self_sym:
+  for a: Nat
+  {a == Nat.max(a, a) : Nat}
+
+def max_self_sym(a):
+  Equal.sym(Nat, Nat.max(a, a), a, max_self(a))
+
+# The minimum with zero is zero: min(a, 0) = 0, reversed to rewrite toward the simple side.
+law min_zero_sym:
+  for a: Nat
+  {0n == Nat.min(a, 0n) : Nat}
+
+def min_zero_sym(a):
+  Equal.sym(Nat, Nat.min(a, 0n), 0n, min_zero(a))
+
+# The minimum with zero is zero: min(0, a) = 0, reversed to rewrite toward the simple side.
+law zero_min_sym:
+  for a: Nat
+  {0n == Nat.min(0n, a) : Nat}
+
+def zero_min_sym(a):
+  Equal.sym(Nat, Nat.min(0n, a), 0n, zero_min(a))
+
+# Zero is an identity for maximum: max(a, 0) = a, reversed to rewrite toward the simple side.
+law max_zero_sym:
+  for a: Nat
+  {a == Nat.max(a, 0n) : Nat}
+
+def max_zero_sym(a):
+  Equal.sym(Nat, Nat.max(a, 0n), a, max_zero(a))
+
+# Zero is an identity for maximum: max(0, a) = a, reversed to rewrite toward the simple side.
+law zero_max_sym:
+  for a: Nat
+  {a == Nat.max(0n, a) : Nat}
+
+def zero_max_sym(a):
+  Equal.sym(Nat, Nat.max(0n, a), a, zero_max(a))
+
+# Minimum is associative, reversed to rewrite toward the simple side.
+law min_assoc_sym:
+  for a: Nat
+  for b: Nat
+  for c: Nat
+  {Nat.min(a, Nat.min(b, c)) == Nat.min(Nat.min(a, b), c) : Nat}
+
+def min_assoc_sym(a, b, c):
+  Equal.sym(Nat, Nat.min(Nat.min(a, b), c), Nat.min(a, Nat.min(b, c)), min_assoc(a, b, c))
+
+# Maximum is associative, reversed to rewrite toward the simple side.
+law max_assoc_sym:
+  for a: Nat
+  for b: Nat
+  for c: Nat
+  {Nat.max(a, Nat.max(b, c)) == Nat.max(Nat.max(a, b), c) : Nat}
+
+def max_assoc_sym(a, b, c):
+  Equal.sym(Nat, Nat.max(Nat.max(a, b), c), Nat.max(a, Nat.max(b, c)), max_assoc(a, b, c))
+
+# The minimum plus the maximum is the sum: min(a, b) + max(a, b) = a + b, reversed to rewrite toward the simple side.
+law min_add_max_sym:
+  for a: Nat
+  for b: Nat
+  {Nat.add(a, b) == Nat.add(Nat.min(a, b), Nat.max(a, b)) : Nat}
+
+def min_add_max_sym(a, b):
+  Equal.sym(Nat, Nat.add(Nat.min(a, b), Nat.max(a, b)), Nat.add(a, b), min_add_max(a, b))
