@@ -45,6 +45,23 @@ describe("engine N (--native)", () => {
     expect(allNil.native.disagreements).toEqual([]);
   }, T);
 
+  test("quantifier-polymorphic list laws reach engine N", async () => {
+    const r = await run(path.join(FX, "list_native.bend"), "--native", "--jobs", "4", "--max-instances", "6", "--json");
+    const rep = JSON.parse(r.stdout);
+    // A Quant-bound list reaches engine C as List<&2, _>, which the native helper must accept.
+    const ok = rep.laws.find((l: any) => l.name === "append_nil_q");
+    expect(ok.status).toBe("pass");
+    expect(ok.native.checked).toBeGreaterThan(0);
+    expect(ok.native.skip).toBeUndefined();
+    expect(ok.native.disagreements).toEqual([]);
+    // Planted negative: both engines must agree the claim is false, so engine N evaluated the helper.
+    const bad = rep.laws.find((l: any) => l.name === "bad_nil_q");
+    expect(bad.status).toBe("fail");
+    expect(bad.native.checked).toBeGreaterThan(0);
+    expect(bad.native.skip).toBeUndefined();
+    expect(bad.native.disagreements).toEqual([]);
+  }, T);
+
   test("both engines agree on a false law's counterexamples", async () => {
     const r = await run(path.join(FX, "buggy.bend"), "--native", "--jobs", "4", "--max-instances", "10");
     expect(r.code).toBe(1);

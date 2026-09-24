@@ -1,6 +1,8 @@
 // Every CLI test runs the real bend compiler on the fixtures; nothing is mocked.
 
 import { describe, expect, test } from "bun:test";
+import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
 import { rewrite, splitEquation } from "../src/terms.ts";
 import { parseTy, showTy } from "../src/types.ts";
@@ -11,6 +13,12 @@ const T = 180_000;
 
 async function run(...args: string[]) {
   const p = Bun.spawn([process.execPath, CLI, ...args], { stdout: "pipe", stderr: "pipe" });
+  const [stdout, stderr] = await Promise.all([new Response(p.stdout).text(), new Response(p.stderr).text()]);
+  return { code: await p.exited, stdout, stderr };
+}
+
+async function runEnv(env: Record<string, string>, ...args: string[]) {
+  const p = Bun.spawn([process.execPath, CLI, ...args], { stdout: "pipe", stderr: "pipe", env: { ...process.env, ...env } });
   const [stdout, stderr] = await Promise.all([new Response(p.stdout).text(), new Response(p.stderr).text()]);
   return { code: await p.exited, stdout, stderr };
 }
@@ -206,6 +214,68 @@ describe("imports and --impl", () => {
     const { code, report } = await json(path.join(FX, "laws_lib.bend"), "--impl", path.join(FX, "lib_ok.bend"));
     expect(code).toBe(0);
     expect(report.laws.map((l: any) => l.status)).toEqual(["pass", "pass"]);
+  }, T);
+
+  test("hash imports (a name@version spec and a direct 0x hash) resolve to a local 0x<hash> copy", async () => {
+    const hash = "deadbeefdeadbeefdeadbeefdeadbeef";
+    const lib = fs.mkdtempSync(path.join(os.tmpdir(), "lawcheck-bendlib-"));
+    fs.mkdirSync(path.join(lib, "names"), { recursive: true });
+    fs.mkdirSync(path.join(lib, `0x${hash}`), { recursive: true });
+    fs.writeFileSync(path.join(lib, "names", "lawcheck-testpkg@1.2.3.4"), `0x${hash}\n`);
+    fs.writeFileSync(path.join(lib, `0x${hash}`, "lib.bend"), [
+      "import Base",
+      "",
+      "type Color is Data:",
+      "  Red{}",
+      "  Green{}",
+      "",
+      "def pick(c: Color) -> Nat:",
+      "  match c:",
+      "    case Red{}:",
+      "      0n",
+      "    case Green{}:",
+      "      1n",
+      "",
+    ].join("\n"));
+    const writeRoot = (kind: string, importLine: string) => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), `lawcheck-hashroot-${kind}-`));
+      const file = path.join(dir, "root.bend");
+      fs.writeFileSync(file, [
+        "import Base",
+        importLine,
+        "",
+        "law pick_le_one:",
+        "  for c: H.Color",
+        "  {Nat.is_le(H.pick(c), 1n) == True{} : Bool}",
+        "",
+        "law pick_bad:",
+        "  for c: H.Color",
+        "  {H.pick(c) == 0n : Nat}",
+        "",
+      ].join("\n"));
+      return file;
+    };
+    const roots = [
+      writeRoot("named", "import lawcheck-testpkg@1.2.3.4/lib.bend as H"),
+      writeRoot("hash", `import 0x${hash}/lib.bend as H`),
+    ];
+    for (const root of roots) {
+      const r = await runEnv({ BEND_LIB: lib }, root, "--native", "--jobs", "4", "--max-instances", "6", "--json");
+      expect(r.stderr).toBe("");
+      expect(r.code).toBe(1);
+      const rep = JSON.parse(r.stdout);
+      const ok = rep.laws.find((l: any) => l.name === "pick_le_one");
+      expect(ok.status).toBe("pass");
+      expect(ok.native.checked).toBeGreaterThan(0);
+      expect(ok.native.disagreements).toEqual([]);
+      const bad = rep.laws.find((l: any) => l.name === "pick_bad");
+      expect(bad.status).toBe("fail");
+      expect(bad.native.checked).toBeGreaterThan(0);
+      expect(bad.native.disagreements).toEqual([]);
+      expect(r.stdout).not.toContain(hash);
+      expect(bad.counterexample.bindings).toEqual([{ name: "c", value: "H.Green{}" }]);
+      expect(bad.counterexample.lhs.term).toBe("H.pick(H.Green{})");
+    }
   }, T);
 });
 

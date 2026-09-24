@@ -417,7 +417,16 @@ function userAliases(L: Loaded): Map<string, string> {
     if (m === null) continue;
     const spec = m[1];
     const abs = spec.startsWith("/") ? spec : spec.startsWith(".") ? path.resolve(path.dirname(L.file), spec) : null;
-    const f = abs === null ? L.files.find((x) => x.namespace + ".bend" === spec) : L.files.find((x) => x.path === (fs.existsSync(abs) ? fs.realpathSync(abs) : abs));
+    let f = abs === null ? L.files.find((x) => x.namespace + ".bend" === spec) : L.files.find((x) => x.path === (fs.existsSync(abs) ? fs.realpathSync(abs) : abs));
+    // `name@version/rest.bend` resolves through `names/<name>@<ver>` to `0x<hash>/rest.bend` (F21),
+    // so match it by the part after the hash, which the import spec does name.
+    if (f === undefined && abs === null) {
+      const nv = /^[^/]*@[^/]*\/(.+)$/.exec(spec);
+      if (nv !== null) {
+        const rest = nv[1].replace(/\.bend$/, "");
+        f = L.files.find((x) => x.namespace.startsWith("0x") && x.namespace.slice(x.namespace.indexOf("/") + 1) === rest);
+      }
+    }
     if (f && f.namespace !== "") out.set(f.namespace, m[2]);
   }
   return out;
@@ -480,9 +489,10 @@ function validate(L: Loaded): void {
   }
 }
 
-/** Base has no list equality, so engine N emits this recursive one for list claims. */
+// Base has no list equality, so engine N emits this recursive one for list claims.
+// It is quantity-polymorphic: a law's Quant binder reaches engine C as &2.
 const LIST_EQ: Record<string, string> = {
-  Nat: `def internal_list_eq_nat(xs: List<&1, Nat>, ys: List<&1, Nat>) -> Bool:
+  Nat: `def internal_list_eq_nat(q, xs: List<q, Nat>, ys: List<q, Nat>) -> Bool:
   match xs:
     case Nil{}:
       match ys:
@@ -495,9 +505,9 @@ const LIST_EQ: Record<string, string> = {
         case Nil{}:
           False{}
         case y <> yt:
-          Bool.and(Nat.is_eq(x, y), internal_list_eq_nat(xt, yt))
+          Bool.and(Nat.is_eq(x, y), internal_list_eq_nat(q, xt, yt))
 `,
-  U32: `def internal_list_eq_u32(xs: List<&1, U32>, ys: List<&1, U32>) -> Bool:
+  U32: `def internal_list_eq_u32(q, xs: List<q, U32>, ys: List<q, U32>) -> Bool:
   match xs:
     case Nil{}:
       match ys:
@@ -510,9 +520,9 @@ const LIST_EQ: Record<string, string> = {
         case Nil{}:
           False{}
         case y <> yt:
-          Bool.and(U32.is_eq(x, y), internal_list_eq_u32(xt, yt))
+          Bool.and(U32.is_eq(x, y), internal_list_eq_u32(q, xt, yt))
 `,
-  Bool: `def internal_list_eq_bool(xs: List<&1, Bool>, ys: List<&1, Bool>) -> Bool:
+  Bool: `def internal_list_eq_bool(q, xs: List<q, Bool>, ys: List<q, Bool>) -> Bool:
   match xs:
     case Nil{}:
       match ys:
@@ -525,7 +535,7 @@ const LIST_EQ: Record<string, string> = {
         case Nil{}:
           False{}
         case y <> yt:
-          Bool.and(U32.is_eq(Bool.to_u32(x), Bool.to_u32(y)), internal_list_eq_bool(xt, yt))
+          Bool.and(U32.is_eq(Bool.to_u32(x), Bool.to_u32(y)), internal_list_eq_bool(q, xt, yt))
 `,
 };
 
@@ -536,9 +546,10 @@ function nativeEq(type: string): { eq: (a: string, b: string) => string; helper?
   if (type === "Bool") return { eq: (a, b) => `U32.is_eq(Bool.to_u32(${a}), Bool.to_u32(${b}))` };
   const ty = parseTy(type);
   if (ty !== null && ty.t === "app" && ty.head === "List" && ty.args.length >= 1) {
+    const q = ty.args.length >= 2 ? showTy(ty.args[0]) : "&1";
     const el = showTy(ty.args[ty.args.length - 1]);
     const helper = LIST_EQ[el];
-    if (helper !== undefined) return { eq: (a, b) => `internal_list_eq_${el.toLowerCase()}(${a}, ${b})`, helper };
+    if (helper !== undefined) return { eq: (a, b) => `internal_list_eq_${el.toLowerCase()}(${q}, ${a}, ${b})`, helper };
   }
   return null;
 }
