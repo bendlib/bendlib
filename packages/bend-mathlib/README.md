@@ -1,7 +1,6 @@
 # bend-mathlib
 
 Machine-checked lemmas for Bend 2, checked with `bend 2.0.27`.
-Not related to the hub package `bend-math-lib`.
 
 Rewriting: `%e : P` replaces the right side of `e` with its left side, so `name` expands the simple
 side into the compound one and `name_sym` simplifies the compound side.
@@ -9,7 +8,7 @@ side into the compound one and `name_sym` simplifies the compound side.
 ## bool
 
 ```python
-import bend-mathlib@0.1.0.0/bool.bend as MBool
+import bend-mathlib@0.1.0.1/bool.bend as MBool
 ```
 
 | lemma | statement | meaning |
@@ -49,7 +48,7 @@ import bend-mathlib@0.1.0.0/bool.bend as MBool
 ## equal
 
 ```python
-import bend-mathlib@0.1.0.0/equal.bend as MEqual
+import bend-mathlib@0.1.0.1/equal.bend as MEqual
 ```
 
 | lemma | statement | meaning |
@@ -62,7 +61,7 @@ import bend-mathlib@0.1.0.0/equal.bend as MEqual
 ## list
 
 ```python
-import bend-mathlib@0.1.0.0/list.bend as MList
+import bend-mathlib@0.1.0.1/list.bend as MList
 ```
 
 | lemma | statement | meaning |
@@ -97,7 +96,7 @@ import bend-mathlib@0.1.0.0/list.bend as MList
 ## nat
 
 ```python
-import bend-mathlib@0.1.0.0/nat.bend as MNat
+import bend-mathlib@0.1.0.1/nat.bend as MNat
 ```
 
 | predicate | definition |

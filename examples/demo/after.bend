@@ -1,6 +1,6 @@
 import Base
-import bend-mathlib@0.1.0.0/nat.bend as MNat
-import bend-mathlib@0.1.0.0/list.bend as MList
+import bend-mathlib@0.1.0.1/nat.bend as MNat
+import bend-mathlib@0.1.0.1/list.bend as MList
 
 law rev_len:
   for +xs: List<&2, U32>

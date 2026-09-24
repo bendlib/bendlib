@@ -9,11 +9,11 @@
 
 ## 0. What we are building (three products, one foundation)
 
-| Product | What | Why it matters | Status of the space (2026-09-24) |
-|---|---|---|---|
-| **`bend-mathlib`** (Bend, hub package) | Machine-checked lemmas, predicates and abstract (algebra/order) theorems over Base | Every proof bottoms out in basic facts Base doesn't ship; Bend's own repo re-proves `add_succ` in 23 files; the creator said "We need a mathlib!" | Small unorganized attempts (`caiodomingues/bend-lemmas`, 4 anonymous hub packages), nothing named, no traction |
-| **`lawcheck`** (TypeScript/Bun CLI) | Finds counterexamples to laws before anyone tries to prove them, shrinks them, and measures law strength by mutating the implementation | Loose/wrong laws are Bend's main criticism (the "can't win" law satisfied by breaking movement; issue #880); a false law wastes an AI's proof budget | Unclaimed (no property-testing / counterexample / mutation tool for Bend 2 exists) |
-| **Bend docs** (static site + generator) | docs.rs for BendHub: rendered API docs of every hub package, checked status on the current compiler, reverse deps, lemma search by statement shape | The hub shows hashes and file lists only; people and agents can't browse APIs or find lemmas | Catalogs exist (`kbrianps/bend-catalog`, `777genius/bend-packages`, `hublens`) — rows/imports only; **no rendered API docs, no verification** |
+| Product | What | Why it matters |
+|---|---|---|
+| **`bend-mathlib`** (Bend, hub package) | Machine-checked lemmas, predicates and abstract (algebra/order) theorems over Base | Every proof bottoms out in basic facts Base doesn't ship; Bend's own repo re-proves `add_succ` in 23 files; the creator said "We need a mathlib!" |
+| **`lawcheck`** (TypeScript/Bun CLI) | Finds counterexamples to laws before anyone tries to prove them, shrinks them, and measures law strength by mutating the implementation | Loose/wrong laws are Bend's main criticism (the "can't win" law satisfied by breaking movement; issue #880); a false law wastes an AI's proof budget |
+| **Bend docs** (static site + generator) | docs.rs for BendHub: rendered API docs of every hub package, checked status on the current compiler, reverse deps, lemma search by statement shape | The hub shows hashes and file lists only; people and agents can't browse APIs or find lemmas |
 
 They share one keystone: **`@bendlib/frontend`**, a TypeScript library that loads Bend source with the
 *official* parser/elaborator (`bend2/bend.ts`) matching the user's installed compiler version. lawcheck
@@ -351,7 +351,7 @@ it never proves anything.
 
 ### 5.3 Name and relationship to existing catalogs
 - Name: open decision D2 (suggested: "Bend Docs" at `docs.bendlib.dev`, or under the org's Pages).
-- Link to `777genius/bend-packages` and awesome-bend; offer to feed them our extracted data (JSON).
+- Offer the extracted data (JSON) to other catalogs and lists in the ecosystem.
 
 ---
 
@@ -399,8 +399,8 @@ Each step ends with something that runs. Parallel lanes where independent.
 - lawcheck v0.1: engine C, built-in generators + user ADTs, shrinking, premises/vacuity, `--json`.
   Dogfood on mathlib statements and on the planted-bug fixtures.
 - mathlib: `tools/release`; **publish `bend-mathlib@0.1.0.0`**; README with import + before/after proof.
-- Launch post on X (tag @VictorTaelin, @bendlang) with a terminal clip; invite `caiodomingues`,
-  `chelokot`, `Giulio2002`.
+- Launch post on X (tag @VictorTaelin, @bendlang) with a terminal clip; invite other lemma authors to
+  contribute.
 
 **Step 3 (days 5–10)**
 - lawcheck `mutate` + projection sweep; binary release; launch post ("lawcheck broke this law in 40 ms").
@@ -438,9 +438,6 @@ Critical path to first public value: A → C → release → publish (day ~4); B
 
 ## 9. Open decisions
 
-- **D1 — flagship name: DECIDED `bend-mathlib`** (owner, 2026-09-24), with `bendlib-mathlib`
-  considered and rejected. Mitigation for the one-hyphen neighbour `bend-math-lib` (empty placeholder,
-  F32 numerics, owner `brasga-a`): README and hub description open with a disambiguation line, and
-  every published import line in docs/`llms.txt` is generated (never hand-typed).
+- **D1 — flagship name: DECIDED `bend-mathlib`** (owner, 2026-09-24).
 - **D2 — docs site name/domain.**
 - **D3 — `perm_by` definition** (at §3.3 selection time).

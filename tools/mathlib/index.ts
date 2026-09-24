@@ -15,7 +15,6 @@ const out: string[] = [
   `# ${name}`,
   "",
   `Machine-checked lemmas for Bend 2, checked with \`bend ${JSON.parse(readFileSync(join(dir, "..", "..", "toolchain.json"), "utf8")).bend.version}\`.`,
-  "Not related to the hub package `bend-math-lib`.",
   "",
   "Rewriting: `%e : P` replaces the right side of `e` with its left side, so `name` expands the simple",
   "side into the compound one and `name_sym` simplifies the compound side.",

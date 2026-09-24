@@ -21,7 +21,7 @@ jobs:
       - run: bun tools/mathlib/lint.ts packages/bend-mathlib --erasure
       - run: bun tools/mathlib/twins.ts packages/bend-mathlib --check
       - run: bun tools/mathlib/lock.ts packages/bend-mathlib --check
-      - run: bun tools/mathlib/index.ts packages/bend-mathlib bend-mathlib 0.1.0.0 --check
+      - run: bun tools/mathlib/index.ts packages/bend-mathlib bend-mathlib 0.1.0.1 --check
 
   latest-compiler:
     # Early warning only: the newest Bend release against our sources.

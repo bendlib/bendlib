@@ -10,15 +10,13 @@ import instead of re-proving, and tools that keep laws honest.
 | [`lawcheck`](tools/lawcheck) | Finds counterexamples to laws before you try to prove them, and shrinks them | v0.1 working |
 | Bend docs | Rendered API docs and lemma search for every BendHub package | planned |
 
-> Not related to the hub package `bend-math-lib` (F32 numerics).
-
 ## Use it
 
 ![86 lines by hand vs one import and four rewrites](examples/demo/demo.gif)
 
 ```python
-import bend-mathlib@0.1.0.0/nat.bend as MNat
-import bend-mathlib@0.1.0.0/list.bend as MList
+import bend-mathlib@0.1.0.1/nat.bend as MNat
+import bend-mathlib@0.1.0.1/list.bend as MList
 
 law my_rev:
   for xs: List<&2, U32>
