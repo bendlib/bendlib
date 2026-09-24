@@ -119,6 +119,15 @@ import bend-mathlib@0.1.0.1/list.bend as MList
 | `drop_length(A, xs)` | `∀ -A: Data, +xs: List<&2, A>. {List.drop(&2, A, xs, List.length(&2, A, xs)) == Nil{} : List<&2, A>}` | Dropping as many elements as the list has gives the empty list. | next |
 | `take_take(a, A, xs, n, m)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>, n: Nat, m: Nat. {List.take(a, A, List.take(a, A, xs, n), m) == List.take(a, A, xs, Nat.min(n, m)) : List<a, A>}` | Taking m from the first n is taking min(n, m). | next |
 | `drop_drop(a, A, xs, n, m)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>, n: Nat, -m: Nat. {List.drop(a, A, List.drop(a, A, xs, n), m) == List.drop(a, A, xs, Nat.add(n, m)) : List<a, A>}` | Dropping m after dropping n is dropping n + m. | next |
+| `reverse_nil(a, A)` | `∀ -a: Quant, -A: Kind(a). {List.reverse(a, A, Nil{}) == Nil{} : List<a, A>}` | Reversing the empty list gives the empty list. | next |
+| `reverse_singleton(a, A, x)` | `∀ -a: Quant, -A: Kind(a), -x: A. {List.reverse(a, A, [x]) == [x] : List<a, A>}` | Reversing a one-element list gives it back. | next |
+| `length_replicate(A, n, x)` | `∀ -A: Data, n: Nat, -x: A. {List.length(&2, A, List.replicate(A, n, x)) == n : Nat}` | Replicating x n times gives a list of length n. | next |
+| `length_range(n)` | `∀ n: Nat. {List.length(&2, Nat, List.range(n)) == n : Nat}` | Range(n) has length n. | next |
+| `length_zip(a, A, xs, ys)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>, ys: List<a, A>. {List.length(&1, A & A, List.zip(a, A, a, A, xs, ys)) == Nat.min(List.length(a, A, xs), List.length(a, A, ys)) : Nat}` | Zipping two lists gives the length of the shorter one. | next |
+| `append_cons(a, A, x, xs, ys)` | `∀ -a: Quant, -A: Kind(a), -x: A, -xs: List<a, A>, -ys: List<a, A>. {List.append(a, A, x <> xs, ys) == x <> List.append(a, A, xs, ys) : List<a, A>}` | Appending after a cons: (x :: xs) ++ ys = x :: (xs ++ ys). | next |
+| `length_nil(a, A)` | `∀ -a: Quant, -A: Kind(a). {List.length(a, A, Nil{}) == 0n : Nat}` | The empty list has length zero. | next |
+| `length_cons(a, A, x, xs)` | `∀ -a: Quant, -A: Kind(a), -x: A, -xs: List<a, A>. {List.length(a, A, x <> xs) == 1n+List.length(a, A, xs) : Nat}` | A cons is one longer than its tail. | next |
+| `concat_append(a, A, xss, yss)` | `∀ -a: Quant, -A: Kind(a), xss: List<a, List<a, A>>, -yss: List<a, List<a, A>>. {List.concat(a, A, List.append(a, List<a, A>, xss, yss)) == List.append(a, A, List.concat(a, A, xss), List.concat(a, A, yss)) : List<a, A>}` | Concatenating an append concatenates each part: concat (xss ++ yss) = concat xss ++ concat yss. | next |
 | `append_nil_sym(a, A, xs)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>. {xs == List.append(a, A, xs, Nil{}) : List<a, A>}` | The empty list is a right identity for append: xs ++ [] = xs, reversed to rewrite toward the simple side. | 0.1.0.0 |
 | `nil_append_sym(a, A, xs)` | `∀ -a: Quant, -A: Kind(a), -xs: List<a, A>. {xs == List.append(a, A, Nil{}, xs) : List<a, A>}` | The empty list is a left identity for append: [] ++ xs = xs, reversed to rewrite toward the simple side. | 0.1.0.0 |
 | `append_assoc_sym(a, A, xs, ys, zs)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>, -ys: List<a, A>, -zs: List<a, A>. {List.append(a, A, xs, List.append(a, A, ys, zs)) == List.append(a, A, List.append(a, A, xs, ys), zs) : List<a, A>}` | Append is associative: (xs ++ ys) ++ zs = xs ++ (ys ++ zs), reversed to rewrite toward the simple side. | 0.1.0.0 |
@@ -142,6 +151,15 @@ import bend-mathlib@0.1.0.1/list.bend as MList
 | `drop_length_sym(A, xs)` | `∀ -A: Data, +xs: List<&2, A>. {Nil{} == List.drop(&2, A, xs, List.length(&2, A, xs)) : List<&2, A>}` | Dropping as many elements as the list has gives the empty list, reversed to rewrite toward the simple side. | next |
 | `take_take_sym(a, A, xs, n, m)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>, n: Nat, m: Nat. {List.take(a, A, xs, Nat.min(n, m)) == List.take(a, A, List.take(a, A, xs, n), m) : List<a, A>}` | Taking m from the first n is taking min(n, m), reversed to rewrite toward the simple side. | next |
 | `drop_drop_sym(a, A, xs, n, m)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>, n: Nat, -m: Nat. {List.drop(a, A, xs, Nat.add(n, m)) == List.drop(a, A, List.drop(a, A, xs, n), m) : List<a, A>}` | Dropping m after dropping n is dropping n + m, reversed to rewrite toward the simple side. | next |
+| `reverse_nil_sym(a, A)` | `∀ -a: Quant, -A: Kind(a). {Nil{} == List.reverse(a, A, Nil{}) : List<a, A>}` | Reversing the empty list gives the empty list, reversed to rewrite toward the simple side. | next |
+| `reverse_singleton_sym(a, A, x)` | `∀ -a: Quant, -A: Kind(a), -x: A. {[x] == List.reverse(a, A, [x]) : List<a, A>}` | Reversing a one-element list gives it back, reversed to rewrite toward the simple side. | next |
+| `length_replicate_sym(A, n, x)` | `∀ -A: Data, n: Nat, -x: A. {n == List.length(&2, A, List.replicate(A, n, x)) : Nat}` | Replicating x n times gives a list of length n, reversed to rewrite toward the simple side. | next |
+| `length_range_sym(n)` | `∀ n: Nat. {n == List.length(&2, Nat, List.range(n)) : Nat}` | Range(n) has length n, reversed to rewrite toward the simple side. | next |
+| `length_zip_sym(a, A, xs, ys)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>, ys: List<a, A>. {Nat.min(List.length(a, A, xs), List.length(a, A, ys)) == List.length(&1, A & A, List.zip(a, A, a, A, xs, ys)) : Nat}` | Zipping two lists gives the length of the shorter one, reversed to rewrite toward the simple side. | next |
+| `append_cons_sym(a, A, x, xs, ys)` | `∀ -a: Quant, -A: Kind(a), -x: A, -xs: List<a, A>, -ys: List<a, A>. {x <> List.append(a, A, xs, ys) == List.append(a, A, x <> xs, ys) : List<a, A>}` | Appending after a cons: (x :: xs) ++ ys = x :: (xs ++ ys), reversed to rewrite toward the simple side. | next |
+| `length_nil_sym(a, A)` | `∀ -a: Quant, -A: Kind(a). {0n == List.length(a, A, Nil{}) : Nat}` | The empty list has length zero, reversed to rewrite toward the simple side. | next |
+| `length_cons_sym(a, A, x, xs)` | `∀ -a: Quant, -A: Kind(a), -x: A, -xs: List<a, A>. {1n+List.length(a, A, xs) == List.length(a, A, x <> xs) : Nat}` | A cons is one longer than its tail, reversed to rewrite toward the simple side. | next |
+| `concat_append_sym(a, A, xss, yss)` | `∀ -a: Quant, -A: Kind(a), xss: List<a, List<a, A>>, -yss: List<a, List<a, A>>. {List.append(a, A, List.concat(a, A, xss), List.concat(a, A, yss)) == List.concat(a, A, List.append(a, List<a, A>, xss, yss)) : List<a, A>}` | Concatenating an append concatenates each part: concat (xss ++ yss) = concat xss ++ concat yss, reversed to rewrite toward the simple side. | next |
 
 ## nat
 
@@ -294,4 +312,4 @@ import bend-mathlib@0.1.0.1/nat.bend as MNat
 | `not_is_le_sym(a, b)` | `∀ a: Nat, b: Nat. {Nat.is_lt(b, a) == Bool.not(Nat.is_le(a, b)) : Bool}` | Not (a <= b) tests the same as b < a, reversed to rewrite toward the simple side. | next |
 | `not_is_lt_sym(a, b)` | `∀ a: Nat, b: Nat. {Nat.is_le(b, a) == Bool.not(Nat.is_lt(a, b)) : Bool}` | Not (a < b) tests the same as b <= a, reversed to rewrite toward the simple side. | next |
 
-244 lemmas. Generated by `tools/mathlib/index.ts`.
+262 lemmas. Generated by `tools/mathlib/index.ts`.

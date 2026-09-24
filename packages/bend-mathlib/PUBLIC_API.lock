@@ -389,6 +389,18 @@
     "sha256": "7163798d7bfa50a10996a6f8920b983ec9d056ef92ef676af3112824e7c64c01",
     "since": "0.1.0.0"
   },
+  "list.append_cons": {
+    "kind": "law",
+    "text": "for -a: Quant\nfor -A: Kind(a)\nfor -x: A\nfor -xs: List<a, A>\nfor -ys: List<a, A>\n{List.append(a, A, x <> xs, ys) == x <> List.append(a, A, xs, ys) : List<a, A>}",
+    "sha256": "a173030c69a965aef084caa72e3907a4edec5e581463cd7f205377461b7cf658",
+    "since": null
+  },
+  "list.append_cons_sym": {
+    "kind": "law",
+    "text": "for -a: Quant\nfor -A: Kind(a)\nfor -x: A\nfor -xs: List<a, A>\nfor -ys: List<a, A>\n{x <> List.append(a, A, xs, ys) == List.append(a, A, x <> xs, ys) : List<a, A>}",
+    "sha256": "b70f06ebde9bf841aca3f2c883c50b92cb84ffafd85bb4dcaa6975ad13296bff",
+    "since": null
+  },
   "list.append_nil": {
     "kind": "law",
     "text": "for -a: Quant\nfor -A: Kind(a)\nfor xs: List<a, A>\n{List.append(a, A, xs, Nil{}) == xs : List<a, A>}",
@@ -400,6 +412,18 @@
     "text": "for -a: Quant\nfor -A: Kind(a)\nfor xs: List<a, A>\n{xs == List.append(a, A, xs, Nil{}) : List<a, A>}",
     "sha256": "7e0ecd4bb02370962f8ed4b3bb37f79926a8f09b3bb592ee6c7f213f7a6f5baa",
     "since": "0.1.0.0"
+  },
+  "list.concat_append": {
+    "kind": "law",
+    "text": "for -a: Quant\nfor -A: Kind(a)\nfor xss: List<a, List<a, A>>\nfor -yss: List<a, List<a, A>>\n{List.concat(a, A, List.append(a, List<a, A>, xss, yss)) == List.append(a, A, List.concat(a, A, xss), List.concat(a, A, yss)) : List<a, A>}",
+    "sha256": "e92bec29b5490da7fd32d353bce54cef75f4507def544d8d4da4bf0900179ea0",
+    "since": null
+  },
+  "list.concat_append_sym": {
+    "kind": "law",
+    "text": "for -a: Quant\nfor -A: Kind(a)\nfor xss: List<a, List<a, A>>\nfor -yss: List<a, List<a, A>>\n{List.append(a, A, List.concat(a, A, xss), List.concat(a, A, yss)) == List.concat(a, A, List.append(a, List<a, A>, xss, yss)) : List<a, A>}",
+    "sha256": "0aef0caec3e2d2ec9c89859f2ebd7f80c7d9b068a1bebbe566fc51584a272d88",
+    "since": null
   },
   "list.drop_drop": {
     "kind": "law",
@@ -473,6 +497,18 @@
     "sha256": "8e3bf71ed3dfbb55f5ec106f1e056dfd083ffb65c70aebdcf9cf2acfb7111553",
     "since": "0.1.0.0"
   },
+  "list.length_cons": {
+    "kind": "law",
+    "text": "for -a: Quant\nfor -A: Kind(a)\nfor -x: A\nfor -xs: List<a, A>\n{List.length(a, A, x <> xs) == 1n+List.length(a, A, xs) : Nat}",
+    "sha256": "c67529ef1c686690161a2930309371fe66ca68735a245142ea90c108a0d07012",
+    "since": null
+  },
+  "list.length_cons_sym": {
+    "kind": "law",
+    "text": "for -a: Quant\nfor -A: Kind(a)\nfor -x: A\nfor -xs: List<a, A>\n{1n+List.length(a, A, xs) == List.length(a, A, x <> xs) : Nat}",
+    "sha256": "6e851b2a15c95bf755a5c0cb2960eb43bb8226617f63343777b19093db9a76fa",
+    "since": null
+  },
   "list.length_drop": {
     "kind": "law",
     "text": "for -a: Quant\nfor -A: Kind(a)\nfor xs: List<a, A>\nfor n: Nat\n{List.length(a, A, List.drop(a, A, xs, n)) == Nat.sub(List.length(a, A, xs), n) : Nat}",
@@ -497,6 +533,42 @@
     "sha256": "b94b1032ff4f8c5cb6c7ec015b81d574f33e74bfec9ef81eaa4b583f71872e53",
     "since": "0.1.0.0"
   },
+  "list.length_nil": {
+    "kind": "law",
+    "text": "for -a: Quant\nfor -A: Kind(a)\n{List.length(a, A, Nil{}) == 0n : Nat}",
+    "sha256": "b497269df7d9c584fe7a197320058f00daab980e8e1f9e3cfeafd052e7cfc02a",
+    "since": null
+  },
+  "list.length_nil_sym": {
+    "kind": "law",
+    "text": "for -a: Quant\nfor -A: Kind(a)\n{0n == List.length(a, A, Nil{}) : Nat}",
+    "sha256": "4f4a8e72789bb2f4995c3be227d8b783fe3d937bd16bda6b0064963951c7bb10",
+    "since": null
+  },
+  "list.length_range": {
+    "kind": "law",
+    "text": "for n: Nat\n{List.length(&2, Nat, List.range(n)) == n : Nat}",
+    "sha256": "e670cffa0902c7a083862a61bf662b9a8383f8ab90e14b92326da3376c2d31d3",
+    "since": null
+  },
+  "list.length_range_sym": {
+    "kind": "law",
+    "text": "for n: Nat\n{n == List.length(&2, Nat, List.range(n)) : Nat}",
+    "sha256": "ebb2710b0973ca0277325f9422f63afc78f0c5e4bd72aa371e438d8be7d322e5",
+    "since": null
+  },
+  "list.length_replicate": {
+    "kind": "law",
+    "text": "for -A: Data\nfor n: Nat\nfor -x: A\n{List.length(&2, A, List.replicate(A, n, x)) == n : Nat}",
+    "sha256": "cada7331cc8a01af541992e928dec96c522665784753ccb415bb2e8af07c1c6d",
+    "since": null
+  },
+  "list.length_replicate_sym": {
+    "kind": "law",
+    "text": "for -A: Data\nfor n: Nat\nfor -x: A\n{n == List.length(&2, A, List.replicate(A, n, x)) : Nat}",
+    "sha256": "c4315eeef0e76e2f8682a6d21784ece607fd8ad8bd0400c2ca6e3a6856934d53",
+    "since": null
+  },
   "list.length_reverse": {
     "kind": "law",
     "text": "for -a: Quant\nfor -A: Kind(a)\nfor xs: List<a, A>\n{List.length(a, A, List.reverse(a, A, xs)) == List.length(a, A, xs) : Nat}",
@@ -519,6 +591,18 @@
     "kind": "law",
     "text": "for -a: Quant\nfor -A: Kind(a)\nfor xs: List<a, A>\nfor n: Nat\n{Nat.min(n, List.length(a, A, xs)) == List.length(a, A, List.take(a, A, xs, n)) : Nat}",
     "sha256": "0146052dec98690254fa1764ce8ba82f0c19bdbf31b32ae749e2f15e69dde38a",
+    "since": null
+  },
+  "list.length_zip": {
+    "kind": "law",
+    "text": "for -a: Quant\nfor -A: Kind(a)\nfor xs: List<a, A>\nfor ys: List<a, A>\n{List.length(&1, A & A, List.zip(a, A, a, A, xs, ys)) == Nat.min(List.length(a, A, xs), List.length(a, A, ys)) : Nat}",
+    "sha256": "0355922ddf563297c724fa7a39749b7a4153c65025c07c506e335c98779a574d",
+    "since": null
+  },
+  "list.length_zip_sym": {
+    "kind": "law",
+    "text": "for -a: Quant\nfor -A: Kind(a)\nfor xs: List<a, A>\nfor ys: List<a, A>\n{Nat.min(List.length(a, A, xs), List.length(a, A, ys)) == List.length(&1, A & A, List.zip(a, A, a, A, xs, ys)) : Nat}",
+    "sha256": "54f231aa3bdaec7f87e20537c898ba2d78d8187375d62f0ae706beedf4c5edcf",
     "since": null
   },
   "list.map_append": {
@@ -581,6 +665,18 @@
     "sha256": "a398240ae030c9aeb9fe81a292c8d60e63944d68ad6ccaa12cc9c75f3ca943a4",
     "since": "0.1.0.0"
   },
+  "list.reverse_nil": {
+    "kind": "law",
+    "text": "for -a: Quant\nfor -A: Kind(a)\n{List.reverse(a, A, Nil{}) == Nil{} : List<a, A>}",
+    "sha256": "a9e3679f2a3ff5574807e75b229481c6daa5b7c42017f53c4f0bee3771e3d925",
+    "since": null
+  },
+  "list.reverse_nil_sym": {
+    "kind": "law",
+    "text": "for -a: Quant\nfor -A: Kind(a)\n{Nil{} == List.reverse(a, A, Nil{}) : List<a, A>}",
+    "sha256": "8cc190f85a1596cbf1010514c987d07af309af06ab6ea8d32fe46515910e43ae",
+    "since": null
+  },
   "list.reverse_reverse": {
     "kind": "law",
     "text": "for -a: Quant\nfor -A: Kind(a)\nfor xs: List<a, A>\n{List.reverse(a, A, List.reverse(a, A, xs)) == xs : List<a, A>}",
@@ -592,6 +688,18 @@
     "text": "for -a: Quant\nfor -A: Kind(a)\nfor xs: List<a, A>\n{xs == List.reverse(a, A, List.reverse(a, A, xs)) : List<a, A>}",
     "sha256": "3a55c162e22e2e094f75b71b4f1a279caabacadbadc335f1d58aee9e0d5cbfec",
     "since": "0.1.0.0"
+  },
+  "list.reverse_singleton": {
+    "kind": "law",
+    "text": "for -a: Quant\nfor -A: Kind(a)\nfor -x: A\n{List.reverse(a, A, [x]) == [x] : List<a, A>}",
+    "sha256": "f7beda7c67e5a0ec9d404d8715fc2f91a6ec10499958f864a561904ba209503a",
+    "since": null
+  },
+  "list.reverse_singleton_sym": {
+    "kind": "law",
+    "text": "for -a: Quant\nfor -A: Kind(a)\nfor -x: A\n{[x] == List.reverse(a, A, [x]) : List<a, A>}",
+    "sha256": "7ce131fec1ceea31940a8540407b352c7842a44b241e0edcf2c3657465513306",
+    "since": null
   },
   "list.take_append_drop": {
     "kind": "law",

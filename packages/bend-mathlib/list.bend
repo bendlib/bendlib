@@ -372,6 +372,124 @@ def drop_drop(a, A, xs, n, m):
     case h <> t 1n+p _:
       drop_drop(a, A, t, p, m)
 
+# Reversing the empty list gives the empty list.
+law reverse_nil:
+  for -a: Quant
+  for -A: Kind(a)
+  {List.reverse(a, A, Nil{}) == Nil{} : List<a, A>}
+
+def reverse_nil(a, A):
+  {==}
+
+# Reversing a one-element list gives it back.
+law reverse_singleton:
+  for -a: Quant
+  for -A: Kind(a)
+  for -x: A
+  {List.reverse(a, A, [x]) == [x] : List<a, A>}
+
+def reverse_singleton(a, A, x):
+  {==}
+
+# Replicating x n times gives a list of length n.
+law length_replicate:
+  for -A: Data
+  for n: Nat
+  for -x: A
+  {List.length(&2, A, List.replicate(A, n, x)) == n : Nat}
+
+def length_replicate(A, n, x):
+  match n:
+    case 0n:
+      {==}
+    case 1n+p:
+      %length_replicate(A, p, x) : {1n+List.length(&2, A, List.replicate(A, p, x)) == 1n+_ : Nat}
+      {==}
+
+# Range(n) has length n.
+law length_range:
+  for n: Nat
+  {List.length(&2, Nat, List.range(n)) == n : Nat}
+
+def internal_length_range_go(+n: Nat, acc: List<&2, Nat>) -> {List.length(&2, Nat, List.range.go(n, acc)) == Nat.add(n, List.length(&2, Nat, acc)) : Nat}:
+  match n:
+    case 0n:
+      {==}
+    case 1n+p:
+      %MNat.add_succ(p, List.length(&2, Nat, acc)) : {List.length(&2, Nat, List.range.go(p, p <> acc)) == _ : Nat}
+      internal_length_range_go(p, p <> acc)
+
+def length_range(n):
+  +n = n
+  %Equal.sym(Nat, List.length(&2, Nat, List.range.go(n, Nil{})), Nat.add(n, 0n), internal_length_range_go(n, Nil{})) : {_ == n : Nat}
+  MNat.add_zero(n)
+
+# Zipping two lists gives the length of the shorter one.
+law length_zip:
+  for -a: Quant
+  for -A: Kind(a)
+  for xs: List<a, A>
+  for ys: List<a, A>
+  {List.length(&1, A & A, List.zip(a, A, a, A, xs, ys)) == Nat.min(List.length(a, A, xs), List.length(a, A, ys)) : Nat}
+
+def length_zip(a, A, xs, ys):
+  match xs ys:
+    case Nil{} _:
+      {==}
+    case h <> t Nil{}:
+      {==}
+    case h <> t y <> yt:
+      %length_zip(a, A, t, yt) : {1n+List.length(&1, A & A, List.zip(a, A, a, A, t, yt)) == 1n+_ : Nat}
+      {==}
+
+# Appending after a cons: (x :: xs) ++ ys = x :: (xs ++ ys).
+law append_cons:
+  for -a: Quant
+  for -A: Kind(a)
+  for -x: A
+  for -xs: List<a, A>
+  for -ys: List<a, A>
+  {List.append(a, A, x <> xs, ys) == x <> List.append(a, A, xs, ys) : List<a, A>}
+
+def append_cons(a, A, x, xs, ys):
+  {==}
+
+# The empty list has length zero.
+law length_nil:
+  for -a: Quant
+  for -A: Kind(a)
+  {List.length(a, A, Nil{}) == 0n : Nat}
+
+def length_nil(a, A):
+  {==}
+
+# A cons is one longer than its tail.
+law length_cons:
+  for -a: Quant
+  for -A: Kind(a)
+  for -x: A
+  for -xs: List<a, A>
+  {List.length(a, A, x <> xs) == 1n+List.length(a, A, xs) : Nat}
+
+def length_cons(a, A, x, xs):
+  {==}
+
+# Concatenating an append concatenates each part: concat (xss ++ yss) = concat xss ++ concat yss.
+law concat_append:
+  for -a: Quant
+  for -A: Kind(a)
+  for xss: List<a, List<a, A>>
+  for -yss: List<a, List<a, A>>
+  {List.concat(a, A, List.append(a, List<a, A>, xss, yss)) == List.append(a, A, List.concat(a, A, xss), List.concat(a, A, yss)) : List<a, A>}
+
+def concat_append(a, A, xss, yss):
+  match xss:
+    case Nil{}:
+      {==}
+    case h <> t:
+      %Equal.sym(List<a, A>, List.concat(a, A, List.append(a, List<a, A>, t, yss)), List.append(a, A, List.concat(a, A, t), List.concat(a, A, yss)), concat_append(a, A, t, yss)) : {List.append(a, A, h, _) == List.append(a, A, List.append(a, A, h, List.concat(a, A, t)), List.concat(a, A, yss)) : List<a, A>}
+      Equal.sym(List<a, A>, List.append(a, A, List.append(a, A, h, List.concat(a, A, t)), List.concat(a, A, yss)), List.append(a, A, h, List.append(a, A, List.concat(a, A, t), List.concat(a, A, yss))), append_assoc(a, A, h, List.concat(a, A, t), List.concat(a, A, yss)))
+
 # --- generated: _sym twins (tools/mathlib/twins.ts), do not edit ---
 
 # The empty list is a right identity for append: xs ++ [] = xs, reversed to rewrite toward the simple side.
@@ -623,3 +741,94 @@ law drop_drop_sym:
 
 def drop_drop_sym(a, A, xs, n, m):
   Equal.sym(List<a, A>, List.drop(a, A, List.drop(a, A, xs, n), m), List.drop(a, A, xs, Nat.add(n, m)), drop_drop(a, A, xs, n, m))
+
+# Reversing the empty list gives the empty list, reversed to rewrite toward the simple side.
+law reverse_nil_sym:
+  for -a: Quant
+  for -A: Kind(a)
+  {Nil{} == List.reverse(a, A, Nil{}) : List<a, A>}
+
+def reverse_nil_sym(a, A):
+  Equal.sym(List<a, A>, List.reverse(a, A, Nil{}), Nil{}, reverse_nil(a, A))
+
+# Reversing a one-element list gives it back, reversed to rewrite toward the simple side.
+law reverse_singleton_sym:
+  for -a: Quant
+  for -A: Kind(a)
+  for -x: A
+  {[x] == List.reverse(a, A, [x]) : List<a, A>}
+
+def reverse_singleton_sym(a, A, x):
+  Equal.sym(List<a, A>, List.reverse(a, A, [x]), [x], reverse_singleton(a, A, x))
+
+# Replicating x n times gives a list of length n, reversed to rewrite toward the simple side.
+law length_replicate_sym:
+  for -A: Data
+  for n: Nat
+  for -x: A
+  {n == List.length(&2, A, List.replicate(A, n, x)) : Nat}
+
+def length_replicate_sym(A, n, x):
+  Equal.sym(Nat, List.length(&2, A, List.replicate(A, n, x)), n, length_replicate(A, n, x))
+
+# Range(n) has length n, reversed to rewrite toward the simple side.
+law length_range_sym:
+  for n: Nat
+  {n == List.length(&2, Nat, List.range(n)) : Nat}
+
+def length_range_sym(n):
+  Equal.sym(Nat, List.length(&2, Nat, List.range(n)), n, length_range(n))
+
+# Zipping two lists gives the length of the shorter one, reversed to rewrite toward the simple side.
+law length_zip_sym:
+  for -a: Quant
+  for -A: Kind(a)
+  for xs: List<a, A>
+  for ys: List<a, A>
+  {Nat.min(List.length(a, A, xs), List.length(a, A, ys)) == List.length(&1, A & A, List.zip(a, A, a, A, xs, ys)) : Nat}
+
+def length_zip_sym(a, A, xs, ys):
+  Equal.sym(Nat, List.length(&1, A & A, List.zip(a, A, a, A, xs, ys)), Nat.min(List.length(a, A, xs), List.length(a, A, ys)), length_zip(a, A, xs, ys))
+
+# Appending after a cons: (x :: xs) ++ ys = x :: (xs ++ ys), reversed to rewrite toward the simple side.
+law append_cons_sym:
+  for -a: Quant
+  for -A: Kind(a)
+  for -x: A
+  for -xs: List<a, A>
+  for -ys: List<a, A>
+  {x <> List.append(a, A, xs, ys) == List.append(a, A, x <> xs, ys) : List<a, A>}
+
+def append_cons_sym(a, A, x, xs, ys):
+  Equal.sym(List<a, A>, List.append(a, A, x <> xs, ys), x <> List.append(a, A, xs, ys), append_cons(a, A, x, xs, ys))
+
+# The empty list has length zero, reversed to rewrite toward the simple side.
+law length_nil_sym:
+  for -a: Quant
+  for -A: Kind(a)
+  {0n == List.length(a, A, Nil{}) : Nat}
+
+def length_nil_sym(a, A):
+  Equal.sym(Nat, List.length(a, A, Nil{}), 0n, length_nil(a, A))
+
+# A cons is one longer than its tail, reversed to rewrite toward the simple side.
+law length_cons_sym:
+  for -a: Quant
+  for -A: Kind(a)
+  for -x: A
+  for -xs: List<a, A>
+  {1n+List.length(a, A, xs) == List.length(a, A, x <> xs) : Nat}
+
+def length_cons_sym(a, A, x, xs):
+  Equal.sym(Nat, List.length(a, A, x <> xs), 1n+List.length(a, A, xs), length_cons(a, A, x, xs))
+
+# Concatenating an append concatenates each part: concat (xss ++ yss) = concat xss ++ concat yss, reversed to rewrite toward the simple side.
+law concat_append_sym:
+  for -a: Quant
+  for -A: Kind(a)
+  for xss: List<a, List<a, A>>
+  for -yss: List<a, List<a, A>>
+  {List.append(a, A, List.concat(a, A, xss), List.concat(a, A, yss)) == List.concat(a, A, List.append(a, List<a, A>, xss, yss)) : List<a, A>}
+
+def concat_append_sym(a, A, xss, yss):
+  Equal.sym(List<a, A>, List.concat(a, A, List.append(a, List<a, A>, xss, yss)), List.append(a, A, List.concat(a, A, xss), List.concat(a, A, yss)), concat_append(a, A, xss, yss))
