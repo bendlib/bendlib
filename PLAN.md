@@ -1,0 +1,446 @@
+# bendlib — plan
+
+> **Date:** 2026-09-24 · **Owner:** Muhammed Durakovic · **Compiler:** `bend 2.0.27`
+> (linux-x64 archive sha256 `58adc86af6605ed0c48f7d84e4c23028f78893ce4a867a20a4f004b11582687b`)
+> **Brand:** GitHub org `bendlib` · hub package `bend-mathlib` (D1: decided) · Apache-2.0
+>
+> Scope rule: this document holds architecture, design and build order. Process, publicity cadence
+> and governance paperwork are deliberately left out; they come with time.
+
+## 0. What we are building (three products, one foundation)
+
+| Product | What | Why it matters | Status of the space (2026-09-24) |
+|---|---|---|---|
+| **`bend-mathlib`** (Bend, hub package) | Machine-checked lemmas, predicates and abstract (algebra/order) theorems over Base | Every proof bottoms out in basic facts Base doesn't ship; Bend's own repo re-proves `add_succ` in 23 files; the creator said "We need a mathlib!" | Small unorganized attempts (`caiodomingues/bend-lemmas`, 4 anonymous hub packages), nothing named, no traction |
+| **`lawcheck`** (TypeScript/Bun CLI) | Finds counterexamples to laws before anyone tries to prove them, shrinks them, and measures law strength by mutating the implementation | Loose/wrong laws are Bend's main criticism (the "can't win" law satisfied by breaking movement; issue #880); a false law wastes an AI's proof budget | Unclaimed (no property-testing / counterexample / mutation tool for Bend 2 exists) |
+| **Bend docs** (static site + generator) | docs.rs for BendHub: rendered API docs of every hub package, checked status on the current compiler, reverse deps, lemma search by statement shape | The hub shows hashes and file lists only; people and agents can't browse APIs or find lemmas | Catalogs exist (`kbrianps/bend-catalog`, `777genius/bend-packages`, `hublens`) — rows/imports only; **no rendered API docs, no verification** |
+
+They share one keystone: **`@bendlib/frontend`**, a TypeScript library that loads Bend source with the
+*official* parser/elaborator (`bend2/bend.ts`) matching the user's installed compiler version. lawcheck
+and the docs generator both sit on it; mathlib is the first customer of both (lawcheck screens lemma
+candidates; docs render the lemma index).
+
+**Backlog (not now):** `bendlib-par` (parallel Array algorithms with laws, CPU/GPU), proved data
+structures (`bendlib-heap`, `bendlib-rbmap` over frozen kernels, §3.4), lawful codecs.
+**Not doing:** bend-ci/GitHub Action products, LSP, playground, compiler forks, F32 numerics.
+
+---
+
+## 1. Grounded facts (verified on 2.0.27, experiments in `research/experiments/`)
+
+| ID | Fact | How verified | Consequence |
+|---|---|---|---|
+| F1 | Hub names match `^[a-z][a-z0-9-]{11,63}$`; versions are `a.b.c.d`, strictly increasing; names are permanent and owned by the publisher's GitHub login | `bend.ts NAMED`, CLI, hub `names.json` | `mathlib`/`bendlib` invalid; only the owner publishes named versions |
+| F2 | Publish bundles local imports, never hub (`0x…`) imports | source: `main.ts pkg_files` | Packages can depend on packages by name/hash without vendoring |
+| F3 | Namespace = file path; hub package namespace = `0x<hash>/<path>`; two versions of a package = unrelated namespaces | source `book_load`; `v1/ v2/` experiment | Version skew between dependents is the core interop risk |
+| F4 | A def unifies across package versions **iff its body is a plain application of Base functions** (`le` via `Nat.is_le`, `mem` via `List.contains`, `sorted` via `List.all/zip/tail`). Any def that `match`es — recursive or not — and any datatype is **nominal** at variable arguments (`expected rv1/pred.isz(n) / observed rv2/pred.isz(n)`); closed instances still normalize and unify (why the first experiment, `le(5n,5n)`, misled) | `review2/t4a,t4b,t4d,t4e,t4f,t4g,t13a,t13b`; `user_adt.bend` | **Encoding rule** (§3.1): mathlib predicates are Base-only; everything nominal (`count`, `perm`, datatypes) lives in a **kernel** package frozen at one hash that every mathlib version imports |
+| F4b | Two lemma packages importing **one shared predicate file** interoperate at variables | `review2/t11_user_kernel.bend` | Kernels work |
+| F5 | A def/law/constructor spelled like a Base one is a hard error (`duplicate declaration`) | `lib/clash.bend`, `ctor.bend` | Names must be disjoint from Base's scheme |
+| F6 | Base 2.0.27 names every function `Type.verb` and every bare name/constructor is Capitalized | grep `base.bend` | Our exports are lowercase + dot-free: disjoint from Base's *current* convention (nightly check guards the future) |
+| F7 | Constructors of user modules are per-file namespaced (`A.node`, `B.node` coexist) | `both.bend` | Only Base collisions matter |
+| F8 | Imported modules are fully re-checked on every check | `usebad.bend` | Dependencies can't smuggle false lemmas; every dependent pays our check time |
+| F9 | 1,600 repeated *simple* lemmas import in 0.45 s / 160 MB (not representative of heavy proofs) | `big*.bend` (generator inline in plan history) | Size isn't the constraint; proof shape is |
+| F10 | A LAWS/PROOF split forces importers to import both files | `use_laws_only.bend` ✗, `use_both.bend` ✓ | Library modules state and prove inline |
+| F11 | Lemmas generic over `a: Quant, -A: Kind(a)` check and instantiate at `&1` and `&2` | `glist.bend` | All List lemmas generic |
+| F12 | Templates (`~A`, `~le`) check with no unsafe warning; Base `List.sort` uses them | `tmpl2.bend` | Comparators/operations are templates, never closures |
+| F13 | Laws can take `for ~op`/`for ~assoc` hypotheses usable many times; abstract theorems instantiate across files | `lib/algebra.bend`, `use_alg.bend` | Algebraic layer feasible now |
+| F14 | Reusing function-typed hypotheses in *live* code is unsupported; planned for Bend 2.1 (issue #848) | issue thread | Keep abstract theorems in `~` form; expect 2.1 idiom changes |
+| F15 | `import 0x<hash>/f.bend` works (package cached under `~/.bend/lib/`; cache hits are not re-hashed; the whole package manifest is fetched even if one file is imported) | `hubuse.bend` (run on a warm cache) + source | Split packages when unrelated parts would bloat fetches/hashes |
+| F16 | Alias `Nat` for our module works; Base spellings win | `alias_nat.bend` | Recommend `MNat`/`MList` aliases |
+| F17 | `bend f.bend --check-only` checks without running | CLI | CI command |
+| F18 | Unsafe/foreign reliance is reported by name (`All terms check, but N defs rely on…`) | `main.ts cli_report` | mathlib gate: output exactly `All terms check.` |
+| F19 | Publish refuses open laws and reached holes | guide, `cli_publish` | Hub content is fully proved |
+| F20 | Installer verifies sha256, installs to `~/.bend`; `bend version`; `BEND_NO_TELEMETRY=1` | `install.sh` | CI pins version + sha256 |
+| F21 | A local `BEND_LIB` with `names/<name>@<ver>` → `0x<32 hex>` and `0x<hash>` → symlink to a working copy resolves `import <name>@<ver>/f.bend` locally and live | `devmode/` | Dev imports use the final import lines verbatim (§3.5) |
+| F22 | A closed law instance proved by `{==}` passes iff both sides normalize equal; a false one fails with `expected/observed` and `Location: <law>` — 48 instances checked in 0.15 s | `lc` experiment (see §4.3) | lawcheck's universal evaluation engine = the checker itself |
+| F23 | `bend2/bend.ts` imports under Bun and exposes `book_nil`, `book_load`, `term_show`, the `Book` (`tlds`, `ctrs`, spans); it loads hub packages and lists typed declarations | `docs_probe.ts` | Tools reuse the official parser instead of writing one |
+| F24 | The installed binary ships only `base.bend` + effects, not `bend.ts`; GitHub releases exist per version (v2.0.8+) | `~/.bend/bend2/`, releases | frontend fetches `bend.ts` for the user's exact version (§2) |
+| F25 | A `-> Type` predicate cannot be a `+` (reusable) hypothesis (`expected Data, observed Type`); the same body declared `-> Data` can; a plain equality hypothesis cannot be used twice | `review2/t2c` ✗, `t2d` ✓, `t2f` ✗, `t8` ✓ | Predicates return `Data`; `A & B` / `Or` sugar is `Sigma/Either<&1,&1,…>` = `Type` — Data predicates spell `Sigma<&2,&2,…>` / `Either<&2,&2,…>` |
+| F26 | A statement-only binder must be erased (`for -y`) or a runtime caller loses its affine variable (`y consumed more than once`); a binder the proof matches on cannot be erased | `review2/t1a` ✓, `t1b` ✗, `t1c` ✗ | Erasure is a lint-enforced invariant, not a style choice |
+| F27 | A count-based `perm` hypothesis (a function type) is single-use, even when erased | `review2/t5a` ✓, `t5b` ✗, `t5c` ✗ | `perm` design must weigh an inductive `Perm is Data` (reusable) — decided in the kernel design note |
+| F28 | `map_map` with a composed closed template `~(x => g(f(x)))` checks; `Equal.sym(T, l, r, e)` twins check at generic quantity, and the reversed (`{r == l}`) form is the one that **simplifies** under `%` | `review2/t3_map_map`, `t6_twins` | Twins are the common rewrite direction (§3.1.6) |
+| F29 | Bare `(a <= b)` without `: Nat` is a hard error since 2.0.16; `bend link <name>@<ver> 0x<hash>` names an already-published hash; `BEND_HUB` env overrides the hub URL; `names/` cache entries are never re-validated | `review2/t2a`; CLI help; binary strings | Docs show `(a <= b : Nat)`; release = anonymous publish → verify → `bend link`; dev caches start empty |
+
+---
+
+## 2. Keystone: `@bendlib/frontend` (TypeScript, Bun)
+
+**Job:** give any tool a faithful, version-matched view of Bend source.
+
+- **Version matching.** Run `bend version` → `2.0.x`. Fetch the `v2.0.x` release source tarball from
+  GitHub once, verify it against the release (sha256 of the archive), cache under
+  `~/.cache/bendlib/bend/<version>/`, and `import()` its `bend2/bend.ts` dynamically (F23, F24).
+  Why: `bend.ts` changes several times a day; parsing with a mismatched version silently misreads
+  code. A tool that parses exactly like the user's compiler cannot drift.
+  Fallback: `--bend-src <dir>` to point at a local checkout (for compiler developers / offline).
+- **API (small, stable):**
+  - `load(file, {bendLib?}) → Book` (runs `book_load` with an isolated `seen` map; honours `BEND_LIB`).
+  - `decls(book, {own: true}) → Decl[]` where `Decl = {name, ns, kind: type|ctor|def|law|template|effect|unsafe, span, doc, signature, statement?, binders?}`.
+    `doc` = contiguous `#` comment lines directly above the declaration (from the span's source text).
+  - `show(term) → string` pretty-printer. Types are HOAS closures in `bend.ts`; printing needs
+    `term_lower`/the checker's own show path — first task is to find the exact call sequence that
+    reproduces `bend`'s error-message rendering (e.g. `List<&2, Nat>`), which is proven readable.
+  - `lawShape(decl) → {binders: [{name, quant, erased, type, where?}], exs?, claim: {kind: eq|pred|pi, lhs?, rhs?, type?}}`.
+  - `splice(file, span, text) → string` for source rewriting (mutation, instance generation).
+- **Isolation:** never touch the user's `~/.bend/lib` unless asked; tools pass a private `BEND_LIB`.
+- **Tests:** golden decl dumps for the experiment files and 5 real hub packages; re-run on each new
+  compiler release (the tool's own compatibility check).
+
+Risk: `bend.ts` is internal; exports can change. Mitigation: all access goes through this one
+package; a version bump that breaks it breaks one adapter, not every tool.
+
+---
+
+## 3. `bend-mathlib` — architecture
+
+### 3.1 Layering and the rules that make it a safe dependency
+
+```
+ domain packages / user projects
+        │ import by name@version
+ bendlib-* structures (bendlib-heap, bendlib-rbmap, …) ──┐
+        │                                                 │ import by exact hash
+ bend-mathlib  (lemmas + Base-only predicates + abstract  ├──► bendlib-kernel-* (frozen once at 1.0.0.0:
+   theorems; released freely)  ───────────────────────────┘     count, perm/Perm, datatypes + invariants)
+        │
+ Base
+```
+
+1. **Encoding rule** (F4, F4b). Every definition in mathlib is one of:
+   (a) a **lemma** (law + proof) — never needs to unify across versions;
+   (b) a **Base-only predicate** — body is a single application of Base functions, returning `Data`:
+   `def le(a: Nat, b: Nat) -> Data: {Nat.is_le(a, b) == True{} : Bool}`,
+   `mem` via `List.contains(~A, ~eq, xs, x)`, `sorted_by` via
+   `List.all(… List.zip(xs, List.tail(xs)))` (`review2/t13a`, `sv1/s.bend`) — version-stable;
+   (c) an **import from a kernel** for anything that must `match` or be a `type`.
+   `tools/lint` rejects a mathlib predicate that matches or calls a non-Base def.
+   Trade-off, stated: Base-only encodings follow Base churn (if HOC changes `List.contains`, published
+   statements change meaning/break); kernel definitions are immune to Base churn but nominal.
+1b. **Kernels** (`bendlib-kernel-list`, later `bendlib-kernel-rbtree`, …): a tiny package holding the
+   definitions whose identity matters — `count`, `perm`/`Perm`, datatypes and their invariants —
+   published **once** at `1.0.0.0`, LICENSE right the first time (it's part of the hash), never
+   republished; a new definition means a new kernel package. Every mathlib/structure version imports
+   the kernel **by exact hash** (`import 0x…/list.bend as KList`, name in a comment), so dependents on
+   different versions still interoperate (F4b). Kernel 1.0.0.0 is published before the mathlib
+   release that first uses it.
+1c. **Kinds.** Predicates return `Data` (F25) so hypotheses can be `+h`; never use `A & B`/`Or`
+   sugar inside them (that forces `Type`); spell `Sigma<&2, &2, A, _ => B>` / `Either<&2, &2, A, B>`.
+   `le_total : Or(le(a,b), le(b,a))` exists for convenience plus `le_total_d : Either<&2, &2, …>`
+   as the reusable form.
+2. **Append-only public API.** Once published, a module path, public name, law statement or
+   predicate body never changes or disappears under this package name — no version number
+   authorizes it (a changed statement is a different proposition regardless of version). Fixes get
+   a new descriptive name (`perm_by_count`, not `perm2`); the old one stays, documented as
+   superseded; a bridge theorem is added when provable.
+   Enforced by **`PUBLIC_API.lock`** (per package: module paths, public names, normalized statement /
+   predicate-body text + sha256). CI fails on any change or removal; additions are fine.
+   *Consumer:* CI publish gate. *Defect class:* a changed published statement breaks every dependent
+   permanently (hub content is immutable, F1/F3). *Retire:* never while the package exists.
+3. **Public vs internal.** Bend has no visibility; every def is importable. Proof helpers are named
+   `internal_*` and excluded from the lock and docs.
+4. **Naming.** lowercase `snake_case`, no dots (F5/F6). Mathlib-standard names so humans and models
+   can guess them: `add_zero` (x+0=x) and `zero_add` (0+x=x) both exist even if one is definitional;
+   `add_comm`, `add_assoc`, `mul_add`, `append_nil`, `append_assoc`, `length_append`,
+   `reverse_reverse`, `le_refl`, `le_trans`, `lt_irrefl`. Modules are namespaces named after Base
+   types (`MNat.add_comm`, `MList.append_assoc`, `MString.append_assoc`); names are unique per
+   module. Comparator-dependent predicates say so: `sorted_by`, `perm_by`. Ship `ge`/`gt` next to
+   `le`/`lt` with flip lemmas (Base's own lemmas use `Nat.is_ge`; `is_ge(a,b)` and `is_le(b,a)` are
+   not definitionally equal).
+5. **Genericity and erasure.** Generic in `a: Quant, -A: Kind(a)` wherever the proof allows (F11);
+   a `+xs` at generic quantity is illegal (only `&2` is `Data`), so a `&2`-specialized variant is
+   allowed with a `_data` suffix and a stated reason. **Every binder the proof does not `match` on is
+   erased** (`for -y`); a matched binder cannot be (F26) — `tools/lint` compares binders with the
+   proof's scrutinees. Operations/comparators are templates (`~op`, `~le`) with template hypotheses
+   (`for ~le_trans: …`) (F12, F13); template arguments must be closed, so the library ships instances
+   for `Nat`, `U32`, `Char`, `String`. `List.map` is a template over affine lists only
+   (`List.map(~A: Type, ~B: Type, ~f, xs: List<A>)`), so map lemmas are `&1`-only; `map_map` works
+   with a composed closed template (F28).
+6. **Orientation and `_sym` twins.** `%e : P` replaces the equation's right side with its left side,
+   so the Mathlib-style statement (big side left) *expands*, and its reversed form *simplifies* — the
+   direction most rewrite steps want (F28). Therefore every public equational lemma `name` gets a
+   generated twin `name_sym : {r == l}` (proof `Equal.sym(T, l, r, name(..))`), in a generated
+   trailing section of the **same module** (`# --- generated: _sym twins, do not edit ---`),
+   regenerated and diffed in CI. Docs state the rule in one line: "`name` expands, `name_sym`
+   simplifies". Claims are one line each (lint) so `tools/twins` is a small text splitter.
+7. **Module layout.** Few, guessable modules named after Base types (`equal`, `bool`, `nat` incl.
+   order, `list` incl. mem/count, `maybe`, `string`, `order`, `algebra`) + `all.bend` (imports every
+   module; the publish root). Users import single modules (`…@v/list.bend`); modules import each
+   other directly.
+
+### 3.2 Contents
+
+Base facts that shape proofs (verified): `Nat.add`, `Nat.mul(a, +b)` recurse on the first argument;
+`Nat.sub` matches both; `Nat.pow(+a, b)` recurses on `b`; `List.reverse` = `List.reverse.go(xs, Nil{})`
+(accumulator); `List.take/drop` match the list first; `List.foldr/foldl` are quantity-generic templates;
+`Maybe.map/bind` take closures; `Equal.sym(-A, -a, -b, e)`, `Equal.cong(-A, -B, -f, -a, -b, e)`.
+
+**0.1.0.0 — 25–40 high-confidence lemmas, no custom `perm`/`sorted` yet:**
+- `equal.bend`: `cong2`, `subst`, `trans3`, `cong_succ`.
+- `bool.bend`: `not_not`, `and_comm`, `or_comm`, `and_assoc`, `or_assoc`, `and_true`, `true_and`,
+  `and_false`, `or_false`, `de_morgan_and`, `de_morgan_or`, `true_ne_false`.
+- `nat.bend`: `add_zero`, `zero_add`, `add_succ`, `succ_add`, `add_comm`, `add_assoc`, `add_left_comm`,
+  `add_right_comm`, `add_swap` (four-way; re-proved 12× upstream), `add_left_cancel`, `succ_inj`,
+  `zero_ne_succ`, `mul_zero`, `zero_mul`, `mul_one`, `mul_succ`, `mul_comm`, `mul_assoc`, `mul_add`, `add_mul`;
+  order (same module): `le`, `lt`, `ge`, `gt` (Base-only `Data` predicates), `le_refl`, `le_trans`,
+  `le_antisymm`, `le_total` + `le_total_d`, `le_succ`, `le_add_right`, `lt_irrefl`, `lt_trans`,
+  `lt_implies_le`, `zero_le`, `ge_iff_le` flips.
+- `list.bend`: `append_nil`, `append_assoc`, `length_append`, `reverse_go_spec`, `reverse_append`,
+  `reverse_reverse`, `length_reverse`, `foldr_append`, `take_append_drop`, `length_map`, `map_append`.
+
+**0.2 / 0.3:** `maybe.bend` (monad laws — after an experiment fixes the closure quantification),
+`list.bend` additions: `mem` (Base-only via `List.contains`) and `sorted_by` (Base-only via
+`List.all/zip/tail`) with their lemmas; `count`/`perm` from `bendlib-kernel-list` with lemmas
+(`perm_refl/sym/trans`, `perm_cons`, `perm_append_comm`, `perm_length`, `sorted_by` inversion);
+`order.bend` and `algebra.bend` (abstract theorems over `~le` / `~op` with instances `Nat.add`,
+`Nat.mul`, `Bool.and`, `Bool.or`, `List.append`); `string.bend` (`SCon`/`SNil` versions of the list
+facts); `map_map`.
+**Stretch (0.4+, never on the critical path):** `base_sort.bend` — Base `List.sort` returns a
+`sorted_by` permutation. `List.sort` is fuel-driven (`List.sort.go(fuel = n)`,
+`List.merge.go(fuel, (acc, xs, ys))` with fallback branches that are not sorted), and merge steps match
+on computed Bools, so it needs `bool_cases` detours and fuel-sufficiency lemmas: budget ~2 weeks.
+The launch-era headline is instead a structural merge sort proved sorted + permutation.
+
+### 3.3 Frozen definitions: how we pick them
+Base-only predicates (rule 1b) and kernel definitions (rule 1b) are permanent. Before one is
+published: write the candidates in `research/predicates/`, prove the intended headline theorems with
+each, add negative fixtures (e.g. with an equality template that always answers `False`, `perm` must
+not make `[x]` a permutation of `[]` — semantic theorems carry equality soundness/completeness
+hypotheses), then the owner picks. For `perm` specifically (F27): count-based
+`@x -> {count(x,xs) == count(x,ys)}` gives one-line refl/sym/trans but is a single-use closure;
+an inductive `type Perm … is Data` gives reusable hypotheses and free `trans/cons/swap` at the cost of
+derivation induction for `perm_count`/`perm_length`. Write `perm_merge` both ways, then choose —
+possibly ship both in the kernel with a `perm_iff_Perm` bridge in mathlib. Count-based needs `A: Data`.
+
+### 3.4 Structure packages over kernels (backlog; recorded now because it constrains mathlib)
+Datatypes for structures live in kernels (rule 1b), byte-sealed: `LICENSE` + declarations + the
+invariant predicates, nothing that might need editing (any change alters the hash, i.e. the type
+identity, F3). Consumers import kernels by hash. Each structure ships as its own package
+(`bendlib-heap`, `bendlib-rbmap`, …) so adding one never rehashes the others (F3, F15). Key/value
+quantities are independent: `rbtree<ak, av, -K: Kind(ak), -V: Kind(av)> is Kind(ak <&> av)`.
+
+### 3.5 Dev-mode imports (F21) and release
+- Sources always contain final import lines (`import bend-mathlib@0.2.0.0/list.bend as MList`).
+- `tools/devlib` builds repo-local `.devlib/` (git-ignored, recreated from empty each run because
+  `names/` entries are never re-validated, F29): `names/<name>@<ver>` → a **deterministic fake hash**
+  `"0x" + sha256("<name>@<ver>-dev")[0:32]` and `0x<hash>` → symlink to the working package. (The
+  real hash changes with every edit, so it is only computed at release.) It refuses to write outside
+  the repo and validates the 32-hex format (non-hex silently falls through to the hub).
+- CI: fails on any `../` import leaving a package (it would bundle the other package, F2, and reaching
+  one file under two namespaces is a hard `one namespace per file` error).
+- Release (owner, manual — names are tied to the owner's login, F1):
+  1. `bun tools/release <pkg> <ver>`: fresh isolated `BEND_LIB`, every imported `name@version` resolves
+     on the hub, computes the real publish hash locally (`cli_publish` algorithm: sorted paths,
+     `"0x" + sha256(Σ sha256(content) + " " + path + "\n")[0:32]`), prints the commands.
+  2. Owner: `bend packages/<pkg>/all.bend --publish` (anonymous; prints `0x…`, must equal step 1).
+  3. Tool re-checks `import 0x…/all.bend` from an empty `BEND_LIB` (real hub fetch + hash verify).
+  4. Owner: `bend link <pkg>@<ver> 0x…` — the name is attached only to verified content.
+  5. Tool appends `{name, version, hash, compiler}` to `RELEASES.md`; README shows the named import and
+     the hash import (content survives even if a name is lost); git tag.
+- Versioning: dependents pin exact versions; nothing resolves ranges, so a fix release repairs nobody
+  automatically — the README carries a `bend-mathlib version × bend version` compatibility table
+  maintained by the nightly job.
+
+### 3.6 mathlib CI (the only gates)
+1. Pinned compiler from `toolchain.json` (download release archive, verify sha256).
+2. Every module: `bend <m> --check-only` prints exactly `All terms check.`; no `@unsafe`, no `def f?(`,
+   no holes (lexer-aware scan); wall-time ceiling per module (generous, e.g. 10 s).
+3. Naming lint (§3.1.4) incl. collision check against `bend base` of the pinned compiler.
+4. `PUBLIC_API.lock` append-only check.
+5. Nightly: same on the latest Bend release; on failure open an issue. (Our own early warning — not a
+   product.)
+
+---
+
+## 4. `lawcheck` — architecture
+
+### 4.1 User experience
+```
+$ lawcheck LAWS.bend
+✗ ins_sorted   counterexample (shrunk):  x = 0n, xs = [1n]
+               lhs  B.ins(0n, [1n]) = [1n, 0n]
+               rhs  [0n, 1n]
+✓ ins_length   212 instances, 0 failures (sizes ≤ 4)
+~ merge_perm   premise satisfied in 0/212 instances — law untested (vacuous in this space)
+$ lawcheck mutate LAWS.bend --impl main.bend
+ins: 9/12 mutants killed · survivors: [swap arms of `match xs`] [replace `x` with `h` in line 12] …
+     → your laws do not pin `ins` (a body ignoring `x` still satisfies them)
+```
+`--json` for agents; exit 0 all pass / 1 counterexample or weak laws / 2 usage.
+
+### 4.2 Pipeline
+1. **Load** the file with `@bendlib/frontend`; collect `law` declarations (open or proved) and their
+   `lawShape` (binders, `where` premises, claim).
+2. **Instantiate types.** Type parameters: `-A: Kind(a)` → default `U32` then `Nat`; `a: Quant` → `&2`
+   (and `&1` when the claim allows). Template hypotheses (`for ~f`, `for ~le_trans`) → v1 skips the law
+   with a clear message; v2 draws from a small catalog of closed functions per type.
+3. **Generate values** per binder type:
+   - Exhaustive small-scope first (SmallCheck style: all values up to depth/size *n*), then seeded
+     random for larger sizes.
+   - Built-ins: `Nat` (0..k, never above ~256 as literal — the checker expands big Nat literals),
+     `Bool`, `U32` (0, 1, max, powers of two, random), `Char`, `String`, `List<a, A>`, `Maybe`, pairs,
+     `Cmp`, `Result`.
+   - User datatypes: enumerate constructors from the elaborated `Book` (`book.tlds[ADT].c`), recursive
+     fields bounded by depth.
+4. **Evaluate (engine C — the checker, F22).** For each instance σ emit
+   `law lc_<i>: {lhs[σ] == rhs[σ] : T}` + `def lc_<i>(): {==}` into batch files that import the user
+   module; run `bend <batch> --check-only` in parallel workers (one process per batch, N = cores).
+   The checker stops at the first failure: parse `Location: lc_<i>` and the `expected/observed` pair,
+   drop that instance, re-run the rest of the batch (or bisect). Semantics are *exactly* the
+   checker's definitional equality — the same judge the proof will face — and it works for every type.
+   - Predicate claims (`le(a, b)`, any `Type`-valued claim): emit the instance as the claim type and
+     try `{==}` — a decidable predicate built on Base `Bool`s normalizes; if the goal doesn't reduce to
+     a closed equality, report "not decidable by evaluation" for that law.
+   - Premises (`for y: B where P(y)`, implications): evaluate the premise instance first; skip σ when
+     it fails; report the satisfied fraction (vacuity warning at 0%).
+5. **Shrink** each failing σ: standard shrinkers (Nat toward 0, lists by removing/shrinking elements,
+   ADTs to subterms), re-evaluate, keep the smallest failing instance.
+6. **Engine N (native, v2):** for laws whose type has a Base equality (`Nat.is_eq`, `U32.is_eq`, lists of
+   those), compile one harness `main` with all instances (`bend h.bend -o h`), run natively for large
+   random sizes. Bonus: compare engine N vs engine C results — a disagreement is a compiler/runtime bug
+   (valuable to upstream).
+
+### 4.3 Mutation mode (law strength)
+- Mutants of the implementation defs via source splicing (`frontend.splice` on spans): swap match arms,
+  replace a case body with another case's body, swap same-typed arguments, `0n↔1n`, drop a cons,
+  replace a subterm with a same-typed parameter; **projection sweep**: replace the whole body with each
+  parameter / a constant (the `gavel` lesson: a law pins a function only if no argument-ignoring body
+  satisfies it).
+- A mutant is **killed** if lawcheck finds a counterexample (fast) — optionally confirm with
+  `bend PROOF.bend` (slow, exact). Report survivors with the mutated line. Mutants that fail to
+  type-check are discarded (not counted as kills).
+
+### 4.4 Packaging
+- Lives in the monorepo `tools/lawcheck`; runs with `bun`; single binary via `bun build --compile`
+  attached to GitHub releases (same approach Bend itself uses). No npm dependency required.
+- First customer: mathlib — every new lemma statement is lawchecked before its proof is attempted.
+
+### 4.5 Known limits (stated in the README)
+Evaluation-by-checker can be slow for large inputs (keep sizes small; engine N later); laws over
+functions need templates (v2); `exs` witness laws are skipped in v1; lawcheck finds counterexamples,
+it never proves anything.
+
+---
+
+## 5. Bend docs — architecture
+
+### 5.1 What it shows
+- **Package page** (per name@version and per hash): description, license, files, import lines,
+  dependencies and **reverse dependencies**, versions, and **status on the current compiler**:
+  `checks` / `N defs rely on unsafe or foreign code` / `fails: <first error>` / `open laws`.
+- **Module page:** every declaration with kind badge (type, constructor, def, law, template, effect,
+  `@unsafe`), rendered signature / law statement, doc comment, source with line anchors.
+- **Search:** names, doc text, and **laws by statement shape** (`List.append(_, Nil{})` finds every
+  lemma mentioning that pattern) — lemma search for all of the hub, not just mathlib.
+- **API diff** between versions of a named package (added / removed / changed statements).
+
+### 5.2 Pipeline (static, incremental)
+1. Fetch `hub/index.json` and `hub/names.json`.
+2. For each **new hash** (content never changes → cache forever): fetch manifest and files into a
+   private `BEND_LIB`.
+3. Extract with `@bendlib/frontend` (current compiler version): declarations, docs, imports
+   (hash → package edges). Parse failures are recorded as a status, not a crash.
+4. Verify: `bend <entry> --check-only` per package in a sandbox (bubblewrap/firejail; network off; 60 s
+   timeout, memory cap) — checking never runs `main`, but the checker can loop or blow memory on
+   hostile input. Re-verify all packages when a new compiler version appears (status is per compiler
+   version).
+5. Render static HTML (bun script, no framework) + a JSON search index; client-side search.
+6. Deploy to GitHub Pages (or Cloudflare Pages); rebuild on a schedule (hourly) from GitHub Actions or
+   the owner's machine.
+7. `bend-docs build <dir>`: the same renderer for local packages, so authors preview their docs
+   (and mathlib's own docs come from it).
+
+### 5.3 Name and relationship to existing catalogs
+- Name: open decision D2 (suggested: "Bend Docs" at `docs.bendlib.dev`, or under the org's Pages).
+- Link to `777genius/bend-packages` and awesome-bend; offer to feed them our extracted data (JSON).
+
+---
+
+## 6. Repository layout
+```
+bendlib/                     GitHub: bendlib/bendlib (monorepo)
+├── PLAN.md  README.md  LICENSE  AGENTS.md  RELEASES.md  toolchain.json
+├── packages/bend-mathlib/   LICENSE all.bend *.bend PUBLIC_API.lock
+├── packages/bendlib-kernel-list/   (0.2 era; published once)
+├── tools/frontend/          @bendlib/frontend (TS)
+├── tools/lawcheck/          lawcheck CLI (TS)
+├── tools/docs/              docs generator + site templates (TS)
+├── tools/mathlib/           check.ts names.ts lock.ts devlib.ts release.ts
+├── research/experiments/    evidence for F1–F24;  research/predicates/ (candidates)
+└── .github/workflows/       ci.yml (mathlib gates, tool tests)  nightly.yml  docs.yml
+```
+Monorepo because a compiler change usually touches mathlib, frontend and tools together.
+
+**Language split.** Everything users import is Bend. Tool *shells* are TypeScript on Bun because
+(1) the official parser/checker is `bend.ts` — reusing it is the only way to read code exactly like
+the user's compiler; (2) Bun is already required by Bend, so it adds no dependency; (3) the shells need
+process spawning, JSON, HTTP, fast strings and HTML, which Base lacks. Pure algorithmic cores move to
+Bend *with laws* once they stabilize — first lawcheck's generators, shrinkers and mutation operators
+(laws such as "every shrink candidate is smaller than its input"), called from the shell through
+Bend's JS interop (`bend x.bend -o x.js` runs under Bun; the guide documents importing `.bend`
+modules from JS). Dogfooding where laws add value; TypeScript for plumbing.
+
+---
+
+## 7. Build order (fast turnover)
+
+Each step ends with something that runs. Parallel lanes where independent.
+
+**Step 1 (days 1–2)**
+- A. `toolchain.json` + pinned install script; CI skeleton for mathlib (check, names). 
+- B. `@bendlib/frontend`: version-matched `bend.ts` loader, `decls`, `show` (find the readable
+  printer path), `lawShape`, goldens on experiments + 5 hub packages.
+- C. mathlib 0.1 modules `equal`, `bool`, `nat` (incl. order), `list` (25–40 lemmas + generated
+  `_sym` twins), `all.bend`, `tools/lint` (names, erasure, one-line claims, encoding rule), `devlib`,
+  `PUBLIC_API.lock`. 0.1 contains no nominal definitions (only Base-only predicates and lemmas), so
+  it needs no kernel yet.
+- Owner: create GitHub org `bendlib` + repo; `bend login`.
+
+**Step 2 (days 3–5)**
+- lawcheck v0.1: engine C, built-in generators + user ADTs, shrinking, premises/vacuity, `--json`.
+  Dogfood on mathlib statements and on the planted-bug fixtures.
+- mathlib: `tools/release`; **publish `bend-mathlib@0.1.0.0`**; README with import + before/after proof.
+- Launch post on X (tag @VictorTaelin, @bendlang) with a terminal clip; invite `caiodomingues`,
+  `chelokot`, `Giulio2002`.
+
+**Step 3 (days 5–10)**
+- lawcheck `mutate` + projection sweep; binary release; launch post ("lawcheck broke this law in 40 ms").
+- Docs v0.1: pipeline steps 1–5 over all hub packages, package + module pages, name search; deploy.
+- mathlib 0.2 work: `bendlib-kernel-list` design (§3.3: `count`, `perm` vs `Perm`), owner picks,
+  publish kernel 1.0.0.0 by hash; `order`/`algebra`; structural merge sort proved sorted + perm.
+
+**Step 4 (days 10–20)**
+- Docs: status-per-compiler, reverse deps, law-shape search, API diff, `bend-docs build`.
+- mathlib 0.2/0.3 releases (`perm`, `sorted_by`, `mem`, `string`, `algebra`); `base_sort` stays a stretch.
+- lawcheck engine N (native) + template-hypothesis generators.
+
+Critical path to first public value: A → C → release → publish (day ~4); B → lawcheck (day ~5).
+
+---
+
+## 8. Risks that change the design
+
+| Risk | Design response |
+|---|---|
+| `bend.ts` internals change daily | Single adapter (`@bendlib/frontend`), version-matched fetch, golden tests per release |
+| Base adds a name we use | Lowercase dot-free names (F6) + nightly collision check; ask HOC to treat lowercase dot-free as a community convention |
+| A frozen predicate is wrong | §3.3 selection before publish; append-only fixes with new names + bridge theorems |
+| Version skew across dependents | Encoding rule: Base-only predicates in mathlib (F4); nominal definitions only in byte-sealed kernels imported by hash (§3.1.1b) |
+| Bend 2.1 changes affinity (F14) | `~`-form abstract theorems; the lock shows exactly what a migration changes |
+| HOC builds official docs/lemmas | Make ours easy to adopt/merge; being upstreamed is a win |
+| Hub outage/takedown (the GitHub repo was taken down once, 09-21) | Everything mirrored in git; docs site caches content by hash |
+| Checker loops/blows memory on hostile packages (docs) | Sandbox, timeouts, memory caps; per-package failure is a status |
+| Single publisher (bus factor) | Keep hub login recoverable (GitHub 2FA recovery codes); document the release steps in the repo; README always carries hash imports too |
+| Base absorbs the basics (a Base `Nat.add_comm` needs no import) | Naming prevents errors, not irrelevance: value moves to perm/sorted/algebra/kernels and the tools; upstreaming basics ourselves is a credit win |
+| Base definitions churn (argument order, fuel) | Published statements are Base terms and immutable; nightly detects, new versions + a compatibility table repair; kernel encodings are immune |
+| Checker conversion rules change | F4/F4b/F25–F28 experiments run nightly (`research/experiments/run.sh`) so a rule change is flagged the day it ships |
+
+---
+
+## 9. Open decisions
+
+- **D1 — flagship name: DECIDED `bend-mathlib`** (owner, 2026-09-24), with `bendlib-mathlib`
+  considered and rejected. Mitigation for the one-hyphen neighbour `bend-math-lib` (empty placeholder,
+  F32 numerics, owner `brasga-a`): README and hub description open with a disambiguation line, and
+  every published import line in docs/`llms.txt` is generated (never hand-typed).
+- **D2 — docs site name/domain.**
+- **D3 — `perm_by` definition** (at §3.3 selection time).
