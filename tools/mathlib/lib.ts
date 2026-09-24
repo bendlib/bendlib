@@ -130,13 +130,15 @@ export function splitEquation(claim: string): { lhs: string; rhs: string; type: 
   return { lhs: inner.slice(0, eq).trim(), rhs: inner.slice(eq + 4, colon).trim(), type: inner.slice(colon + 3).trim() };
 }
 
-// Names defined by the pinned compiler's Base (for collision checks).
+// Names defined by the pinned compiler's Base (for the predicate Base-function check).
 export async function baseNames(): Promise<Set<string>> {
   const p = Bun.spawnSync([BEND, "base"], { env: { ...process.env, BEND_NO_TELEMETRY: "1" } });
   const out = new TextDecoder().decode(p.stdout);
+  if (p.exitCode !== 0) throw new Error(`'${BEND} base' failed (exit ${p.exitCode}): ${new TextDecoder().decode(p.stderr).trim()}`);
   const names = new Set<string>();
   for (const m of out.matchAll(/^(?:def|law|type)\s+([A-Za-z_][A-Za-z0-9_.]*)/gm)) names.add(m[1]);
   for (const m of out.matchAll(/^\s+([A-Z][A-Za-z0-9_]*)\{/gm)) names.add(m[1]); // constructors
+  if (names.size < 10) throw new Error(`'${BEND} base' listed only ${names.size} names`);
   return names;
 }
 

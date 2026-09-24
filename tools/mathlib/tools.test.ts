@@ -4,11 +4,15 @@ import { cpSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { parseModule, packageModules } from "./lib.ts";
+import { baseNames, parseModule, packageModules } from "./lib.ts";
 
 const dir = import.meta.dir;
 const run = (script: string, ...args: string[]) => {
   const p = Bun.spawnSync([process.execPath, join(dir, script), ...args]);
+  return { code: p.exitCode, out: new TextDecoder().decode(p.stdout) + new TextDecoder().decode(p.stderr) };
+};
+const runWith = (env: Record<string, string>, script: string, ...args: string[]) => {
+  const p = Bun.spawnSync([process.execPath, join(dir, script), ...args], { env: { ...process.env, ...env } });
   return { code: p.exitCode, out: new TextDecoder().decode(p.stdout) + new TextDecoder().decode(p.stderr) };
 };
 
@@ -130,5 +134,35 @@ test("index keeps a subdir module's relative path in the generated import", () =
 test("lint --erasure checks a subdir module that imports a sibling", () => {
   const r = run("lint.ts", subdir, "--erasure");
   expect(r.out).toContain("binder 'y' of 'inner_id' can be erased");
+});
+
+test("baseNames lists the compiler's Base names", async () => {
+  const b = await baseNames();
+  expect(b.size).toBeGreaterThan(100);
+  expect(b.has("Nat.is_le")).toBe(true);
+});
+
+test("lint fails cleanly when `bend base` is broken instead of trusting an empty Base set", () => {
+  const r = runWith({ BEND_CLI: "/bin/false" }, "lint.ts", join(dir, "fixtures/good"));
+  expect(r.code).not.toBe(0);
+  expect(r.out).toMatch(/base' failed/);
+  expect(r.out).not.toContain("0 finding(s)");
+});
+
+test("release fails cleanly for a missing absolute pkgdir (no mangled join, no EINVAL)", () => {
+  const missing = join(tmpdir(), "bend-release-missing");
+  const r = run("release.ts", missing, "some-package-name", "0.1.0.0");
+  expect(r.code).toBe(1);
+  expect(r.out).toContain(`package directory ${missing} does not exist`);
+  expect(r.out).not.toContain("EINVAL");
+});
+
+test("release resolves an absolute existing pkgdir instead of mangling it", () => {
+  const tmp = mkdtempSync(join(tmpdir(), "bend-release-abs-"));
+  writeFileSync(join(tmp, "m.bend"), "import Base\n");
+  const r = runWith({ BEND_CLI: "/bin/false" }, "release.ts", tmp, "some-package-name", "0.1.0.0");
+  expect(r.code).toBe(1);
+  expect(r.out).not.toContain("does not exist");
+  expect(r.out).toContain("FAIL check");
 });
 

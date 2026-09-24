@@ -8,7 +8,7 @@
 
 import { appendFileSync, cpSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, relative, basename } from "node:path";
+import { join, relative, basename, resolve } from "node:path";
 import { BEND, ROOT, packageModules } from "./lib.ts";
 import { hubHash, packageFiles } from "./hash.ts";
 
@@ -18,7 +18,11 @@ if (!pkgArg || !/^[a-z][a-z0-9-]{11,63}$/.test(name ?? "") || !/^\d+\.\d+\.\d+\.
   console.error("usage: release.ts <pkgdir> <name(12-64 chars)> <a.b.c.d> [--publish]");
   process.exit(2);
 }
-const pkg = join(process.cwd(), pkgArg);
+const pkg = resolve(pkgArg);
+if (!existsSync(pkg)) {
+  console.error(`release: package directory ${pkg} does not exist`);
+  process.exit(1);
+}
 const env = { ...process.env, BEND_NO_TELEMETRY: "1" };
 const sh = (cmd: string[], extra: Record<string, string> = {}) => {
   const p = Bun.spawnSync(cmd, { cwd: ROOT, env: { ...env, ...extra } });

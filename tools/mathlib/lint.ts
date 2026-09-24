@@ -1,6 +1,6 @@
 // lint: enforce bend-mathlib's permanent-API conventions (PLAN.md §3.1).
 //
-//   names      law/def names are lowercase snake_case, no dots, not a Base name
+//   names      law/def names are lowercase snake_case, no dots (the compiler enforces F5 Base collisions)
 //   docs       every public law has a `#` doc line directly above it
 //   claims     every claim is exactly one line; every law has a proof right below it
 //   types      no `type` declarations (mathlib holds no nominal definitions)
@@ -29,14 +29,12 @@ const mods = packageModules(pkg).map((f) => parseModule(f));
 for (const m of mods) {
   for (const law of m.laws) {
     if (!NAME.test(law.name)) at(m, law.line, `law name '${law.name}' must be lowercase snake_case without dots`);
-    if (base.has(law.name)) at(m, law.line, `law name '${law.name}' collides with Base`);
     if (!law.name.startsWith("internal_") && law.doc.length === 0) at(m, law.line, `law '${law.name}' has no '#' doc line above it`);
     if (law.claimLines.length !== 1) at(m, law.line, `law '${law.name}' must have exactly one claim line (found ${law.claimLines.length})`);
     if (!law.proof) at(m, law.line, `law '${law.name}' has no 'def ${law.name}(...)' proof directly after it`);
   }
   for (const d of m.defs) {
     if (!NAME.test(d.name)) at(m, d.line, `def name '${d.name}' must be lowercase snake_case without dots`);
-    if (base.has(d.name)) at(m, d.line, `def name '${d.name}' collides with Base`);
     if (!d.name.startsWith("internal_") && /->\s*(Data|Type)\s*:\s*$/.test(d.header)) {
       const body = d.body.filter((l) => l.trim() !== "");
       if (body.length !== 1) at(m, d.line, `predicate '${d.name}' must have a one-line body`);
