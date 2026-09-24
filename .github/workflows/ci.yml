@@ -1,0 +1,37 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "17 5 * * *"
+
+jobs:
+  pinned:
+    runs-on: ubuntu-latest
+    env:
+      BEND_NO_TELEMETRY: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun tools/install-bend.ts
+      - run: bun test tools/
+      - run: bun tools/comments.ts
+      - run: bun tools/mathlib/check.ts packages/bend-mathlib
+      - run: bun tools/mathlib/lint.ts packages/bend-mathlib --erasure
+      - run: bun tools/mathlib/twins.ts packages/bend-mathlib --check
+      - run: bun tools/mathlib/lock.ts packages/bend-mathlib --check
+
+  latest-compiler:
+    # Early warning only: the newest Bend release against our sources.
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    env:
+      BEND_NO_TELEMETRY: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: curl -fsSL https://bend-lang.com/install.sh | sh
+      - run: sed -i "s/\"version\": \"[0-9.]*\"/\"version\": \"$($HOME/.bend/bin/bend version | cut -d' ' -f2)\"/" toolchain.json
+      - run: bun tools/mathlib/check.ts packages/bend-mathlib
