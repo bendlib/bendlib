@@ -61,10 +61,10 @@ structures (`bendlib-heap`, `bendlib-rbmap` over frozen kernels, §3.4), lawful 
 | F28 | `map_map` with a composed closed template `~(x => g(f(x)))` checks; `Equal.sym(T, l, r, e)` twins check at generic quantity, and the reversed (`{r == l}`) form is the one that **simplifies** under `%` | `review2/t3_map_map`, `t6_twins` | Twins are the common rewrite direction (§3.1.6) |
 | F29 | Bare `(a <= b)` without `: Nat` is a hard error since 2.0.16; `bend link <name>@<ver> 0x<hash>` names an already-published hash; `BEND_HUB` env overrides the hub URL; `names/` cache entries are never re-validated | `review2/t2a`; CLI help; binary strings | Docs show `(a <= b : Nat)`; release = anonymous publish → verify → `bend link`; dev caches start empty |
 | F30 | `bun build --compile tools/lawcheck/cli.ts` gives a standalone binary that runs lawcheck, also from an empty `BENDLIB_CACHE` (it fetches and imports `bend.ts` at run time) | 2026-09-24, linux-x64, `correct.bend`/`buggy.bend` fixtures | lawcheck binary release is packaging work only |
-| F31 | lawcheck's random `Nat` values (up to 30) make `Nat.pow` laws overflow the checker ("the machine stack overflowed"); the whole law then reports `!` instead of dropping that one instance | `research/candidates/mathlib-0.2/nat.bend`, laws `pow_succ`, `pow_add` | Per-instance "too large" handling and a `--max-nat` bound (bead) |
+| F31 | lawcheck's random `Nat` values (up to 30) make `Nat.pow` laws overflow the checker ("the machine stack overflowed"); the whole law then reports `!` instead of dropping that one instance | `research/candidates/mathlib-0.2/nat.bend`, laws `pow_succ`, `pow_add` | Per-instance "too large" handling and a `--max-nat` bound (bead) — fixed 2026-09-24 (bead `bend-23x.1`): overflowing instances are dropped per item (`toolarge`) and `--max-nat` bounds random Nats; `research/candidates/mathlib-0.2/nat.bend` now reports 0 `!` |
 | F32 | Every bend-mathlib 0.1 law is lawcheck-clean: 107 ✓, 12 skipped (template or function binders), 0 ✗, about 30 s for the four modules on 32 cores | `bun tools/lawcheck/cli.ts packages/bend-mathlib/<m>.bend` | lawcheck can gate mathlib CI |
 | F33 | Open bend issue #1001: one `@unsafe` law fill in an imported file makes `bend PROOF.bend` print a clean `All terms check.` | github.com/bendlang/bend/issues/1001 | A clean verdict alone is not a trustworthy status: docs cross-check the source for `@unsafe`; mathlib's `check.ts` already scans source |
-| F34 | 80 candidate 0.2 statements (Nat `sub`/`min`/`max`/`pow`/reflection/order, List `take`/`drop`/`length`, Bool) type-check and have no counterexample (78 ✓, 2 `!` from F31, 1 skipped); 7 template statements type-check (lawcheck skips them) | `research/candidates/mathlib-0.2/*.bend` | 0.2 lemma beads copy statements verbatim from there |
+| F34 | 80 candidate 0.2 statements (Nat `sub`/`min`/`max`/`pow`/reflection/order, List `take`/`drop`/`length`, Bool) type-check and have no counterexample (78 ✓, 2 `!` from F31, 1 skipped); 7 template statements type-check (lawcheck skips them) | `research/candidates/mathlib-0.2/*.bend` | 0.2 lemma beads copy statements verbatim from there. Updated 2026-09-24: the two overflow `!` are gone (F31 fixed, bead `bend-23x.1`); `for m in research/candidates/mathlib-0.2/*.bend; do bun tools/lawcheck/cli.ts "$m" --max-instances 100; done` now reports 87 laws, 0 ✗, 0 `!` (1 ~) |
 
 ---
 
@@ -396,8 +396,11 @@ Steps 1–3 of the first build order shipped in one day: pinned toolchain and CI
 shrinking, premises, user datatypes, `--json`, `--impl`); Bend Docs v0.1 live at
 https://bendlib.github.io/bendlib/ (every hub package, checked status, reverse deps, law-shape search,
 hourly rebuild); launch demo, hub post and X thread. Not built: `devlib` (no second package needs it
-yet), a sandbox for docs checking, mutation mode, template generators, API diff, source view,
-`bend-docs build <dir>`, agent-facing files.
+yet), a sandbox for docs checking, template generators, source view. Landed since this snapshot:
+mutation mode except its CLI entry (bead `bend-23x.5`; `tools/lawcheck/src/mutate.ts`), API diff
+between versions (`tools/docs/src/model.ts` `apiDiff`), agent-facing `llms.txt`/`lemmas.txt`
+(`tools/docs/build.ts`), and a local preview of a local entry file (`tools/docs/build.ts --local
+entry.bend`).
 
 ### 7.2 Next phase: mathlib → lawcheck → docs
 
