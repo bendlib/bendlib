@@ -1185,6 +1185,126 @@ def not_is_lt(a, b):
     case 1n+p 1n+q:
       not_is_lt(p, q)
 
+# Every natural is less than its successor: n < n + 1.
+law lt_succ_self:
+  for n: Nat
+  lt(n, 1n+n)
+
+def lt_succ_self(n):
+  match n:
+    case 0n:
+      {==}
+    case 1n+p:
+      lt_succ_self(p)
+
+# The successor preserves the order: a <= b implies a + 1 <= b + 1.
+law succ_le_succ:
+  for -a: Nat
+  for -b: Nat
+  for h: le(a, b)
+  le(1n+a, 1n+b)
+
+def succ_le_succ(a, b, h):
+  h
+
+# The order of successors is the order of the naturals: a + 1 <= b + 1 implies a <= b.
+law le_of_succ_le_succ:
+  for -a: Nat
+  for -b: Nat
+  for h: le(1n+a, 1n+b)
+  le(a, b)
+
+def le_of_succ_le_succ(a, b, h):
+  h
+
+# A < b and b <= c imply a < c.
+law lt_of_lt_of_le:
+  for a: Nat
+  for b: Nat
+  for c: Nat
+  for ab: lt(a, b)
+  for bc: le(b, c)
+  lt(a, c)
+
+def lt_of_lt_of_le(a, b, c, ab, bc):
+  match a b c:
+    case 0n 0n _:
+      Empty.absurd(lt(0n, c), internal_false_ne_true(ab))
+    case 0n 1n+q 0n:
+      Empty.absurd(lt(0n, 0n), internal_false_ne_true(bc))
+    case 0n 1n+q 1n+r:
+      {==}
+    case 1n+p 0n _:
+      Empty.absurd(lt(1n+p, c), internal_false_ne_true(ab))
+    case 1n+p 1n+q 0n:
+      Empty.absurd(lt(1n+p, 0n), internal_false_ne_true(bc))
+    case 1n+p 1n+q 1n+r:
+      lt_of_lt_of_le(p, q, r, ab, bc)
+
+# A <= b and b < c imply a < c.
+law lt_of_le_of_lt:
+  for a: Nat
+  for b: Nat
+  for c: Nat
+  for ab: le(a, b)
+  for bc: lt(b, c)
+  lt(a, c)
+
+def lt_of_le_of_lt(a, b, c, ab, bc):
+  match a b c:
+    case 0n 0n 0n:
+      Empty.absurd(lt(0n, 0n), internal_false_ne_true(bc))
+    case 0n 1n+q 0n:
+      Empty.absurd(lt(0n, 0n), internal_false_ne_true(bc))
+    case 0n _ 1n+r:
+      {==}
+    case 1n+p 0n _:
+      Empty.absurd(lt(1n+p, c), internal_false_ne_true(ab))
+    case 1n+p 1n+q 0n:
+      Empty.absurd(lt(1n+p, 0n), internal_false_ne_true(bc))
+    case 1n+p 1n+q 1n+r:
+      lt_of_le_of_lt(p, q, r, ab, bc)
+
+# Adding on the left preserves the order: a <= b implies k + a <= k + b.
+law add_le_add_left:
+  for -a: Nat
+  for -b: Nat
+  for k: Nat
+  for h: le(a, b)
+  le(Nat.add(k, a), Nat.add(k, b))
+
+def add_le_add_left(a, b, k, h):
+  match k:
+    case 0n:
+      h
+    case 1n+p:
+      add_le_add_left(a, b, p, h)
+
+# The only natural at most zero is zero.
+law le_zero_eq:
+  for n: Nat
+  for h: le(n, 0n)
+  {n == 0n : Nat}
+
+def le_zero_eq(n, h):
+  match n:
+    case 0n:
+      {==}
+    case 1n+p:
+      Empty.absurd({1n+p == 0n : Nat}, internal_false_ne_true(h))
+
+# No natural is less than zero.
+law lt_zero:
+  for n: Nat
+  lt(n, 0n) -> Empty
+
+def lt_zero(n):
+  match n:
+    case 0n:
+      h => internal_false_ne_true(h)
+    case 1n+p:
+      h => internal_false_ne_true(h)
+
 # --- generated: _sym twins (tools/mathlib/twins.ts), do not edit ---
 
 # Zero is a right identity for addition: x + 0 = x, reversed to rewrite toward the simple side.

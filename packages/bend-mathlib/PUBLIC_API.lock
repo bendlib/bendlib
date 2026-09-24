@@ -569,6 +569,12 @@
     "sha256": "66518be0db96369e5d33ec1a6d8d00d3148553a811580a40e55902c7c74522e6",
     "since": "0.1.0.0"
   },
+  "nat.add_le_add_left": {
+    "kind": "law",
+    "text": "for -a: Nat\nfor -b: Nat\nfor k: Nat\nfor h: le(a, b)\nle(Nat.add(k, a), Nat.add(k, b))",
+    "sha256": "0d996340e364162db39451ec8b8dc5c1cd930e49568d82397027d31baa5e56be",
+    "since": null
+  },
   "nat.add_left_cancel": {
     "kind": "law",
     "text": "for a: Nat\nfor -b: Nat\nfor -c: Nat\nfor e: {Nat.add(a, b) == Nat.add(a, c) : Nat}\n{b == c : Nat}",
@@ -809,6 +815,12 @@
     "sha256": "75ecc88876539b4f87017040a5b1779a87ce77cafc6d805de062c3dd5cfead16",
     "since": "0.1.0.0"
   },
+  "nat.le_of_succ_le_succ": {
+    "kind": "law",
+    "text": "for -a: Nat\nfor -b: Nat\nfor h: le(1n+a, 1n+b)\nle(a, b)",
+    "sha256": "1e8f2d8128c78b3724b758c5d70f6a3601bda5b1aa445a1ac27da961af683f14",
+    "since": null
+  },
   "nat.le_refl": {
     "kind": "law",
     "text": "for a: Nat\nle(a, a)",
@@ -839,6 +851,12 @@
     "sha256": "8f5a7e42c8a77c15d79432cdcad7bdfafc9a03487a0491d6ab55c0184a95d575",
     "since": "0.1.0.0"
   },
+  "nat.le_zero_eq": {
+    "kind": "law",
+    "text": "for n: Nat\nfor h: le(n, 0n)\n{n == 0n : Nat}",
+    "sha256": "a22cc5cea4e19ecabfffa449aa82402b9099101e34f971ac9666bfeaa9193db3",
+    "since": null
+  },
   "nat.lt": {
     "kind": "predicate",
     "text": "def lt(a: Nat, b: Nat) -> Data:\n{Nat.is_lt(a, b) == True{} : Bool}",
@@ -857,11 +875,35 @@
     "sha256": "05f7d38a220fcc0e5f272266d3f3b49aaeee2488bd5525e9c7d2c2ceafb3210f",
     "since": "0.1.0.0"
   },
+  "nat.lt_of_le_of_lt": {
+    "kind": "law",
+    "text": "for a: Nat\nfor b: Nat\nfor c: Nat\nfor ab: le(a, b)\nfor bc: lt(b, c)\nlt(a, c)",
+    "sha256": "f0a50e22927988e2d587a25f255419cdca31bd06456abded97b5250f3e7a85ab",
+    "since": null
+  },
+  "nat.lt_of_lt_of_le": {
+    "kind": "law",
+    "text": "for a: Nat\nfor b: Nat\nfor c: Nat\nfor ab: lt(a, b)\nfor bc: le(b, c)\nlt(a, c)",
+    "sha256": "05b0983fb5600b08dc58c2151e765bc983e5390e335223c0d3678e7fc1b1afcb",
+    "since": null
+  },
+  "nat.lt_succ_self": {
+    "kind": "law",
+    "text": "for n: Nat\nlt(n, 1n+n)",
+    "sha256": "d0a60b786ca386d6736ba78e9b9ec8576e5e13fb183fc0a15e68ee55ea9aae28",
+    "since": null
+  },
   "nat.lt_trans": {
     "kind": "law",
     "text": "for a: Nat\nfor b: Nat\nfor c: Nat\nfor ab: lt(a, b)\nfor bc: lt(b, c)\nlt(a, c)",
     "sha256": "e3e292d73ec82b665cbd99e8ab69851932fd1ed1dd9fad331b0aa14cd776f584",
     "since": "0.1.0.0"
+  },
+  "nat.lt_zero": {
+    "kind": "law",
+    "text": "for n: Nat\nlt(n, 0n) -> Empty",
+    "sha256": "192a7f5739e477160eb79653f065659e8b38e988719d756dd097b866155639e1",
+    "since": null
   },
   "nat.max_assoc": {
     "kind": "law",
@@ -1216,6 +1258,12 @@
     "text": "for -a: Nat\nfor -b: Nat\nfor e: {1n+a == 1n+b : Nat}\n{a == b : Nat}",
     "sha256": "57561be401c6460fbd356493cfa23c18179c9020ccfae3ad8ab43f574bb76820",
     "since": "0.1.0.0"
+  },
+  "nat.succ_le_succ": {
+    "kind": "law",
+    "text": "for -a: Nat\nfor -b: Nat\nfor h: le(a, b)\nle(1n+a, 1n+b)",
+    "sha256": "c638d7dac6da16253aa8cd52da36245dbacaf12f23a0904e27b1fe0d012e465b",
+    "since": null
   },
   "nat.succ_mul": {
     "kind": "law",
