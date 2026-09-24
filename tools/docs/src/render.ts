@@ -12,6 +12,7 @@ export const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", 
 
 export const pkgPage = (hash: string) => `pkg/${hash}/index.html`;
 export const modPage = (hash: string, path: string) => `pkg/${hash}/${path}.html`;
+export const srcPage = (hash: string, path: string) => `pkg/${hash}/${path}.src.html`;
 export const namePage = (name: string) => `name/${name}/index.html`;
 
 function rel(from: string, to: string): string {
@@ -197,7 +198,10 @@ const GROUPS: [string, string][] = [["law", "Laws"], ["type", "Types"], ["def", 
 
 function declHtml(p: Package, m: Module, d: DocDecl, ids: Map<DocDecl, string>, ctors: DocDecl[]): string {
   const id = ids.get(d)!;
-  const src = `${HUB}/${p.hash}/${esc(m.path)}`;
+  const rawHref = `${HUB}/${p.hash}/${esc(m.path)}`;
+  const srcLink = m.source === null
+    ? `<a class="src" href="${rawHref}" title="raw source on the hub; the declaration starts at line ${d.line}">source · line ${d.line}</a>`
+    : `<span class="src"><a href="${esc(rel(modPage(p.hash, m.path), srcPage(p.hash, m.path)))}#L${d.line}" title="source, line ${d.line}">source · line ${d.line}</a> · <a href="${rawHref}" title="raw source on the hub">raw</a></span>`;
   let marker = "";
   if (d.kind === "law") {
     const by = m.provedIn[d.name];
@@ -219,7 +223,7 @@ function declHtml(p: Package, m: Module, d: DocDecl, ids: Map<DocDecl, string>, 
   const cs = ctors.length
     ? `<ul class="ctors">${ctors.map((c) => `<li id="${ids.get(c)!}"><code>${esc(c.name)}</code> <pre class="code sig">${esc(c.signature)}</pre>${docHtml(c.doc)}</li>`).join("")}</ul>` : "";
   return `<section class="decl" id="${id}" aria-labelledby="${id}-h">
-<h3 id="${id}-h">${kindBadge(d.kind)} <a class="self" href="#${id}">${esc(d.name)}</a> ${marker}<a class="src" href="${src}" title="raw source on the hub; the declaration starts at line ${d.line}">source · line ${d.line}</a></h3>
+<h3 id="${id}-h">${kindBadge(d.kind)} <a class="self" href="#${id}">${esc(d.name)}</a> ${marker}${srcLink}</h3>
 ${stmt}${docHtml(d.doc)}${effects}${cs}
 </section>`;
 }
@@ -275,6 +279,17 @@ export function renderModule(site: Site, p: Package, m: Module): string {
   }).join("\n");
   const body = `${head}${imports}${toc.length ? `<nav class="toc" aria-label="Declaration kinds">${toc.join("")}</nav>` : `<p class="muted">This file declares nothing of its own.</p>`}${sections}`;
   return page({ path, title: `${m.path} · ${label(p)} · Bend Docs`, body, site });
+}
+
+/** The module's source with one anchor per line; declaration "src" links point at these. */
+export function renderSource(site: Site, p: Package, m: Module): string {
+  const path = srcPage(p.hash, m.path);
+  const lines = (m.source ?? "").replace(/\n$/, "").split("\n");
+  const body = `<nav class="crumbs" aria-label="Breadcrumb"><a href="${rel(path, "index.html")}">Packages</a> / <a href="${rel(path, pkgPage(p.hash))}">${esc(label(p))}</a> / <a href="${rel(path, modPage(p.hash, m.path))}">${esc(m.path)}</a> / source</nav>
+<h1>${esc(m.path)} <span class="muted">source</span></h1>
+<p><a href="${HUB}/${p.hash}/${esc(m.path)}">${esc(m.path)} on the hub</a> · <a href="${rel(path, modPage(p.hash, m.path))}">documented module</a></p>
+<pre class="code src">${lines.map((l, i) => `<span class="ln" id="L${i + 1}">${esc(l)}</span>`).join("")}</pre>`;
+  return page({ path, title: `${m.path} source · ${label(p)} · Bend Docs`, body, site });
 }
 
 export function renderName(site: Site, name: string): string {

@@ -60,6 +60,18 @@ describe("three-package build from the live hub", () => {
     expect(read(`pkg/${MATHLIB}/all.bend.html`)).toContain("machine-checked lemmas for Bend 2");
   });
 
+  test("each declaration links to the module source page at its own line", () => {
+    expect(read(`pkg/${MATHLIB}/nat.bend.src.html`)).toContain('id="L1"');
+    const html = read(`pkg/${MATHLIB}/nat.bend.html`);
+    const at = html.indexOf('<section class="decl" id="add_comm"');
+    const sec = html.slice(at, html.indexOf("</section>", at));
+    const href = sec.match(/href="([^"]*nat\.bend\.src\.html#L(\d+))"/);
+    const line = sec.match(/source · line (\d+)/);
+    expect(href).not.toBeNull();
+    expect(line).not.toBeNull();
+    expect(href![2]).toBe(line![1]);
+  });
+
   test("llms.txt and lemmas.txt list every latest proved law as 3 tab-separated fields", () => {
     const llms = read("llms.txt");
     expect(llms).toContain("[bend-mathlib@0.1.0.1](");
@@ -108,7 +120,7 @@ describe("three-package build from the live hub", () => {
   });
 
   test("every link is relative, or points at the hub or the source repository", () => {
-    for (const f of ["index.html", "search.html", `pkg/${MATHLIB}/index.html`, `pkg/${MATHLIB}/nat.bend.html`, "name/bend-mathlib/index.html"]) {
+    for (const f of ["index.html", "search.html", `pkg/${MATHLIB}/index.html`, `pkg/${MATHLIB}/nat.bend.html`, `pkg/${MATHLIB}/nat.bend.src.html`, "name/bend-mathlib/index.html"]) {
       for (const [, href] of read(f).matchAll(/(?:href|src)="([^"]*)"/g)) {
         if (/^https:\/\/(hub\.bend-lang\.com|github\.com\/bendlib\/bendlib)\b/.test(href)) continue;
         expect(href).not.toMatch(/^(\/|[a-z]+:)/);

@@ -11,7 +11,7 @@ import type { Module, Package, Site } from "../src/model.ts";
 
 const HASH = "0x" + "a".repeat(32);
 
-const mod = (path: string): Module => ({ path, header: null, imports: [], foreign: [], decls: [], error: null, status: null, provedIn: {} });
+const mod = (path: string): Module => ({ path, header: null, source: null, imports: [], foreign: [], decls: [], error: null, status: null, provedIn: {} });
 const pkg = (modules: Module[]): Package => ({
   hash: HASH, ts: 0, desc: "", bytes: 0, files: modules.map((m) => ({ path: m.path, bytes: 1 })),
   names: [], licenses: [], modules, deps: [], rdeps: [], status: null,

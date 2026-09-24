@@ -15,7 +15,7 @@ import { extractFile, type FileDecls } from "./src/extract.ts";
 import { dependencyEdges, foreignImports, parseImports } from "./src/imports.ts";
 import { licenses } from "./src/license.ts";
 import { attachEdges, displayOrder, finishPackage, moduleHeader, namesByHash, type Module, type Package, type Site } from "./src/model.ts";
-import { renderAuthors, renderIndex, renderLemmas, renderLlms, renderModule, renderName, renderPackage, renderSearch, modPage, pkgPage, namePage, setBaseNamespaces } from "./src/render.ts";
+import { renderAuthors, renderIndex, renderLemmas, renderLlms, renderModule, renderName, renderPackage, renderSearch, renderSource, modPage, pkgPage, srcPage, namePage, setBaseNamespaces } from "./src/render.ts";
 import { baseNamespaces } from "./src/status.ts";
 import { buildSearchIndex } from "./src/searchindex.ts";
 import { checkFile, compilerVersion, crossCheck, readStatusCache, statusKey, writeStatusCache, type FileClass } from "./src/status.ts";
@@ -24,6 +24,8 @@ const HERE = import.meta.dir;
 const ROOT = resolve(HERE, "../..");
 // Bump when the shape of cached extraction records changes.
 const EXTRACT_FORMAT = 2;
+// Modules larger than this get no source page; their declarations link to the raw hub file.
+const MAX_SRC_BYTES = 400 * 1024;
 
 type Args = { limit: number | null; only: string[] | null; local: string | null; check: boolean; jobs: number; timeout: number; memMb: number; out: string; cache: string };
 
@@ -198,7 +200,7 @@ async function main() {
       if (r.ok) fills.set(path, r.fills);
       const cached = args.check ? cache[statusKey(e.hash, path, compiler)] ?? null : null;
       return {
-        path, header: moduleHeader(text), imports: parseImports(text), foreign: foreignImports(text),
+        path, header: moduleHeader(text), source: Buffer.byteLength(text) > MAX_SRC_BYTES ? null : text, imports: parseImports(text), foreign: foreignImports(text),
         decls: r.ok ? r.decls : null, error: r.ok ? null : r.error,
         status: cached === null ? null : crossCheck(cached, text), provedIn: {},
       };
@@ -240,7 +242,10 @@ async function main() {
   for (const p of site.packages) {
     write(out, pkgPage(p.hash), renderPackage(site, p));
     pages++;
-    for (const m of p.modules) { write(out, modPage(p.hash, m.path), renderModule(site, p, m)); pages++; }
+    for (const m of p.modules) {
+      write(out, modPage(p.hash, m.path), renderModule(site, p, m)); pages++;
+      if (m.source !== null) { write(out, srcPage(p.hash, m.path), renderSource(site, p, m)); pages++; }
+    }
   }
   const built = new Set(site.packages.map((p) => p.hash));
   for (const n of names) {

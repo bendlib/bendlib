@@ -10,6 +10,7 @@ import type { License } from "./license.ts";
 export type Module = {
   path: string;
   header: string | null;            // the module's top `#` comment block, when it is not a declaration's doc
+  source: string | null;            // the file text for the source page, or null when it is too large
   imports: Import[];
   foreign: string[];
   decls: DocDecl[] | null;          // null when the reader could not load the file

@@ -11,7 +11,7 @@ const st = (c: FileStatus["class"], summary = ""): FileStatus => ({ class: c, su
 const law = (name: string, proved: boolean, proofLine?: number): DocDecl =>
   ({ name, kind: "law", line: 1, doc: null, signature: "", proved, ...(proofLine ? { proofLine } : {}) });
 const mod = (path: string, decls: DocDecl[], status: FileStatus | null): Module =>
-  ({ path, header: null, imports: [], foreign: [], decls, error: null, status, provedIn: {} });
+  ({ path, header: null, source: null, imports: [], foreign: [], decls, error: null, status, provedIn: {} });
 const pkg = (modules: Module[]): Package => ({
   hash: "0x0", ts: 0, desc: "", bytes: 0, files: [], names: [], licenses: [], modules, deps: [], rdeps: [], status: null,
   counts: { laws: 0, proved: 0, defs: 0, types: 0, decls: 0 },

@@ -28,6 +28,10 @@ h3{font-size:1em;margin:0 0 .4em;color:var(--b02);font-weight:600;display:flex;f
 .crumbs{font-size:.87em;margin-top:1em;color:var(--b1);overflow-wrap:anywhere}
 pre{overflow-x:auto}
 pre.code{background:var(--bg2);border-radius:3px;padding:.8em 1ch;margin:.5em 0;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5;color:var(--b01);tab-size:2}
+pre.src{counter-reset:line;position:relative;padding-left:5ch}
+pre.src .ln{display:block;counter-increment:line;position:relative;scroll-margin-top:1em}
+pre.src .ln::before{content:counter(line);position:absolute;left:-5ch;width:4ch;text-align:right;color:var(--b0);user-select:none}
+pre.src .ln:target{background:rgba(139,131,181,.18)}
 pre.sig{font-size:.93em}
 .pill,.k,.st,.pr,.anon{display:inline-block;border-radius:4px;padding:0 .8ch;font-size:.85em;font-weight:400;white-space:nowrap;vertical-align:.04em;border:0}
 .pill{background:var(--pill);color:var(--vio)}
