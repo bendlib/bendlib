@@ -5,7 +5,7 @@ import { describe, expect, test } from "bun:test";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { BEND, checkCommand, checkFile, classify, crossCheck, worst } from "../src/status.ts";
+import { BEND, checkCommand, checkFile, classify, crossCheck, sandboxAvailable, worst } from "../src/status.ts";
 
 describe("classify", () => {
   test("exactly 'All terms check.' with exit 0 is checks", () => {
@@ -96,7 +96,7 @@ describe("checkCommand", () => {
   });
 });
 
-const hasBwrap = Bun.spawnSync(["bwrap", "--version"], { stdout: "ignore", stderr: "ignore" }).exitCode === 0;
+const hasBwrap = sandboxAvailable();
 
 describe("checkFile under the sandbox", () => {
   test.skipIf(!hasBwrap)("the good fixture checks inside bwrap", async () => {
