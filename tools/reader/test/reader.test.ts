@@ -114,6 +114,16 @@ describe("decls", () => {
     expect(k.first).toMatchObject({ kind: "def", line: 6 });
   });
 
+  test("identical module contents in distinct namespaces resolve by namespace", async () => {
+    const L = await load(path.join(FIX, "identical/main.bend"));
+    const k = Object.fromEntries(decls(L, { scope: "all-non-base" }).map((d) => [d.name, d]));
+    const real = (p: string) => fs.realpathSync(path.join(FIX, "identical", p));
+    expect(k["libA.dup"]).toMatchObject({ kind: "def", namespace: "libA", file: real("libA.bend"), line: 3 });
+    expect(k["libB.dup"]).toMatchObject({ kind: "def", namespace: "libB", file: real("libB.bend"), line: 3 });
+    expect(k["libA.dup"].signature).toBe(k["libB.dup"].signature);
+    expect(k.use).toMatchObject({ kind: "def", namespace: "", file: real("main.bend"), line: 5 });
+  });
+
   test("templates, effects and unsafe defs in Base are classified", async () => {
     const L = await load(path.join(REPO, "research/experiments/v1/order.bend"));
     const base = decls(L, { scope: "all" }).filter((d) => d.origin === "base");

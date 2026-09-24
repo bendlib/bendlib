@@ -126,8 +126,18 @@ function readFiles(seen: Map<string, string | null>): SourceFile[] {
   return out;
 }
 
-function fileOfSrc(files: SourceFile[], src: string): SourceFile | null {
-  return files.find((f) => f.parsed === src) ?? files.find((f) => f.text === src) ?? null;
+// bend.ts spans carry the parsed text, not a path; prefer the file whose namespace
+// prefixes the declaration key, so byte-identical modules stay distinct.
+function fileOfSrc(files: SourceFile[], src: string, key?: string): SourceFile | null {
+  const matches = files.filter((f) => f.parsed === src);
+  const pool = matches.length > 0 ? matches : files.filter((f) => f.text === src);
+  if (key !== undefined) {
+    const ns = pool.filter((f) => f.namespace !== "" && key.startsWith(f.namespace + "."));
+    if (ns.length > 0) return ns.reduce((a, b) => (b.namespace.length > a.namespace.length ? b : a));
+    const root = pool.find((f) => f.namespace === "");
+    if (root !== undefined) return root;
+  }
+  return pool[0] ?? null;
 }
 
 // bend.ts spans carry the parsed text, not a path, so the file is found by text.
@@ -188,7 +198,7 @@ export async function load(file: string, opts: LoadOptions = {}): Promise<Loaded
     const t = book.tlds[k];
     if (t.b === true) {
       base.push(k);
-    } else if (fileOfSrc(files, t.T.s?.src ?? "\0")?.path === real) {
+    } else if (fileOfSrc(files, t.T.s?.src ?? "\0", k)?.path === real) {
       own.push(k);
     } else {
       imported.push(k);
@@ -285,7 +295,7 @@ export function decls(L: Loaded, opts: { scope?: Scope } = {}): Decl[] {
     const t = book.tlds[k];
     const origin: Origin = t.b === true ? "base" : L.own.includes(k) ? "own" : "imported";
     const s = t.T.s;
-    const f = s === undefined ? null : fileOfSrc(L.files, s.src);
+    const f = s === undefined ? null : fileOfSrc(L.files, s.src, k);
     if (f === null) {
       throw new BendReadError(`Error: reader cannot place '${k}' in any loaded file (its type carries no usable span)`, L.file, null, null, k);
     }
