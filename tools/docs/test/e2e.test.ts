@@ -50,7 +50,7 @@ describe("three-package build from the live hub", () => {
 
   test("the index lists the three packages, named ones first, with statuses from the real checker", () => {
     const html = read("index.html");
-    const [m, t, a] = ["bend-mathlib@0.1.0.1", "bend-tensors@0.0.0.2", ANON.slice(0, 10)].map((s) => html.indexOf(`>${s}</a>`));
+    const [m, t, a] = ['bend-mathlib</a> <span class="pill">@0.1.0.1</span>', 'bend-tensors</a> <span class="pill">@0.0.0.2</span>', `${ANON.slice(0, 10)}…</a>`].map((s) => html.indexOf(`>${s}`));
     expect(m).toBeGreaterThan(0);
     expect(t).toBeGreaterThan(0);
     expect(a).toBeGreaterThan(Math.max(m, t));

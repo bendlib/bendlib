@@ -78,28 +78,30 @@ export function renderIndex(site: Site): string {
   const rows = groups.map((g) => {
     const p = g.latest, n = p.names[0];
     const search = [label(p), p.desc, n?.owner ?? "", ...g.members.map((m) => m.hash), ...p.names.map((x) => x.name)].join(" ").toLowerCase();
+    const title = n ? `${esc(n.name)}</a> <span class="pill">@${esc(n.version)}</span>` : `${esc(shortHash(p.hash))}…</a>`;
     const more = g.members.length < 2 ? "" : n
-      ? ` <a class="pill" href="${rel(path, namePage(n.name))}">${g.members.length} versions</a>`
-      : ` <span class="pill" title="${esc(g.members.map((m) => shortHash(m.hash)).join(", "))}">${g.members.length} uploads</span>`;
+      ? ` <a class="more" href="${rel(path, namePage(n.name))}">${g.members.length} versions</a>`
+      : ` <span class="more" title="${esc(g.members.map((m) => shortHash(m.hash)).join(", "))}">${g.members.length} uploads</span>`;
     return `<tr data-s="${esc(search)}">
-<td class="pk"><a href="${rel(path, pkgPage(p.hash))}">${esc(label(p))}</a>${more}${n ? "" : ` <span class="anon">anonymous</span>`}</td>
-<td class="ds">${esc(p.desc) || `<span class="muted">no description</span>`}</td>
-<td data-l="Owner">${n ? esc(n.owner) : `<span class="muted">—</span>`}</td>
-<td data-l="Status">${statusBadge(p.status)}</td>
-<td data-l="Laws / defs / types" class="num">${p.counts.laws} / ${p.counts.defs} / ${p.counts.types}</td>
-<td data-l="Dependents" class="num">${g.members.reduce((a, m) => a + m.rdeps.length, 0)}</td>
-<td data-l="Updated" class="num">${date(p.ts)}</td></tr>`;
+<td class="pk"><a class="t" href="${rel(path, pkgPage(p.hash))}">${title}${more}<div class="h">${p.hash}</div></td>
+<td class="ds"><div class="clamp" title="${esc(p.desc)}">${esc(p.desc) || `<span class="muted">no description</span>`}</div></td>
+<td data-l="status">${statusBadge(p.status)}</td>
+<td data-l="laws" class="num">${p.counts.laws}</td>
+<td data-l="used by" class="num">${g.members.reduce((a, m) => a + m.rdeps.length, 0)}</td>
+<td data-l="updated" class="num">${date(p.ts)}</td></tr>`;
   }).join("\n");
   const totals = groups.reduce((a, g) => ({ laws: a.laws + g.latest.counts.laws, decls: a.decls + g.latest.counts.decls }), { laws: 0, decls: 0 });
-  const body = `<h1>Packages on BendHub</h1>
-<p class="lead">${groups.length} packages (${site.packages.length} uploads), ${totals.decls.toLocaleString("en")} declarations and ${totals.laws.toLocaleString("en")} laws in their latest versions. Named packages first, then the newest.
-Search declarations and <a href="${rel(path, "search.html")}">laws by shape</a>, e.g. <code>Nat.add(_, 0n)</code>.</p>
-<div class="filter"><label for="filter">Filter packages</label> <input id="filter" type="search" placeholder="name, hash, owner or description" autocomplete="off"> <span id="shown" aria-live="polite"></span></div>
+  const body = `<div id="hero"><h1>Bend Docs</h1>
+<p class="sub">every <b>BendHub</b> package, documented</p>
+<p class="tag">${totals.decls.toLocaleString("en")} declarations and ${totals.laws.toLocaleString("en")} laws, each package checked on bend ${esc(site.compiler)}</p>
+<form class="find" role="search" action="${rel(path, "search.html")}" method="get"><label class="vh" for="fq">Search</label><input id="fq" name="q" type="search" placeholder="a name, a word of a doc, or a law shape like Nat.add(_, 0n)" autocomplete="off"><button class="btn" type="submit">find</button></form></div>
+<section><h2>Packages <span class="n">${groups.length} packages · ${site.packages.length} uploads</span></h2>
+<div class="filter"><label for="filter">filter</label> <input id="filter" type="search" placeholder="name, hash, owner or description" autocomplete="off"> <span id="shown" aria-live="polite"></span></div>
 <div class="tablewrap"><table class="pkgs" id="pkgs">
-<thead><tr><th scope="col">Package</th><th scope="col">Description</th><th scope="col">Owner</th><th scope="col">Status</th><th scope="col" class="num">Laws / defs / types</th><th scope="col" class="num">Dependents</th><th scope="col" class="num">Updated</th></tr></thead>
+<thead><tr><th scope="col">name / version</th><th scope="col">description</th><th scope="col">status</th><th scope="col" class="num">laws</th><th scope="col" class="num">used by</th><th scope="col" class="num">updated</th></tr></thead>
 <tbody>
 ${rows}
-</tbody></table></div>`;
+</tbody></table></div></section>`;
   return page({ path, title: "Bend Docs: BendHub packages", body, site, scripts: ["assets/site.js"] });
 }
 
