@@ -1,0 +1,452 @@
+// lawcheck core: load a file with @bendlib/reader, turn each law into closed
+// instances, evaluate them with the checker, and shrink counterexamples.
+
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
+import { decls, load, show, type Decl, type Loaded } from "../../reader/index.ts";
+import { bendBin, evaluate, evaluateAll, type Engine, type Item, type Outcome } from "./checker.ts";
+import { mentions, rewrite, Shadowed, splitEquation } from "./terms.ts";
+import { parseTy, showTy, substTy, type Ty } from "./types.ts";
+import { measure, mulberry32, render, Universe, Unsupported, type Adt, type Rng, type Val } from "./values.ts";
+
+export type Options = {
+  size: number;
+  maxInstances: number;
+  seed: number;
+  law?: string;
+  impl?: string;
+  jobs?: number;
+  timeoutMs?: number;
+  tmpDir?: string;
+};
+
+export type Binding = { name: string; value: string };
+
+export type Counterexample = {
+  bindings: Binding[];
+  types: Binding[];
+  claim: string;
+  lhs?: { term: string; value: string };
+  rhs?: { term: string; value: string };
+  goal?: string;
+  expected?: string;
+  observed?: string;
+  premises?: string[];
+  original: Binding[];
+  shrinkSteps: number;
+};
+
+export type LawResult = {
+  name: string;
+  file: string;
+  line: number;
+  proved: boolean;
+  claim: "equation" | "predicate" | "refutation" | "other";
+  status: "pass" | "fail" | "skip" | "error";
+  reason?: string;
+  instances: number;
+  failures: number;
+  premise?: { satisfied: number; total: number };
+  counterexample?: Counterexample;
+};
+
+export type Report = { tool: "lawcheck"; version: string; bend: string; file: string; seed: number; size: number; maxInstances: number; tmpDir: string; checkerRuns: number; laws: LawResult[] };
+
+export const VERSION = "0.1.0";
+
+class Skip extends Error {}
+
+type Value = { name: string; ty: Ty };
+type Plan = {
+  d: Decl;
+  kind: LawResult["claim"];
+  claim: string;
+  typeParams: string[];
+  quantParams: string[];
+  values: Value[];
+  premises: string[];
+};
+type Inst = { vals: Val[]; types: Map<string, string> };
+
+const TYPE_CHOICES = ["U32", "Nat"];
+
+function tipOf(L: Loaded, key: string): string {
+  const B = L.bend;
+  let t = B.term_lower(L.book.tlds[key].T, 0);
+  const bnd: string[] = [];
+  while (t.$ === "All") { bnd.push(t.k); t = t.B; }
+  return B.term_show(t, -1, bnd);
+}
+
+function universe(L: Loaded): Universe {
+  const B = L.bend;
+  const adts = new Map<string, Adt>();
+  for (const d of decls(L, { scope: "all" })) {
+    if (d.kind !== "type") continue;
+    const params: string[] = [];
+    let t = B.term_lower(L.book.tlds[d.name].T, 0);
+    while (t.$ === "All") { params.push(t.k); t = t.B; }
+    const ctors = L.book.tlds[d.name].c.map((c: any) => {
+      let u = B.term_lower(c.T, 0);
+      const bnd: string[] = [];
+      const cparams: string[] = [];
+      const fields: Ty[] = [];
+      while (u.$ === "All") {
+        const shown = B.term_show(u.A, -1, [...bnd]);
+        if (cparams.length < params.length) cparams.push(u.k);
+        else fields.push(parseTy(shown) ?? { t: "app", head: `<${shown}>`, args: [], paren: false });
+        bnd.push(u.k);
+        u = u.B;
+      }
+      return { name: c.k, params: cparams, fields };
+    });
+    adts.set(d.name, { name: d.name, params, ctors });
+  }
+  return new Universe(adts);
+}
+
+function plan(L: Loaded, d: Decl, predicates: Set<string>, U: Universe): Plan {
+  const binders = d.binders ?? [];
+  const tmpl = binders.find((b) => b.quant === "template" && !/^(Quant|Type|Data|Kind\(.*\))$/.test(b.type));
+  if (tmpl) throw new Skip(`template binder ~${tmpl.name} (v0.2)`);
+  const p: Plan = { d, kind: "other", claim: "", typeParams: [], quantParams: [], values: [], premises: [] };
+  const premiseNames: string[] = [];
+  const isPredicateApp = (s: string) => {
+    const head = applicationHead(s);
+    return head !== null && predicates.has(head);
+  };
+  for (const b of binders) {
+    const t = b.type;
+    if (t === "Quant") p.quantParams.push(b.name);
+    else if (/^(Type|Data|Kind\(.*\))$/.test(t)) p.typeParams.push(b.name);
+    else if (t.startsWith("{")) { p.premises.push(t); premiseNames.push(b.name); }
+    else if (/^&[A-Za-z_]\w*:/.test(t)) throw new Skip(`\`where\` premise on ${b.name} (v0.2)`);
+    else if (t.includes("->")) throw new Skip(`function-typed binder ${b.name}: ${t} (v0.2)`);
+    else {
+      const ty = parseTy(t);
+      if (ty !== null && generable(U, substTy(ty, envTypes(p, TYPE_CHOICES[0])))) p.values.push({ name: b.name, ty });
+      else if (isPredicateApp(t)) { p.premises.push(t); premiseNames.push(b.name); }
+      else if (ty === null) throw new Skip(`binder ${b.name}: cannot generate values of ${t}`);
+      else p.values.push({ name: b.name, ty });
+    }
+  }
+  const tip = tipOf(L, d.name);
+  if (d.statement) {
+    p.kind = "equation";
+    p.claim = `{${d.statement.lhs} == ${d.statement.rhs} : ${d.statement.type}}`;
+  } else if (tip === "Empty" && p.premises.length > 0) {
+    p.kind = "refutation";
+    p.claim = "Empty";
+  } else if (isPredicateApp(tip)) {
+    p.kind = "predicate";
+    p.claim = tip;
+  } else if (/^&[A-Za-z_]\w*:/.test(tip)) {
+    throw new Skip(`\`exs\` witness claim (v0.2)`);
+  } else {
+    throw new Skip(`claim is not an equation or a single predicate application: ${tip}`);
+  }
+  for (const n of premiseNames) {
+    if (n !== "_" && [p.claim, ...p.premises].some((s) => mentions(s, n))) throw new Skip(`the claim uses the premise proof ${n}`);
+  }
+  for (const v of p.values) {
+    for (const choice of p.typeParams.length ? TYPE_CHOICES : [""]) {
+      const env = envTypes(p, choice);
+      try {
+        U.check(substTy(v.ty, env));
+      } catch (e) {
+        if (e instanceof Unsupported) throw new Skip(`binder ${v.name}: no generator for type ${e.message}`);
+        throw e;
+      }
+    }
+  }
+  return p;
+}
+
+/** The head of `f(args)` when the whole string is that one application, else null. */
+export function applicationHead(s: string): string | null {
+  const m = /^([A-Za-z_\/][A-Za-z0-9_.\/$-]*)\(/.exec(s);
+  if (m === null || !s.endsWith(")")) return null;
+  let depth = 0;
+  for (let i = m[1].length; i < s.length; i++) {
+    if ("([{".includes(s[i])) depth++;
+    else if (")]}".includes(s[i]) && --depth === 0 && i !== s.length - 1) return null;
+  }
+  return m[1];
+}
+
+function generable(U: Universe, ty: Ty): boolean {
+  try {
+    U.check(ty);
+    return true;
+  } catch (e) {
+    if (e instanceof Unsupported) return false;
+    throw e;
+  }
+}
+
+function envTypes(p: Plan, choice: string): Map<string, Ty> {
+  const env = new Map<string, Ty>();
+  for (const q of p.quantParams) env.set(q, { t: "q", q: "&2" });
+  for (const a of p.typeParams) env.set(a, { t: "app", head: choice, args: [], paren: false });
+  return env;
+}
+
+function* product(doms: Val[][], order: number[]): Generator<Val[]> {
+  for (const idx of order) {
+    let k = idx;
+    const out: Val[] = [];
+    for (let i = doms.length - 1; i >= 0; i--) { out[i] = doms[i][k % doms[i].length]; k = Math.floor(k / doms[i].length); }
+    yield out;
+  }
+}
+
+function instances(p: Plan, U: Universe, o: Options, r: Rng): Inst[] {
+  const choices = p.typeParams.length ? TYPE_CHOICES : [""];
+  const all: Inst[] = [];
+  choices.forEach((choice, ci) => {
+    const budget = Math.floor(o.maxInstances / choices.length) + (ci < o.maxInstances % choices.length ? 1 : 0);
+    const env = envTypes(p, choice);
+    const tys = p.values.map((v) => substTy(v.ty, env));
+    const types = new Map(p.typeParams.map((a) => [a, choice] as [string, string]));
+    const seen = new Set<string>();
+    const out: Inst[] = [];
+    const add = (vals: Val[]) => {
+      const k = vals.map((v) => render(v)).join("|");
+      if (seen.has(k) || out.length >= budget) return;
+      seen.add(k);
+      out.push({ vals, types });
+    };
+    const exhaustive = Math.ceil(budget * 0.6);
+    for (let d = 0; d <= o.size && out.length < exhaustive; d++) {
+      const doms = tys.map((t) => U.enumerate(t, d));
+      const total = doms.reduce((n, x) => n * x.length, 1);
+      if (total === 0) continue;
+      const room = exhaustive - out.length;
+      const order = total <= room
+        ? Array.from({ length: total }, (_, i) => i)
+        : Array.from({ length: room * 4 }, () => Math.floor(r() * total));
+      for (const vals of product(doms, order)) add(vals);
+    }
+    for (let tries = 0; out.length < budget && tries < budget * 20; tries++) {
+      add(tys.map((t) => U.random(t, Math.max(o.size, 3), r)));
+    }
+    all.push(...out);
+  });
+  return all;
+}
+
+function aliasMap(L: Loaded) {
+  const nsToAlias = new Map<string, { alias: string; file: string }>();
+  let k = 0;
+  const imports = [`import Base`, `import ${L.file} as U`];
+  for (const f of L.files) {
+    if (f.namespace === "") continue;
+    const alias = `LC${++k}`;
+    nsToAlias.set(f.namespace, { alias, file: f.path });
+    imports.push(f.namespace.startsWith("0x") ? `import ${f.namespace}.bend as ${alias}` : `import ${f.path} as ${alias}`);
+  }
+  const own = new Set(L.own);
+  for (const d of decls(L, { scope: "own" })) own.add(d.name);
+  const nss = [...nsToAlias.keys()].sort((a, b) => b.length - a.length);
+  const qualify = (id: string): string => {
+    if (own.has(id)) return `U.${id}`;
+    for (const ns of nss) if (id.startsWith(ns + ".")) return `${nsToAlias.get(ns)!.alias}.${id.slice(ns.length + 1)}`;
+    return id;
+  };
+  const user = userAliases(L);
+  const nameOut = (id: string): string => {
+    for (const ns of nss) if (id.startsWith(ns + ".") && user.has(ns)) return `${user.get(ns)}.${id.slice(ns.length + 1)}`;
+    return id;
+  };
+  const names = (s: string) => rewrite(s, new Map(), nameOut, false);
+  const back: [string, string][] = [[L.file.replace(/\.bend$/, "") + ".", ""]];
+  for (const [ns, { file }] of nsToAlias) if (!ns.startsWith("0x")) back.push([file.replace(/\.bend$/, "") + ".", ns + "."]);
+  back.sort((a, b) => b[0].length - a[0].length);
+  const display = (s: string) => names(back.reduce((acc, [from, to]) => acc.split(from).join(to), s));
+  return { header: imports.join("\n") + "\n", qualify, display, nameOut };
+}
+
+/** Namespace to the alias the root file imports it under, so output reads like the user's source. */
+function userAliases(L: Loaded): Map<string, string> {
+  const root = L.files.find((f) => f.path === L.file);
+  const out = new Map<string, string>();
+  for (const line of (root?.text ?? "").split("\n")) {
+    const m = /^import\s+(\S+)\s+as\s+(\S+)\s*$/.exec(line.trim());
+    if (m === null) continue;
+    const spec = m[1];
+    const abs = spec.startsWith("/") ? spec : spec.startsWith(".") ? path.resolve(path.dirname(L.file), spec) : null;
+    const f = abs === null ? L.files.find((x) => x.namespace + ".bend" === spec) : L.files.find((x) => x.path === (fs.existsSync(abs) ? fs.realpathSync(abs) : abs));
+    if (f && f.namespace !== "") out.set(f.namespace, m[2]);
+  }
+  return out;
+}
+
+function rootFor(file: string, impl: string | undefined, tmp: string): string {
+  if (impl === undefined) return file;
+  const dir = path.dirname(path.resolve(file));
+  const implAbs = path.resolve(impl);
+  if (!fs.existsSync(implAbs)) throw new UsageError(`--impl: no such file: ${impl}`);
+  const lines = fs.readFileSync(file, "utf8").split("\n");
+  const locals = lines.map((l, i) => ({ i, m: /^import\s+(\.{1,2}\/\S+\.bend)(\s+as\s+\S+)?\s*$/.exec(l.trim()) })).filter((x) => x.m !== null);
+  let target = locals.filter((x) => path.basename(x.m![1]) === path.basename(implAbs));
+  if (target.length === 0 && locals.length === 1) target = locals;
+  if (target.length !== 1) throw new UsageError(`--impl: cannot tell which import of ${file} to replace (need one local import named ${path.basename(implAbs)})`);
+  for (const x of locals) {
+    const abs = x === target[0] ? implAbs : path.resolve(dir, x.m![1]);
+    lines[x.i] = `import ${abs}${x.m![2] ?? ""}`;
+  }
+  const out = path.join(tmp, "impl_" + path.basename(file));
+  fs.writeFileSync(out, lines.join("\n"));
+  return out;
+}
+
+export class UsageError extends Error {}
+
+export async function lawcheck(file: string, o: Options): Promise<Report> {
+  const abs = path.resolve(file);
+  if (!fs.existsSync(abs)) throw new UsageError(`no such file: ${file}`);
+  const tmp = o.tmpDir ?? fs.mkdtempSync(path.join(os.tmpdir(), "lawcheck-"));
+  const root = rootFor(abs, o.impl, tmp);
+  const L = await load(root);
+  const own = decls(L, { scope: "own" });
+  const predicates = new Set(decls(L, { scope: "all" }).filter((d) => d.predicate).map((d) => d.name));
+  const U = universe(L);
+  const { header, qualify, display, nameOut } = aliasMap(L);
+  const E: Engine = { header, dir: tmp, bend: bendBin(), timeoutMs: o.timeoutMs ?? 120000, jobs: o.jobs ?? navigator.hardwareConcurrency, runs: 0, display };
+  const all = own.filter((d) => d.kind === "law");
+  const laws = all.filter((d) => o.law === undefined || d.name === o.law);
+  if (o.law !== undefined && laws.length === 0) throw new UsageError(`no law named ${o.law} in ${file}`);
+  const results = await Promise.all(laws.map((d) => checkLaw(L, d, all.indexOf(d), o, U, predicates, E, qualify, nameOut)));
+  for (const r of results) r.file = abs;
+  return { tool: "lawcheck", version: VERSION, bend: L.source.version, file: abs, seed: o.seed, size: o.size, maxInstances: o.maxInstances, tmpDir: tmp, checkerRuns: E.runs, laws: results };
+}
+
+async function checkLaw(L: Loaded, d: Decl, li: number, o: Options, U: Universe, predicates: Set<string>, E: Engine, qualify: (s: string) => string, nameOut: (s: string) => string): Promise<LawResult> {
+  const base: LawResult = { name: d.name, file: d.file, line: d.line, proved: d.proved === true, claim: "other", status: "skip", instances: 0, failures: 0 };
+  let p: Plan;
+  try {
+    p = plan(L, d, predicates, U);
+  } catch (e) {
+    if (e instanceof Skip) return { ...base, reason: e.message };
+    throw e;
+  }
+  base.claim = p.kind;
+  const r = mulberry32(o.seed + li * 7919);
+  let insts: Inst[];
+  try {
+    insts = instances(p, U, o, r);
+  } catch (e) {
+    if (e instanceof Unsupported) return { ...base, reason: `cannot generate values: ${e.message}` };
+    throw e;
+  }
+  let n = 0;
+  const texts = (inst: Inst) => {
+    const env = new Map<string, string>();
+    for (const q of p.quantParams) env.set(q, "&2");
+    for (const [a, t] of inst.types) env.set(a, t);
+    p.values.forEach((v, i) => env.set(v.name, render(inst.vals[i], qualify)));
+    const denv = new Map(env);
+    p.values.forEach((v, i) => denv.set(v.name, render(inst.vals[i], nameOut)));
+    try {
+      return {
+        claim: rewrite(p.claim, env, qualify),
+        premises: p.premises.map((s) => rewrite(s, env, qualify)),
+        shown: rewrite(p.claim, denv, nameOut, false),
+        shownPremises: p.premises.map((s) => rewrite(s, denv, nameOut, false)),
+      };
+    } catch (e) {
+      if (e instanceof Shadowed) throw new Skip(`binder ${e.message} is shadowed by a lambda in the claim`);
+      throw e;
+    }
+  };
+  const id = () => `lc_${li}_${n++}`;
+
+  async function holding(cands: Inst[]): Promise<Inst[] | string> {
+    if (p.premises.length === 0) return cands;
+    const items = cands.map((c) => texts(c).premises.map((claim) => ({ id: id(), claim })));
+    const res = await evaluateAll(E, items.flat());
+    const bad = [...res.values()].find((x) => x.r === "undecidable" || x.r === "illtyped" || x.r === "error");
+    if (bad) return `premise ${bad.r === "undecidable" ? "not decidable by evaluation" : "could not be evaluated"}: ${(bad as any).detail}`;
+    return cands.filter((_, i) => items[i].every((it) => res.get(it.id)!.r === "pass"));
+  }
+
+  const problem = (out: Outcome): LawResult | null => {
+    if (out.r === "undecidable") return { ...base, status: "skip", reason: `not decidable by evaluation (${out.detail})` };
+    if (out.r === "illtyped") return { ...base, status: "error", reason: `a generated instance does not type-check:\n${out.detail}` };
+    if (out.r === "error") return { ...base, status: "error", reason: out.detail };
+    return null;
+  };
+
+  try {
+    const sat = await holding(insts);
+    if (typeof sat === "string") return { ...base, reason: sat };
+    base.instances = sat.length;
+    if (p.premises.length) base.premise = { satisfied: sat.length, total: insts.length };
+    if (sat.length === 0 && p.kind === "refutation") return { ...base, status: "pass", instances: insts.length };
+    if (sat.length === 0) return { ...base, status: "skip", reason: `premises satisfied in 0/${insts.length} instances — law untested (vacuous in this space)` };
+    let failing: { inst: Inst; out?: Outcome }[];
+    if (p.kind === "refutation") {
+      failing = sat.map((inst) => ({ inst }));
+    } else {
+      const items = sat.map((inst) => ({ id: id(), claim: texts(inst).claim }));
+      const res = await evaluateAll(E, items);
+      for (const out of res.values()) { const pr = problem(out); if (pr) return pr; }
+      failing = sat.map((inst, i) => ({ inst, out: res.get(items[i].id)! })).filter((x) => x.out.r === "fail");
+    }
+    base.failures = failing.length;
+    if (failing.length === 0) return { ...base, status: "pass" };
+    const size = (x: Inst) => x.vals.reduce((s, v) => s + measure(v), 0);
+    failing.sort((a, b) => size(a.inst) - size(b.inst));
+    const original = failing[0].inst;
+    let cur = failing[0];
+    let steps = 0;
+    for (; steps < 200; steps++) {
+      const seen = new Set<string>();
+      const cands: Inst[] = [];
+      cur.inst.vals.forEach((v, i) => {
+        for (const s of U.shrink(v)) {
+          const vals = cur.inst.vals.map((w, j) => (j === i ? s : w));
+          const k = vals.map((x) => render(x)).join("|");
+          if (!seen.has(k)) { seen.add(k); cands.push({ vals, types: cur.inst.types }); }
+        }
+      });
+      cands.sort((a, b) => size(a) - size(b));
+      const ok = await holding(cands.slice(0, 300));
+      if (typeof ok === "string" || ok.length === 0) break;
+      if (p.kind === "refutation") { cur = { inst: ok[0] }; continue; }
+      const items = ok.map((inst) => ({ id: id(), claim: texts(inst).claim }));
+      const res = await evaluate(E, items, true);
+      const hit = items.findIndex((it) => res.get(it.id)?.r === "fail");
+      if (hit < 0) break;
+      cur = { inst: ok[hit], out: res.get(items[hit].id) };
+    }
+    const bind = (inst: Inst): Binding[] => p.values.map((v, i) => ({ name: v.name, value: render(inst.vals[i], nameOut) }));
+    const t = texts(cur.inst);
+    const cex: Counterexample = {
+      bindings: bind(cur.inst),
+      types: [...cur.inst.types].map(([name, value]) => ({ name, value })),
+      claim: t.shown,
+      original: bind(original),
+      shrinkSteps: steps,
+    };
+    if (p.premises.length) cex.premises = t.shownPremises;
+    if (cur.out?.r === "fail") { cex.expected = cur.out.expected; cex.observed = cur.out.observed; }
+    if (p.kind !== "refutation") {
+      const hid = id();
+      const g = (await evaluate(E, [{ id: hid, claim: t.claim, hole: true }])).get(hid);
+      if (g?.r === "goal") {
+        const eq = splitEquation(g.goal);
+        const shown = p.kind === "equation" ? splitEquation(t.shown) : null;
+        if (eq && shown) {
+          cex.lhs = { term: shown.lhs, value: eq.lhs };
+          cex.rhs = { term: shown.rhs, value: eq.rhs };
+        } else cex.goal = g.goal;
+      }
+    }
+    return { ...base, status: "fail", counterexample: cex };
+  } catch (e) {
+    if (e instanceof Skip) return { ...base, reason: e.message };
+    throw e;
+  }
+}
