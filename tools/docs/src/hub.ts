@@ -3,9 +3,16 @@
 // line is "<sha256> <path>", so both levels are verified before anything is cached.
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync, renameSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve, sep } from "node:path";
 
 export const HUB = process.env.BEND_HUB ?? "https://hub.bend-lang.com";
+
+export const FETCH_TIMEOUT_MS = 30_000;
+
+/** One hub request, bounded so a stalled hub cannot hang the build. */
+export async function fetchHub(url: string, timeoutMs = FETCH_TIMEOUT_MS): Promise<Response> {
+  return fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
+}
 
 export type IndexEntry = { hash: string; files: Record<string, number>; bytes: number; ts: number; desc: string };
 export type NameVersion = { version: string; hash: string; ts: number };
@@ -16,12 +23,15 @@ export type NameRecord = {
 };
 
 const HASH = /^0x[0-9a-f]{32}$/;
+// PLAN F1: names are `^[a-z][a-z0-9-]{11,63}$`, versions are `a.b.c.d`.
+const NAME = /^[a-z][a-z0-9-]{11,63}$/;
+const VERSION = /^\d+\.\d+\.\d+\.\d+$/;
 
 async function get(url: string, tries = 3): Promise<Response> {
   let last: unknown;
   for (let i = 0; i < tries; i++) {
     try {
-      const r = await fetch(url);
+      const r = await fetchHub(url);
       if (r.ok || r.status === 404 || r.status === 410) return r;
       last = new Error(`HTTP ${r.status} for ${url}`);
     } catch (e) {
@@ -80,8 +90,17 @@ export function parseManifest(text: string): ManifestLine[] {
   });
 }
 
-function safePath(p: string): boolean {
-  return p !== "" && !p.startsWith("/") && !p.split("/").some((s) => s === ".." || s === "." || s === "");
+/** True when a manifest path is relative, has no `.`/`..`/empty segment, and no control chars, quotes or angle brackets. */
+export function safePath(p: string): boolean {
+  if (p === "" || p.startsWith("/") || /[\x00-\x1f\x7f"'<>]/.test(p)) return false;
+  return !p.split("/").some((s) => s === ".." || s === "." || s === "");
+}
+
+/** Joins `rel` under `root`, refusing anything that resolves outside `root`. */
+export function underRoot(root: string, rel: string): string {
+  const base = resolve(root), r = resolve(base, rel);
+  if (r !== base && !r.startsWith(base + sep)) throw new Error(`path escapes ${base}: ${JSON.stringify(rel)}`);
+  return r;
 }
 
 export type Cached = { hash: string; manifest: ManifestLine[]; fetched: boolean };
@@ -91,7 +110,11 @@ export type Cached = { hash: string; manifest: ManifestLine[]; fetched: boolean 
 export async function ensurePackage(hash: string, lib: string, cache: string): Promise<Cached> {
   const mfile = join(cache, "manifests", hash);
   if (existsSync(mfile)) {
-    return { hash, manifest: parseManifest(readFileSync(mfile, "utf8")), fetched: false };
+    const mbytes = readFileSync(mfile);
+    if (!sha256(mbytes).startsWith(hash.slice(2))) throw new Error(`cached manifest of ${hash} is corrupt; delete ${mfile} to refetch`);
+    const manifest = parseManifest(mbytes.toString("utf8"));
+    for (const { path } of manifest) if (!safePath(path)) throw new Error(`cached manifest of ${hash}: unsafe path ${JSON.stringify(path)}`);
+    return { hash, manifest, fetched: false };
   }
   const r = await get(`${HUB}/${hash}/manifest`);
   if (!r.ok) throw new Error(`manifest of ${hash}: HTTP ${r.status}`);
@@ -118,15 +141,17 @@ export async function ensurePackage(hash: string, lib: string, cache: string): P
     renameSync(target + ".part", target);
   });
   mkdirSync(dirname(mfile), { recursive: true });
-  writeFileSync(mfile, mbytes);
+  writeFileSync(mfile + ".part", mbytes);
+  renameSync(mfile + ".part", mfile);
   return { hash, manifest, fetched: true };
 }
 
 /** Pre-seeds `<lib>/names/<name>@<version>` exactly as bend.ts's name_hash would, so loads need no network for names. */
 export function seedNames(lib: string, names: NameRecord[]): void {
   for (const n of names) {
+    if (!NAME.test(n.name)) continue;
     for (const v of n.versions) {
-      if (!HASH.test(v.hash)) continue;
+      if (!HASH.test(v.hash) || !VERSION.test(v.version)) continue;
       const at = join(lib, "names", `${n.name}@${v.version}`);
       mkdirSync(dirname(at), { recursive: true });
       writeFileSync(at, v.hash + "\n");

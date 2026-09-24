@@ -10,7 +10,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSy
 import { dirname, join, resolve } from "node:path";
 import { bendSource } from "../reader/index.ts";
 import { packageFiles, hubHash } from "../mathlib/hash.ts";
-import { ensurePackage, fetchIndex, fetchNames, pool, seedNames, sha256, type IndexEntry, type ManifestLine } from "./src/hub.ts";
+import { ensurePackage, fetchIndex, fetchNames, pool, seedNames, sha256, underRoot, type IndexEntry, type ManifestLine } from "./src/hub.ts";
 import { extractFile, type FileDecls } from "./src/extract.ts";
 import { dependencyEdges, foreignImports, parseImports } from "./src/imports.ts";
 import { licenses } from "./src/license.ts";
@@ -61,7 +61,7 @@ const log = (s: string) => console.error(s);
 const secs = (t0: number) => ((performance.now() - t0) / 1000).toFixed(1) + " s";
 
 function write(out: string, rel: string, text: string) {
-  const p = join(out, rel);
+  const p = underRoot(out, rel);
   mkdirSync(dirname(p), { recursive: true });
   writeFileSync(p, text);
 }
@@ -154,12 +154,13 @@ async function main() {
   if (src.version !== compiler) usage(`reader parses with bend.ts ${src.version}, compiler is ${compiler}`);
   const extracted = new Map<string, Record<string, FileDecls>>();
   let extractedNew = 0;
-  for (const e of entries) {
+  for (let i = 0; i < entries.length; i++) {
+    const e = entries[i];
     const cfile = join(args.cache, "decls", `${compiler}-f${EXTRACT_FORMAT}`, `${e.hash}.json`);
     if (existsSync(cfile)) { extracted.set(e.hash, JSON.parse(readFileSync(cfile, "utf8"))); continue; }
     const rec: Record<string, FileDecls> = {};
-    for (const f of Object.keys(e.files).filter((p) => p.endsWith(".bend")).sort()) {
-      rec[f] = await extractFile(join(lib, e.hash, f), join(lib, e.hash), lib, src);
+    for (const { path } of manifests[i]) if (path.endsWith(".bend")) {
+      rec[path] = await extractFile(join(lib, e.hash, path), join(lib, e.hash), lib, src);
       extractedNew++;
     }
     mkdirSync(dirname(cfile), { recursive: true });
@@ -176,7 +177,7 @@ async function main() {
     const todo: { hash: string; path: string }[] = [];
     // A cached timeout is retried when this run allows more time than it had.
     const stale = (c: (typeof cache)[string] | undefined) => c === undefined || (c.class === "timeout" && c.seconds < args.timeout - 1);
-    for (const e of entries) for (const f of Object.keys(e.files)) if (f.endsWith(".bend") && stale(cache[statusKey(e.hash, f, compiler)])) todo.push({ hash: e.hash, path: f });
+    for (let i = 0; i < entries.length; i++) for (const { path } of manifests[i]) if (path.endsWith(".bend") && stale(cache[statusKey(entries[i].hash, path, compiler)])) todo.push({ hash: entries[i].hash, path });
     let done = 0;
     await pool(todo, args.jobs, async ({ hash, path }) => {
       cache[statusKey(hash, path, compiler)] = await checkFile(join(lib, hash, path), { bendLib: lib, timeoutSec: args.timeout, memMb: args.memMb, cwd: join(lib, hash) });
@@ -191,9 +192,9 @@ async function main() {
     const manifest = manifests[i];
     const rec = extracted.get(e.hash)!;
     const fills = new Map<string, string[]>();
-    const modules: Module[] = Object.keys(rec).sort().map((path) => {
+    const modules: Module[] = manifest.map((m) => m.path).filter((p) => p.endsWith(".bend")).sort().map((path) => {
       const text = readFileSync(join(lib, e.hash, path), "utf8");
-      const r = rec[path];
+      const r = rec[path] ?? { ok: false as const, error: { message: "not extracted", file: null, line: null }, ms: 0 };
       if (r.ok) fills.set(path, r.fills);
       const cached = args.check ? cache[statusKey(e.hash, path, compiler)] ?? null : null;
       return {

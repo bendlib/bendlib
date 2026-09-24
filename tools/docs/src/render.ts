@@ -80,7 +80,7 @@ export function renderIndex(site: Site): string {
     const search = [label(p), p.desc, n?.owner ?? "", ...g.members.map((m) => m.hash), ...p.names.map((x) => x.name)].join(" ").toLowerCase();
     const title = n ? `${esc(n.name)}</a> <span class="pill">@${esc(n.version)}</span>` : `${esc(shortHash(p.hash))}…</a>`;
     const more = g.members.length < 2 ? "" : n
-      ? ` <a class="more" href="${rel(path, namePage(n.name))}">${g.members.length} versions</a>`
+      ? ` <a class="more" href="${esc(rel(path, namePage(n.name)))}">${g.members.length} versions</a>`
       : ` <span class="more" title="${esc(g.members.map((m) => shortHash(m.hash)).join(", "))}">${g.members.length} uploads</span>`;
     return `<tr data-s="${esc(search)}">
 <td class="pk"><a class="t" href="${rel(path, pkgPage(p.hash))}">${title}${more}<div class="h">${p.hash}</div></td>
@@ -136,7 +136,7 @@ function statusTable(path: string, p: Package): string {
       ? `<details><summary>output</summary><pre>${esc(s.detail)}</pre></details>` : "";
     const rely = s?.unsafeDefs?.length ? `<div class="muted">defs: ${s.unsafeDefs.map((d) => `<code>${esc(d)}</code>`).join(", ")}</div>` : "";
     const settled = m.settled ? `<div class="muted">Checked alone, a law without a def is a TODO; all of them are proved in files that check, so the package counts this file as ${STATUS_TEXT[m.settled]}.</div>` : "";
-    return `<tr><td><a href="${rel(path, modPage(p.hash, m.path))}">${esc(m.path)}</a></td><td>${statusBadge(s?.class ?? null)}</td>
+    return `<tr><td><a href="${esc(rel(path, modPage(p.hash, m.path)))}">${esc(m.path)}</a></td><td>${statusBadge(s?.class ?? null)}</td>
 <td>${s ? esc(s.summary) : ""}${rely}${settled}${detail}</td><td class="num">${s ? s.seconds.toFixed(1) + " s" : ""}</td></tr>`;
   }).join("\n");
   return `<div class="tablewrap"><table class="files"><thead><tr><th scope="col">File</th><th scope="col">Status</th><th scope="col">Checker says</th><th scope="col" class="num">Time</th></tr></thead><tbody>${rows}</tbody></table></div>`;
@@ -152,7 +152,7 @@ export function renderPackage(site: Site, p: Package): string {
   }).join("\n");
   const others = p.files.filter((f) => !f.path.endsWith(".bend"));
   const namesHtml = p.names.length
-    ? `<p>${p.names.map((n) => `<a href="${rel(path, namePage(n.name))}">${esc(n.name)}</a>@${esc(n.version)} by ${esc(n.owner)}`).join("; ")}</p>`
+    ? `<p>${p.names.map((n) => `<a href="${esc(rel(path, namePage(n.name)))}">${esc(n.name)}</a>@${esc(n.version)} by ${esc(n.owner)}`).join("; ")}</p>`
     : `<p class="muted">Anonymous package: import it by hash.</p>`;
   const g = groupPackages(site.packages).find((x) => x.members.includes(p))!;
   const siblings = g.members.filter((m) => m !== p);
@@ -164,7 +164,7 @@ export function renderPackage(site: Site, p: Package): string {
   const modules = p.modules.map((m) => {
     const c = m.decls === null ? `<span class="st st-fails">not loaded</span>` : `${m.decls.length} declarations${lawCount(m.decls)}`;
     const h = m.header ? `<span class="muted"> — ${esc(m.header.split("\n")[0])}</span>` : "";
-    return `<li><a href="${rel(path, modPage(p.hash, m.path))}">${esc(m.path)}</a> <span class="muted">${c}</span>${h}</li>`;
+    return `<li><a href="${esc(rel(path, modPage(p.hash, m.path)))}">${esc(m.path)}</a> <span class="muted">${c}</span>${h}</li>`;
   }).join("");
   const body = `<nav class="crumbs" aria-label="Breadcrumb"><a href="${rel(path, "index.html")}">Packages</a> / ${esc(label(p))}</nav>
 <h1>${esc(label(p))} ${statusBadge(p.status)}</h1>
@@ -197,11 +197,11 @@ const GROUPS: [string, string][] = [["law", "Laws"], ["type", "Types"], ["def", 
 
 function declHtml(p: Package, m: Module, d: DocDecl, ids: Map<DocDecl, string>, ctors: DocDecl[]): string {
   const id = ids.get(d)!;
-  const src = `${HUB}/${p.hash}/${m.path}`;
+  const src = `${HUB}/${p.hash}/${esc(m.path)}`;
   let marker = "";
   if (d.kind === "law") {
     const by = m.provedIn[d.name];
-    const byLink = by ? `<a href="${rel(modPage(p.hash, m.path), modPage(p.hash, by))}">${esc(by)}</a>` : "";
+    const byLink = by ? `<a href="${esc(rel(modPage(p.hash, m.path), modPage(p.hash, by)))}">${esc(by)}</a>` : "";
     const fst = by ? p.modules.find((x) => x.path === by)?.status?.class : undefined;
     marker = d.proved
       ? `<span class="pr pr-yes">proved</span>${by ? `<span class="muted">in ${byLink}</span>` : ""}`
@@ -283,7 +283,7 @@ export function renderName(site: Site, name: string): string {
   const rows = [...rec.versions].sort((a, b) => b.ts - a.ts).map((v) => {
     const p = site.byHash.get(v.hash);
     return `<tr><td>${esc(v.version)}${v.version === rec.latest.version ? ` <span class="muted">latest</span>` : ""}</td>
-<td>${p ? `<a href="${rel(path, pkgPage(v.hash))}"><code>${v.hash}</code></a>` : `<code>${v.hash}</code> <span class="muted">(not in this build)</span>`}</td>
+<td>${p ? `<a href="${esc(rel(path, pkgPage(v.hash)))}"><code>${esc(v.hash)}</code></a>` : `<code>${esc(v.hash)}</code> <span class="muted">(not in this build)</span>`}</td>
 <td>${p ? statusBadge(p.status) : ""}</td><td class="num">${date(v.ts)}</td></tr>`;
   }).join("");
   const body = `<nav class="crumbs" aria-label="Breadcrumb"><a href="${rel(path, "index.html")}">Packages</a> / ${esc(name)}</nav>
