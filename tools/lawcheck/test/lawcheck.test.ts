@@ -277,6 +277,80 @@ describe("imports and --impl", () => {
       expect(bad.counterexample.lhs.term).toBe("H.pick(H.Green{})");
     }
   }, T);
+
+  test("nested hash imports (a name@version module importing another) resolve hermetically", async () => {
+    const depHash = "feedfacefeedfacefeedfacefeedface";
+    const kernelHash = "deadbeefdeadbeefdeadbeefdeadbeef";
+    const lib = fs.mkdtempSync(path.join(os.tmpdir(), "lawcheck-bendlib-"));
+    fs.mkdirSync(path.join(lib, "names"), { recursive: true });
+    fs.mkdirSync(path.join(lib, `0x${depHash}`), { recursive: true });
+    fs.mkdirSync(path.join(lib, `0x${kernelHash}`), { recursive: true });
+    fs.writeFileSync(path.join(lib, "names", "lawcheck-dep@2.0.0.0"), `0x${depHash}\n`);
+    fs.writeFileSync(path.join(lib, "names", "lawcheck-kernel@1.2.3.4"), `0x${kernelHash}\n`);
+    fs.writeFileSync(path.join(lib, `0x${depHash}`, "base.bend"), [
+      "import Base",
+      "",
+      "type Color is Data:",
+      "  Red{}",
+      "  Green{}",
+      "",
+      "def pick(c: Color) -> Nat:",
+      "  match c:",
+      "    case Red{}:",
+      "      0n",
+      "    case Green{}:",
+      "      1n",
+      "",
+    ].join("\n"));
+    fs.writeFileSync(path.join(lib, `0x${kernelHash}`, "kernel.bend"), [
+      "import Base",
+      "import lawcheck-dep@2.0.0.0/base.bend as D",
+      "",
+      "def pick_red() -> Nat:",
+      "  D.pick(D.Red{})",
+      "",
+    ].join("\n"));
+    const writeRoot = (kind: string, importLine: string) => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), `lawcheck-nested-${kind}-`));
+      const file = path.join(dir, "root.bend");
+      fs.writeFileSync(file, [
+        "import Base",
+        importLine,
+        "",
+        "law pick_red_zero:",
+        "  {H.pick_red() == 0n : Nat}",
+        "",
+        "law pick_red_one:",
+        "  {H.pick_red() == 1n : Nat}",
+        "",
+      ].join("\n"));
+      return file;
+    };
+    const roots = [
+      writeRoot("named", "import lawcheck-kernel@1.2.3.4/kernel.bend as H"),
+      writeRoot("hash", `import 0x${kernelHash}/kernel.bend as H`),
+    ];
+    for (const root of roots) {
+      const r = await runEnv({ BEND_LIB: lib }, root, "--native", "--jobs", "4", "--max-instances", "6", "--json");
+      expect(r.stderr).toBe("");
+      expect(r.code).toBe(1);
+      const rep = JSON.parse(r.stdout);
+      const ok = rep.laws.find((l: any) => l.name === "pick_red_zero");
+      expect(ok.status).toBe("pass");
+      expect(ok.native.checked).toBeGreaterThan(0);
+      expect(ok.native.disagreements).toEqual([]);
+      const bad = rep.laws.find((l: any) => l.name === "pick_red_one");
+      expect(bad.status).toBe("fail");
+      expect(bad.native.checked).toBeGreaterThan(0);
+      expect(bad.native.disagreements).toEqual([]);
+      expect(bad.counterexample.expected).toBe("0n");
+      expect(bad.counterexample.observed).toBe("1n");
+      expect(bad.counterexample.lhs).toEqual({ term: "H.pick_red", value: "0n" });
+      // Neither the root's module nor the nested dependency may leak its hash into the readback.
+      expect(r.stdout).not.toContain(kernelHash);
+      expect(r.stdout).not.toContain(depHash);
+    }
+  }, T);
 });
 
 describe("errors", () => {

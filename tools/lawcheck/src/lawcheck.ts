@@ -402,6 +402,8 @@ function aliasMap(L: Loaded) {
   };
   const names = (s: string) => rewrite(s, new Map(), nameOut, false);
   const back: [string, string][] = [[L.file.replace(/\.bend$/, "") + ".", ""]];
+  // The batch imports a hub module by its `0x…` name, so the checker prints that name, not
+  // its file path; only modules imported by absolute path need a path back-map entry (README).
   for (const [ns, { file }] of nsToAlias) if (!ns.startsWith("0x")) back.push([file.replace(/\.bend$/, "") + ".", ns + "."]);
   back.sort((a, b) => b[0].length - a[0].length);
   const display = (s: string) => names(back.reduce((acc, [from, to]) => acc.split(from).join(to), s));
