@@ -2,7 +2,7 @@
 // may count as checking for its package.
 
 import { describe, expect, test } from "bun:test";
-import { defBody, fillerLine, finishPackage, hasHole, type Module, type Package } from "../src/model.ts";
+import { defBody, fillerLine, finishPackage, hasHole, moduleHeader, type Module, type Package } from "../src/model.ts";
 import type { DocDecl } from "../src/extract.ts";
 import { declIds } from "../src/render.ts";
 import type { FileStatus } from "../src/status.ts";
@@ -11,7 +11,7 @@ const st = (c: FileStatus["class"], summary = ""): FileStatus => ({ class: c, su
 const law = (name: string, proved: boolean, proofLine?: number): DocDecl =>
   ({ name, kind: "law", line: 1, doc: null, signature: "", proved, ...(proofLine ? { proofLine } : {}) });
 const mod = (path: string, decls: DocDecl[], status: FileStatus | null): Module =>
-  ({ path, imports: [], foreign: [], decls, error: null, status, provedIn: {} });
+  ({ path, header: null, imports: [], foreign: [], decls, error: null, status, provedIn: {} });
 const pkg = (modules: Module[]): Package => ({
   hash: "0x0", ts: 0, desc: "", bytes: 0, files: [], names: [], licenses: [], modules, deps: [], rdeps: [], status: null,
   counts: { laws: 0, proved: 0, defs: 0, types: 0, decls: 0 },
@@ -80,5 +80,23 @@ describe("declaration anchors", () => {
     const d = (name: string, kind: DocDecl["kind"]): DocDecl => ({ name, kind, line: 1, doc: null, signature: "" });
     const m = mod("main.bend", [d("main", "def"), d("Pair", "type"), { ...d("Pair", "ctor"), type: "Pair" }, d("hq", "def")], null);
     expect([...declIds(m).values()]).toEqual(["Pair", "Pair-ctor", "main-def", "hq-def"]);
+  });
+});
+
+describe("module header", () => {
+  test("a run of # lines before imports is the header, with # and one space removed", () => {
+    expect(moduleHeader("# a\n# b\n\nimport Base\n")).toBe("a\nb");
+  });
+  test("a run directly before an import is the header", () => {
+    expect(moduleHeader("# a\nimport Base")).toBe("a");
+  });
+  test("a run directly before a declaration is that declaration's doc, not a header", () => {
+    expect(moduleHeader("# doc\ndef f() -> Nat:\n  0n\n")).toBeNull();
+  });
+  test("no # on line 1 means no header", () => {
+    expect(moduleHeader("import Base\n# x\n")).toBeNull();
+  });
+  test("a bare # line becomes an empty line, which the renderer turns into a paragraph break", () => {
+    expect(moduleHeader("# a\n#\n# b\n\n")).toBe("a\n\nb");
   });
 });

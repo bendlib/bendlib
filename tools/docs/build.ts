@@ -13,7 +13,7 @@ import { ensurePackage, fetchIndex, fetchNames, pool, seedNames, type IndexEntry
 import { extractFile, type FileDecls } from "./src/extract.ts";
 import { dependencyEdges, foreignImports, parseImports } from "./src/imports.ts";
 import { licenses } from "./src/license.ts";
-import { attachEdges, displayOrder, finishPackage, namesByHash, type Module, type Package, type Site } from "./src/model.ts";
+import { attachEdges, displayOrder, finishPackage, moduleHeader, namesByHash, type Module, type Package, type Site } from "./src/model.ts";
 import { renderIndex, renderModule, renderName, renderPackage, renderSearch, modPage, pkgPage, namePage, setBaseNamespaces } from "./src/render.ts";
 import { baseNamespaces } from "./src/status.ts";
 import { buildSearchIndex } from "./src/searchindex.ts";
@@ -165,7 +165,7 @@ async function main() {
       const r = rec[path];
       if (r.ok) fills.set(path, r.fills);
       return {
-        path, imports: parseImports(text), foreign: foreignImports(text),
+        path, header: moduleHeader(text), imports: parseImports(text), foreign: foreignImports(text),
         decls: r.ok ? r.decls : null, error: r.ok ? null : r.error,
         status: args.check ? cache[statusKey(e.hash, path, compiler)] ?? null : null, provedIn: {},
       };

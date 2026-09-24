@@ -9,6 +9,7 @@ import type { License } from "./license.ts";
 
 export type Module = {
   path: string;
+  header: string | null;            // the module's top `#` comment block, when it is not a declaration's doc
   imports: Import[];
   foreign: string[];
   decls: DocDecl[] | null;          // null when the reader could not load the file
@@ -86,6 +87,17 @@ export function displayOrder(pkgs: Package[]): Package[] {
 }
 
 const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/** The module's top `#` run with `#` and one space stripped; null when line 1 is not `#` or it documents a declaration. */
+export function moduleHeader(text: string): string | null {
+  const lines = text.split("\n");
+  if (!lines[0]?.startsWith("#")) return null;
+  let end = 0;
+  while (end < lines.length && lines[end].startsWith("#")) end++;
+  const after = lines[end];
+  if (after !== undefined && after.trim() !== "" && !/^import\b/.test(after)) return null;
+  return lines.slice(0, end).map((l) => l.replace(/^# ?/, "")).join("\n");
+}
 
 /** Lines of the def starting at `line` (1-based), up to the next top-level declaration, strings and comments blanked. */
 export function defBody(text: string, line: number): string {

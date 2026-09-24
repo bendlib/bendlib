@@ -162,7 +162,8 @@ export function renderPackage(site: Site, p: Package): string {
     : `${esc(l.id)} <span class="muted">(<a href="${HUB}/${p.hash}/${esc(l.from)}">${esc(l.from)}</a>)</span>`).join("<br>");
   const modules = p.modules.map((m) => {
     const c = m.decls === null ? `<span class="st st-fails">not loaded</span>` : `${m.decls.length} declarations${lawCount(m.decls)}`;
-    return `<li><a href="${rel(path, modPage(p.hash, m.path))}">${esc(m.path)}</a> <span class="muted">${c}</span></li>`;
+    const h = m.header ? `<span class="muted"> — ${esc(m.header.split("\n")[0])}</span>` : "";
+    return `<li><a href="${rel(path, modPage(p.hash, m.path))}">${esc(m.path)}</a> <span class="muted">${c}</span>${h}</li>`;
   }).join("");
   const body = `<nav class="crumbs" aria-label="Breadcrumb"><a href="${rel(path, "index.html")}">Packages</a> / ${esc(label(p))}</nav>
 <h1>${esc(label(p))} ${statusBadge(p.status)}</h1>
@@ -251,9 +252,10 @@ function ctorsByType(m: Module): Map<string, DocDecl[]> {
 
 export function renderModule(site: Site, p: Package, m: Module): string {
   const path = modPage(p.hash, m.path);
+  const headerHtml = m.header === null ? "" : `<div class="modhead">${docHtml(m.header)}</div>`;
   const head = `<nav class="crumbs" aria-label="Breadcrumb"><a href="${rel(path, "index.html")}">Packages</a> / <a href="${rel(path, pkgPage(p.hash))}">${esc(label(p))}</a> / ${esc(m.path)}</nav>
 <h1>${esc(m.path)} ${m.status ? statusBadge(m.status.class, m.status.summary) : ""}</h1>
-<p><a href="${HUB}/${p.hash}/${esc(m.path)}">raw source on the hub</a> · <code>import ${esc(p.names.length ? `${p.names[0].name}@${p.names[0].version}` : p.hash)}/${esc(m.path)} as ${aliasFor(m.path)}</code></p>`;
+<p><a href="${HUB}/${p.hash}/${esc(m.path)}">raw source on the hub</a> · <code>import ${esc(p.names.length ? `${p.names[0].name}@${p.names[0].version}` : p.hash)}/${esc(m.path)} as ${aliasFor(m.path)}</code></p>${headerHtml}`;
   const imports = m.imports.length
     ? `<details class="imps"><summary>${m.imports.length} import${m.imports.length > 1 ? "s" : ""}</summary><pre class="code">${m.imports.map((i) => esc(i.raw)).join("\n")}</pre></details>` : "";
   if (m.decls === null) {

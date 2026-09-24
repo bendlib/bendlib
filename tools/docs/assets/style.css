@@ -64,6 +64,7 @@ th,td.nw{white-space:nowrap}
 .decl h3 .muted{font-weight:400;font-size:.9em}
 .src{margin-left:auto;font-size:.8em;font-weight:400}
 .doc p{margin:.4em 0;color:var(--b01)}
+.modhead{margin:1em 0}
 .ctors{list-style:none;padding-left:1.6ch;border-left:2px solid var(--line)}
 .err{border-left:3px solid var(--red);background:var(--badb);border-radius:3px;padding:.2em 1.4ch}
 details summary{cursor:pointer;color:var(--b0);font-size:.93em}

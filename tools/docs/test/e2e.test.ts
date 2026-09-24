@@ -48,6 +48,10 @@ describe("three-package build from the live hub", () => {
     expect(sec).toContain(`https://hub.bend-lang.com/${MATHLIB}/nat.bend`);
   });
 
+  test("a module's header comment is rendered on its page", () => {
+    expect(read(`pkg/${MATHLIB}/all.bend.html`)).toContain("machine-checked lemmas for Bend 2");
+  });
+
   test("the index lists the three packages, named ones first, with statuses from the real checker", () => {
     const html = read("index.html");
     const [m, t, a] = ['bend-mathlib</a> <span class="pill">@0.1.0.1</span>', 'bend-tensors</a> <span class="pill">@0.0.0.2</span>', `${ANON.slice(0, 10)}…</a>`].map((s) => html.indexOf(`>${s}`));
