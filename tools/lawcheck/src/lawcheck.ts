@@ -442,12 +442,24 @@ function unsafeModules(L: Loaded, baseFiles: Set<string>): string[] {
     .map((f) => path.basename(f.path));
 }
 
+/** Runs the checker's own validation so a rejected target fails loudly, never as `0 laws`. */
+function validate(L: Loaded): void {
+  try {
+    L.bend.book_valid(L.book);
+  } catch (e) {
+    let msg: string;
+    try { msg = L.bend.err_show(e); } catch { msg = String(e); }
+    throw new ModuleError(msg);
+  }
+}
+
 export async function lawcheck(file: string, o: Options): Promise<Report> {
   const abs = path.resolve(file);
   if (!fs.existsSync(abs)) throw new UsageError(`no such file: ${file}`);
   const tmp = o.tmpDir ?? fs.mkdtempSync(path.join(os.tmpdir(), "lawcheck-"));
   const root = rootFor(abs, o.impl, tmp);
   const L = await load(root);
+  validate(L);
   const own = decls(L, { scope: "own" });
   const allDecls = decls(L, { scope: "all" });
   const predicates = new Set(allDecls.filter((d) => d.predicate).map((d) => d.name));
