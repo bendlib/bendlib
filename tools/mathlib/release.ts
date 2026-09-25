@@ -113,7 +113,7 @@ async function main(): Promise<void> {
     ["lock", [process.execPath, "tools/mathlib/lock.ts", pkg, "--check"]],
   ];
   for (const m of packageModules(pkg)) {
-    gates.push(["lawcheck " + basename(m, ".bend"), [process.execPath, "tools/lawcheck/cli.ts", m, "--max-instances", "100"]]);
+    gates.push(["lawcheck " + basename(m, ".bend"), [process.execPath, "tools/lawcheck/cli.ts", m, "--max-instances", "100", "--strict", "--allow-skip", "eq_true_of_ne_false,cong2,subst,le_total,le_total_d"]]);
   }
   for (const [label, cmd] of gates) {
     const r = sh(cmd);
