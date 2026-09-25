@@ -269,8 +269,8 @@ ins: 9/12 mutants killed · survivors: [swap arms of `match xs`] [replace `x` wi
 `--json` for agents; exit 0 all pass / 1 counterexample or weak laws / 2 usage.
 
 ### 4.2 Pipeline
-1. **Load** the file with `@bendlib/reader`; collect `law` declarations (open or proved) and their
-   `lawShape` (binders, `where` premises, claim).
+1. **Load** the file with `@bendlib/reader`; collect `law` declarations (open or proved) via `decls`
+   (each carries its binders, `where` premises and claim).
 2. **Instantiate types.** Type parameters: `-A: Kind(a)` → default `U32` then `Nat`; `a: Quant` → `&2`
    (and `&1` when the claim allows). Template hypotheses (`for ~f`, `for ~le_trans`) → v1 skips the law
    with a clear message; v2 draws from a small catalog of closed functions per type.
@@ -301,7 +301,7 @@ ins: 9/12 mutants killed · survivors: [swap arms of `match xs`] [replace `x` wi
    (valuable to upstream).
 
 ### 4.3 Mutation mode (law strength)
-- Mutants of the implementation defs via source splicing (`reader.splice` on spans): swap match arms,
+- Mutants of the implementation defs via source splicing (span splicing in `tools/lawcheck/src/mutate.ts`): swap match arms,
   replace a case body with another case's body, swap same-typed arguments, `0n↔1n`, drop a cons,
   replace a subterm with a same-typed parameter; **projection sweep**: replace the whole body with each
   parameter / a constant (the `gavel` lesson: a law pins a function only if no argument-ignoring body
