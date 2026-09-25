@@ -5,12 +5,10 @@ Machine-checked lemmas for Bend 2, checked with `bend 2.0.27`.
 Rewriting: `%e : P` replaces the right side of `e` with its left side, so `name` expands the simple
 side into the compound one and `name_sym` simplifies the compound side.
 
-Rows marked `next` are proved in this repository but not yet published: the import lines above do not contain them yet.
-
 ## bool
 
 ```python
-import bend-mathlib@0.2.0.0/bool.bend as MBool
+import bend-mathlib@0.3.0.0/bool.bend as MBool
 ```
 
 | lemma | statement | meaning | since |
@@ -78,7 +76,7 @@ import bend-mathlib@0.2.0.0/bool.bend as MBool
 ## equal
 
 ```python
-import bend-mathlib@0.2.0.0/equal.bend as MEqual
+import bend-mathlib@0.3.0.0/equal.bend as MEqual
 ```
 
 | lemma | statement | meaning | since |
@@ -91,13 +89,13 @@ import bend-mathlib@0.2.0.0/equal.bend as MEqual
 ## list
 
 ```python
-import bend-mathlib@0.2.0.0/list.bend as MList
+import bend-mathlib@0.3.0.0/list.bend as MList
 ```
 
 | predicate | definition | since |
 |---|---|---|
-| `mem(~A: Data, ~eq: A -> A -> Bool, +x: A, xs: List<&2, A>) -> Data` | `{List.contains(~A, ~eq, xs, x) == True{} : Bool}` | next |
-| `sorted_by(~A: Data, ~le: A -> A -> Bool, +xs: List<&2, A>) -> Data` | `{List.all(~&1, ~(A & A), ~(p => le(Pair.fst(A, A, p), Pair.snd(A, A, p))), List.zip(&2, A, &2, A, xs, List.tail(&2, A, xs))) == True{} : Bool}` | next |
+| `mem(~A: Data, ~eq: A -> A -> Bool, +x: A, xs: List<&2, A>) -> Data` | `{List.contains(~A, ~eq, xs, x) == True{} : Bool}` | 0.3.0.0 |
+| `sorted_by(~A: Data, ~le: A -> A -> Bool, +xs: List<&2, A>) -> Data` | `{List.all(~&1, ~(A & A), ~(p => le(Pair.fst(A, A, p), Pair.snd(A, A, p))), List.zip(&2, A, &2, A, xs, List.tail(&2, A, xs))) == True{} : Bool}` | 0.3.0.0 |
 
 | lemma | statement | meaning | since |
 |---|---|---|---|
@@ -140,17 +138,17 @@ import bend-mathlib@0.2.0.0/list.bend as MList
 | `filter_append(~A, ~f, xs, ys)` | `∀ ~A: Data, ~f: A -> Bool, xs: List<&2, A>, ys: List<&2, A>. {List.filter(~A, ~f, List.append(&2, A, xs, ys)) == List.append(&2, A, List.filter(~A, ~f, xs), List.filter(~A, ~f, ys)) : List<&2, A>}` | Filtering an append filters each part. | 0.2.0.0 |
 | `contains_append(~A, ~eq, xs, ys, x)` | `∀ ~A: Data, ~eq: A -> A -> Bool, xs: List<&2, A>, -ys: List<&2, A>, +x: A. {List.contains(~A, ~eq, List.append(&2, A, xs, ys), x) == Bool.or(List.contains(~A, ~eq, xs, x), List.contains(~A, ~eq, ys, x)) : Bool}` | An append contains x iff either part does. | 0.2.0.0 |
 | `length_filter_le(~A, ~f, xs)` | `∀ ~A: Data, ~f: A -> Bool, xs: List<&2, A>. {Nat.is_le(List.length(&2, A, List.filter(~A, ~f, xs)), List.length(&2, A, xs)) == True{} : Bool}` | Filtering never makes a list longer. | 0.2.0.0 |
-| `mem_cons_self(x, xs)` | `∀ x: Nat, -xs: List<&2, Nat>. mem(~Nat, ~Nat.is_eq, x, x <> xs)` | The head of a cons is a member of it. | next |
-| `mem_cons_of_mem(x, y, xs, h)` | `∀ x: Nat, y: Nat, -xs: List<&2, Nat>, h: mem(~Nat, ~Nat.is_eq, x, xs). mem(~Nat, ~Nat.is_eq, x, y <> xs)` | Membership is preserved when a new head is prepended. | next |
-| `not_mem_nil(x)` | `∀ -x: Nat. mem(~Nat, ~Nat.is_eq, x, Nil{}) -> Empty` | Nothing is a member of the empty list. | next |
-| `mem_append_left(xs, ys, x, h)` | `∀ xs: List<&2, Nat>, ys: List<&2, Nat>, x: Nat, h: mem(~Nat, ~Nat.is_eq, x, xs). mem(~Nat, ~Nat.is_eq, x, List.append(&2, Nat, xs, ys))` | Membership on the left of an append. | next |
-| `mem_append_right(xs, ys, x, h)` | `∀ xs: List<&2, Nat>, ys: List<&2, Nat>, x: Nat, h: mem(~Nat, ~Nat.is_eq, x, ys). mem(~Nat, ~Nat.is_eq, x, List.append(&2, Nat, xs, ys))` | Membership on the right of an append. | next |
-| `sorted_nil()` | `sorted_by(~Nat, ~Nat.is_le, Nil{})` | The empty list is sorted by any comparator. | next |
-| `sorted_single(x)` | `∀ -x: Nat. sorted_by(~Nat, ~Nat.is_le, [x])` | A singleton list is sorted by any comparator. | next |
-| `sorted_cons_cons_intro(x, y, t, hxy, hyt)` | `∀ -x: Nat, -y: Nat, -t: List<&2, Nat>, hxy: MNat.le(x, y), hyt: sorted_by(~Nat, ~Nat.is_le, y <> t). sorted_by(~Nat, ~Nat.is_le, x <> y <> t)` | A sorted tail with an in-order head is sorted. | next |
-| `sorted_cons_cons_elim_le(x, y, t, h)` | `∀ x: Nat, y: Nat, -t: List<&2, Nat>, h: sorted_by(~Nat, ~Nat.is_le, x <> y <> t). MNat.le(x, y)` | The head pair of a sorted cons-cons list is in order. | next |
-| `sorted_cons_cons_elim_tail(x, y, t, h)` | `∀ x: Nat, y: Nat, -t: List<&2, Nat>, h: sorted_by(~Nat, ~Nat.is_le, x <> y <> t). sorted_by(~Nat, ~Nat.is_le, y <> t)` | The tail of a sorted cons-cons list is sorted. | next |
-| `sorted_tail(x, xs, h)` | `∀ x: Nat, xs: List<&2, Nat>, h: sorted_by(~Nat, ~Nat.is_le, x <> xs). sorted_by(~Nat, ~Nat.is_le, xs)` | A sorted list has a sorted tail. | next |
+| `mem_cons_self(x, xs)` | `∀ x: Nat, -xs: List<&2, Nat>. mem(~Nat, ~Nat.is_eq, x, x <> xs)` | The head of a cons is a member of it. | 0.3.0.0 |
+| `mem_cons_of_mem(x, y, xs, h)` | `∀ x: Nat, y: Nat, -xs: List<&2, Nat>, h: mem(~Nat, ~Nat.is_eq, x, xs). mem(~Nat, ~Nat.is_eq, x, y <> xs)` | Membership is preserved when a new head is prepended. | 0.3.0.0 |
+| `not_mem_nil(x)` | `∀ -x: Nat. mem(~Nat, ~Nat.is_eq, x, Nil{}) -> Empty` | Nothing is a member of the empty list. | 0.3.0.0 |
+| `mem_append_left(xs, ys, x, h)` | `∀ xs: List<&2, Nat>, ys: List<&2, Nat>, x: Nat, h: mem(~Nat, ~Nat.is_eq, x, xs). mem(~Nat, ~Nat.is_eq, x, List.append(&2, Nat, xs, ys))` | Membership on the left of an append. | 0.3.0.0 |
+| `mem_append_right(xs, ys, x, h)` | `∀ xs: List<&2, Nat>, ys: List<&2, Nat>, x: Nat, h: mem(~Nat, ~Nat.is_eq, x, ys). mem(~Nat, ~Nat.is_eq, x, List.append(&2, Nat, xs, ys))` | Membership on the right of an append. | 0.3.0.0 |
+| `sorted_nil()` | `sorted_by(~Nat, ~Nat.is_le, Nil{})` | The empty list is sorted by any comparator. | 0.3.0.0 |
+| `sorted_single(x)` | `∀ -x: Nat. sorted_by(~Nat, ~Nat.is_le, [x])` | A singleton list is sorted by any comparator. | 0.3.0.0 |
+| `sorted_cons_cons_intro(x, y, t, hxy, hyt)` | `∀ -x: Nat, -y: Nat, -t: List<&2, Nat>, hxy: MNat.le(x, y), hyt: sorted_by(~Nat, ~Nat.is_le, y <> t). sorted_by(~Nat, ~Nat.is_le, x <> y <> t)` | A sorted tail with an in-order head is sorted. | 0.3.0.0 |
+| `sorted_cons_cons_elim_le(x, y, t, h)` | `∀ x: Nat, y: Nat, -t: List<&2, Nat>, h: sorted_by(~Nat, ~Nat.is_le, x <> y <> t). MNat.le(x, y)` | The head pair of a sorted cons-cons list is in order. | 0.3.0.0 |
+| `sorted_cons_cons_elim_tail(x, y, t, h)` | `∀ x: Nat, y: Nat, -t: List<&2, Nat>, h: sorted_by(~Nat, ~Nat.is_le, x <> y <> t). sorted_by(~Nat, ~Nat.is_le, y <> t)` | The tail of a sorted cons-cons list is sorted. | 0.3.0.0 |
+| `sorted_tail(x, xs, h)` | `∀ x: Nat, xs: List<&2, Nat>, h: sorted_by(~Nat, ~Nat.is_le, x <> xs). sorted_by(~Nat, ~Nat.is_le, xs)` | A sorted list has a sorted tail. | 0.3.0.0 |
 | `append_nil_sym(a, A, xs)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>. {xs == List.append(a, A, xs, Nil{}) : List<a, A>}` | The empty list is a right identity for append: xs ++ [] = xs, reversed to rewrite toward the simple side. | 0.1.0.0 |
 | `nil_append_sym(a, A, xs)` | `∀ -a: Quant, -A: Kind(a), -xs: List<a, A>. {xs == List.append(a, A, Nil{}, xs) : List<a, A>}` | The empty list is a left identity for append: [] ++ xs = xs, reversed to rewrite toward the simple side. | 0.1.0.0 |
 | `append_assoc_sym(a, A, xs, ys, zs)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>, -ys: List<a, A>, -zs: List<a, A>. {List.append(a, A, xs, List.append(a, A, ys, zs)) == List.append(a, A, List.append(a, A, xs, ys), zs) : List<a, A>}` | Append is associative: (xs ++ ys) ++ zs = xs ++ (ys ++ zs), reversed to rewrite toward the simple side. | 0.1.0.0 |
@@ -194,7 +192,7 @@ import bend-mathlib@0.2.0.0/list.bend as MList
 ## nat
 
 ```python
-import bend-mathlib@0.2.0.0/nat.bend as MNat
+import bend-mathlib@0.3.0.0/nat.bend as MNat
 ```
 
 | predicate | definition | since |

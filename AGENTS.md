@@ -167,7 +167,7 @@ their expected output, and what not to do. Read the whole bead before starting.
    bun tools/mathlib/lint.ts packages/bendlib-kernel-list --kernel --erasure
    bun tools/mathlib/twins.ts packages/bendlib-kernel-list --check
    bun tools/mathlib/lock.ts packages/bend-mathlib --check
-   bun tools/mathlib/index.ts packages/bend-mathlib bend-mathlib 0.2.0.0 --check   # version: latest row of RELEASES.md
+   bun tools/mathlib/index.ts packages/bend-mathlib bend-mathlib 0.3.0.0 --check   # version: latest row of RELEASES.md
    ```
 4. One commit per bead: `<area>: <what>` and a last line `Closes <id>`; run the full gate first.
    `br sync --flush-only`, `git add .beads/`, commit, then `git pull --rebase`, `git push`, and
