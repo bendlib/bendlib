@@ -167,6 +167,8 @@ their expected output, and what not to do. Read the whole bead before starting.
    bun tools/mathlib/lint.ts packages/bendlib-kernel-list --kernel --erasure
    bun tools/mathlib/twins.ts packages/bendlib-kernel-list --check
    bun tools/mathlib/lock.ts packages/bend-mathlib --check
+   tag=$(git describe --tags --match 'bend-mathlib-v*' --abbrev=0 2>/dev/null || true)
+   if [ -n "$tag" ]; then bun tools/mathlib/lock.ts packages/bend-mathlib --check --against "$tag"; else echo "no bend-mathlib-v* tag yet; skipping --against"; fi
    bun tools/mathlib/index.ts packages/bend-mathlib bend-mathlib 0.3.0.0 --check   # version: latest row of RELEASES.md
    ```
 4. One commit per bead: `<area>: <what>` and a last line `Closes <id>`; run the full gate first.

@@ -15,5 +15,5 @@ run "wc -l before.bend && bend before.bend --check-only" 2
 say "# With bend-mathlib: two imports and a four-step proof:"
 run "cat after.bend" 6
 run "bend after.bend --check-only" 2.5
-say "# import bend-mathlib@0.1.0.0  ·  github.com/bendlib/bendlib"
+say "# import bend-mathlib@0.1.0.1  ·  github.com/bendlib/bendlib"
 sleep 2

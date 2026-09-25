@@ -1,5 +1,5 @@
 // devlib: resolve local packages under `packages/` by their real publish hash, so sources can
-// `import 0x…/file.bend` against an unpublished package (the perm kernel) before release (PLAN §3.5).
+// `import 0x…/file.bend` against a not-yet-published local package in dev mode (PLAN §3.5).
 //
 // `.devlib/` is rebuilt from empty on every run (git-ignored): each `<hash>` is a symlink to the
 // package directory; the child gets `BEND_LIB=<root>/.devlib`, and bend fetches any other hash

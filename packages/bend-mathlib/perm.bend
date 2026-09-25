@@ -1,5 +1,5 @@
 # bend-mathlib/perm.bend: step-list permutations over bendlib-kernel-list, plus sort value defs and proofs.
-# Resolves the unpublished kernel by its real content hash (devlib); see packages/bendlib-kernel-list/README.md.
+# Resolves the published kernel bendlib-kernel-list@1.0.0.0 by its content hash; see packages/bendlib-kernel-list/README.md.
 import Base
 import 0xb5c8145e53a6a127d611f45f602666ec/list.bend as K
 

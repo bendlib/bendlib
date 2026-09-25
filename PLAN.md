@@ -221,7 +221,7 @@ identity, F3). Consumers import kernels by hash. Each structure ships as its own
 quantities are independent: `rbtree<ak, av, -K: Kind(ak), -V: Kind(av)> is Kind(ak <&> av)`.
 
 ### 3.5 Dev-mode imports (F21) and release
-- Sources always contain final import lines (`import bend-mathlib@0.2.0.0/list.bend as MList`).
+- Sources always contain final import lines (`import bend-mathlib@0.3.0.0/list.bend as MList`).
 - The dev-mode helper (planned, not built; `devlib` absent, §7.1) builds repo-local `.devlib/` (git-ignored, recreated from empty each run because
   `names/` entries are never re-validated, F29): `names/<name>@<ver>` → a **deterministic fake hash**
   `"0x" + sha256("<name>@<ver>-dev")[0:32]` and `0x<hash>` → symlink to the working package. (The

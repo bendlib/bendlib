@@ -82,7 +82,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        module: [nat, list, equal, bool, algebra, order, perm, sort, all]
+        module: [nat, list, equal, bool, algebra, order, perm, sort, maybe, all]
     env:
       BEND_NO_TELEMETRY: "1"
     steps:

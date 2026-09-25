@@ -1,4 +1,4 @@
-# bend-mathlib/sort.bend: insertion sort proved sorted over perm.bend's value defs (generic ~le).
+# bend-mathlib/sort.bend: insertion and merge sort proved sorted over perm.bend's value defs (generic ~le).
 import Base
 import ./nat.bend as MNat
 import ./list.bend as MList
