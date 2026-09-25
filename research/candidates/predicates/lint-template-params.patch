@@ -1,0 +1,23 @@
+--- tools/mathlib/lint.ts	2026-09-24 23:03:35.348478014 +0200
++++ /tmp/claude-1000/-home-durakovic-projects-bend/c0477f87-1e50-49e5-9f56-a96710d11a1f/scratchpad/mathlib-audit/tools/mathlib/lint.ts	2026-09-25 09:06:57.375341193 +0200
+@@ -45,9 +45,19 @@
+       if (body.length !== 1) at(m, d.line, `predicate '${d.name}' must have a one-line body`);
+       const text = body.join(" ");
+       if (/\bmatch\b/.test(text)) at(m, d.line, `predicate '${d.name}' must not match (it would be nominal across versions)`);
++      // A predicate may call its own template parameters (`~le`, `~eq`): they are substituted
++      // by the caller with a closed term, so the body stays a plain application of Base.
++      const templates = new Set([...d.header.matchAll(/~([A-Za-z_][A-Za-z0-9_]*)\s*:/g)].map((t) => t[1]));
++      const own = new Set([...m.defs.map((x) => x.name), ...m.laws.map((x) => x.name)]);
+       for (const call of text.matchAll(/([A-Za-z_][A-Za-z0-9_.]*)\s*\(/g)) {
+         const fn = call[1];
+-        if (!base.has(fn)) at(m, d.line, `predicate '${d.name}' calls '${fn}', which is not a Base function`);
++        if (!base.has(fn) && !templates.has(fn)) at(m, d.line, `predicate '${d.name}' calls '${fn}', which is not a Base function`);
++      }
++      // A non-Base def passed without a call (`~MNat.le`, `~helper`) is just as nominal.
++      for (const ref of text.matchAll(/(?<![A-Za-z0-9_.])([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+|[a-z_][A-Za-z0-9_]*)(?![A-Za-z0-9_.]*\s*\()/g)) {
++        const id = ref[1];
++        const foreign = id.includes(".") ? !base.has(id) && !/^[A-Z]/.test(id.split(".").pop()!) : own.has(id);
++        if (foreign) at(m, d.line, `predicate '${d.name}' refers to '${id}', which is not a Base function`);
+       }
+     }
+   }

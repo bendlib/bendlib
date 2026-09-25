@@ -492,5 +492,24 @@ these; they prepare the dry run and stop.
 ## 9. Open decisions
 
 - **D1 — flagship name: DECIDED `bend-mathlib`** (owner, 2026-09-24).
-- **D2 — docs site name/domain.** Candidates `benddocs.dev`, `bendlib.dev` (both available on 2026-09-24).
-- **D3 — `perm_by` definition** (at §3.3 selection time).
+Decided 2026-09-25 (planning pass; the owner asked for the best decisions without owner gates;
+evidence in `research/candidates/predicates/evidence/` and `research/candidates/perm/generic/`):
+
+- **D2 — docs domain: DECIDED none for now.** `https://bendlib.github.io/bendlib/` is the canonical
+  URL; a domain costs money and moves no user. Revisit when traffic justifies it (`bendlib.dev`).
+- **D-pred — `mem` / `sorted_by`: DECIDED** the candidate bodies verbatim
+  (`research/candidates/predicates/README.md`): `mem(~A, ~eq, +x, xs)` (order `x, xs`, like `count`
+  and the standard `x ∈ xs`), `sorted_by` with the `Pair.fst/snd` closure. Destructuring once is
+  impossible on 2.0.27 in Base-only form (`evidence/lamdestr.bend`, `foldr0.bend`); the Bool is
+  proof-only and bound erased (F26). The lint lets a predicate call its own `~` template parameters.
+- **D3 — `perm`: DECIDED** the step-list kernel generic over `A: Data`, frozen as package
+  `bendlib-kernel-list` 1.0.0.0: `swap_head`, `swap_at`, `apply`, `perm_steps` (was `Perm`) and the
+  existential `perm`. Proved sufficient end to end (`perm/generic/msort_perm.bend`: merge sort and
+  insertion sort are permutations; `perm_length`). Base-only alternatives rejected: sort equality is
+  wrong for preorders, count-by-zip is stuck at variables. The kernel is published only after mathlib's
+  perm lemmas and the sort theorems check against its exact final hash via `devlib`.
+- **D-release — agents publish.** This machine holds the owner's hub login (`~/.bend/bender.json`);
+  release beads (label `release`) run `release.ts --publish`, tags and GitHub releases once every gate
+  is green. Outreach to people stays with the owner.
+- **D-invite — no personal outreach by agents;** contributors come through "good first lemma" GitHub
+  issues and the README section.

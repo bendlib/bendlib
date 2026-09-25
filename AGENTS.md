@@ -265,8 +265,9 @@ The beads are the work queue. Each one is self-contained: context, steps, accept
 their expected output, and what not to do. Read the whole bead before starting.
 
 1. `br ready --label agent --json` lists the beads agents may take; take the highest-priority one.
-   Beads labelled `owner` need the owner's hub login, a decision only the owner makes, or contact
-   with people: never start them. `br show <id>`, then `br update <id> --status in_progress`.
+   Beads labelled `owner` need contact with people or a purchase: never start them. Beads labelled
+   `release` publish to BendHub, `bend link`, tag or create GitHub releases: take them only when
+   every dependency is closed and the full gate is green on `origin/main` (PLAN §9 D-release). `br show <id>`, then `br update <id> --status in_progress`.
 2. Environment: `~/.bend/bin/bend version` must print `bend 2.0.27` (else `bun tools/install-bend.ts`).
    Run commands from the repository root. For Bend itself: `bend guide`, `bend base <Name>` (e.g.
    `bend base List`), and `~/.claude/skills/bend2-mega-skill/references/` (`CHEATSHEET.md`,
