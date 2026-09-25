@@ -16,6 +16,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
       - run: bun tools/install-bend.ts
+      - run: sudo apt-get install -y bubblewrap
+      - run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - run: bun test tools/
       - run: bun tools/comments.ts
       - run: bun tools/mathlib/check.ts packages/bend-mathlib
