@@ -11,8 +11,12 @@ import type { FileClass } from "./status.ts";
 export const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
 export const pkgPage = (hash: string) => `pkg/${hash}/index.html`;
-export const modPage = (hash: string, path: string) => `pkg/${hash}/${path}.html`;
-export const srcPage = (hash: string, path: string) => `pkg/${hash}/${path}.src.html`;
+// Page URLs percent-encode each path segment (`#`, `?`, `%` break links); the on-disk names stay raw.
+export const encPath = (p: string) => p.split("/").map(encodeURIComponent).join("/");
+export const modPage = (hash: string, path: string) => `pkg/${hash}/${encPath(path)}.html`;
+export const modFile = (hash: string, path: string) => `pkg/${hash}/${path}.html`;
+export const srcPage = (hash: string, path: string) => `pkg/${hash}/${encPath(path)}.src.html`;
+export const srcFile = (hash: string, path: string) => `pkg/${hash}/${path}.src.html`;
 export const namePage = (name: string) => `name/${name}/index.html`;
 
 function rel(from: string, to: string): string {
@@ -166,7 +170,7 @@ export function renderPackage(site: Site, p: Package): string {
     `<li><a href="${rel(path, pkgPage(m.hash))}">${esc(label(m))}</a> <span class="muted">${date(m.ts)}</span>${m === g.latest ? ` <span class="pill">latest</span>` : ""}</li>`).join("")}</ul></details>`;
   const lic = p.licenses.map((l) => l.from === null
     ? `${esc(l.id)} <span class="muted">(no LICENSE file; the hub's default)</span>`
-    : `${esc(l.id)} <span class="muted">(<a href="${HUB}/${p.hash}/${esc(l.from)}">${esc(l.from)}</a>)</span>`).join("<br>");
+    : `${esc(l.id)} <span class="muted">(<a href="${HUB}/${p.hash}/${encPath(l.from)}">${esc(l.from)}</a>)</span>`).join("<br>");
   const modules = p.modules.map((m) => {
     const c = m.decls === null ? `<span class="st st-fails">not loaded</span>` : `${m.decls.length} declarations${lawCount(m.decls)}`;
     const h = m.header ? `<span class="muted"> — ${esc(m.header.split("\n")[0])}</span>` : "";
@@ -184,7 +188,7 @@ ${versionsHtml}
 <pre class="code">${esc(importLines)}</pre>
 <h2 id="modules">Modules</h2>
 <ul class="mods">${modules}</ul>
-${others.length ? `<h2 id="files">Other files</h2><ul class="mods">${others.map((f) => `<li><a href="${HUB}/${p.hash}/${esc(f.path)}">${esc(f.path)}</a> <span class="muted">${f.bytes.toLocaleString("en")} bytes</span></li>`).join("")}</ul>` : ""}
+${others.length ? `<h2 id="files">Other files</h2><ul class="mods">${others.map((f) => `<li><a href="${HUB}/${p.hash}/${encPath(f.path)}">${esc(f.path)}</a> <span class="muted">${f.bytes.toLocaleString("en")} bytes</span></li>`).join("")}</ul>` : ""}
 <h2 id="deps">Dependencies</h2>
 ${edgeList(path, p.deps, "to", site, "No imports from other hub packages.")}
 <h2 id="rdeps">Dependents</h2>
@@ -213,7 +217,7 @@ export function statementHead(signature: string): string {
 
 function declHtml(p: Package, m: Module, d: DocDecl, ids: Map<DocDecl, string>, ctors: DocDecl[]): string {
   const id = ids.get(d)!;
-  const rawHref = `${HUB}/${p.hash}/${esc(m.path)}`;
+  const rawHref = `${HUB}/${p.hash}/${encPath(m.path)}`;
   const srcLink = m.source === null
     ? `<a class="src" href="${rawHref}" title="raw source on the hub; the declaration starts at line ${d.line}">source · line ${d.line}</a>`
     : `<span class="src"><a href="${esc(rel(modPage(p.hash, m.path), srcPage(p.hash, m.path)))}#L${d.line}" title="source, line ${d.line}">source · line ${d.line}</a> · <a href="${rawHref}" title="raw source on the hub">raw</a></span>`;
@@ -278,7 +282,7 @@ export function renderModule(site: Site, p: Package, m: Module): string {
   const headerHtml = m.header === null ? "" : `<div class="modhead">${docHtml(m.header)}</div>`;
   const head = `<nav class="crumbs" aria-label="Breadcrumb"><a href="${rel(path, "index.html")}">Packages</a> / <a href="${rel(path, pkgPage(p.hash))}">${esc(label(p))}</a> / ${esc(m.path)}</nav>
 <h1>${esc(m.path)} ${m.status ? statusBadge(m.status.class, m.status.summary) : ""}</h1>
-<p><a href="${HUB}/${p.hash}/${esc(m.path)}">raw source on the hub</a> · <code>import ${esc(p.names.length ? `${p.names[0].name}@${p.names[0].version}` : p.hash)}/${esc(m.path)} as ${aliasFor(m.path)}</code></p>${headerHtml}`;
+<p><a href="${HUB}/${p.hash}/${encPath(m.path)}">raw source on the hub</a> · <code>import ${esc(p.names.length ? `${p.names[0].name}@${p.names[0].version}` : p.hash)}/${esc(m.path)} as ${aliasFor(m.path)}</code></p>${headerHtml}`;
   const imports = m.imports.length
     ? `<details class="imps"><summary>${m.imports.length} import${m.imports.length > 1 ? "s" : ""}</summary><pre class="code">${m.imports.map((i) => esc(i.raw)).join("\n")}</pre></details>` : "";
   if (m.decls === null) {
@@ -305,7 +309,7 @@ export function renderSource(site: Site, p: Package, m: Module): string {
   const lines = (m.source ?? "").replace(/\n$/, "").split("\n");
   const body = `<nav class="crumbs" aria-label="Breadcrumb"><a href="${rel(path, "index.html")}">Packages</a> / <a href="${rel(path, pkgPage(p.hash))}">${esc(label(p))}</a> / <a href="${rel(path, modPage(p.hash, m.path))}">${esc(m.path)}</a> / source</nav>
 <h1>${esc(m.path)} <span class="muted">source</span></h1>
-<p><a href="${HUB}/${p.hash}/${esc(m.path)}">${esc(m.path)} on the hub</a> · <a href="${rel(path, modPage(p.hash, m.path))}">documented module</a></p>
+<p><a href="${HUB}/${p.hash}/${encPath(m.path)}">${esc(m.path)} on the hub</a> · <a href="${rel(path, modPage(p.hash, m.path))}">documented module</a></p>
 <pre class="code src">${lines.map((l, i) => `<span class="ln" id="L${i + 1}">${esc(l)}</span>`).join("")}</pre>`;
   return page({ path, title: `${m.path} source · ${label(p)} · Bend Docs`, body, site });
 }

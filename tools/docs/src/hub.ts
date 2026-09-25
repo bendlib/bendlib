@@ -58,13 +58,29 @@ export async function fetchIndex(): Promise<IndexEntry[]> {
   return idx;
 }
 
+/** Keeps records with a well-formed name and at least one well-formed version/hash; logs and drops the rest (PLAN F1). */
+export function validNameRecords(records: NameRecord[]): NameRecord[] {
+  const kept: NameRecord[] = [];
+  const dropped: string[] = [];
+  for (const n of records) {
+    const versions = (n.versions ?? []).filter((v) => VERSION.test(v.version) && HASH.test(v.hash));
+    if (NAME.test(n.name) && versions.length > 0) kept.push({ ...n, versions });
+    else dropped.push(n.name);
+  }
+  if (dropped.length) console.error(`hub: dropped ${dropped.length} invalid name record(s): ${dropped.slice(0, 5).join(", ")}`);
+  return kept;
+}
+
 /** names.json lists only each name's latest version; the per-name record adds `versions`. */
 export async function fetchNames(jobs = 8): Promise<NameRecord[]> {
   const list = await getJson<Omit<NameRecord, "versions">[]>(`${HUB}/names.json`);
-  return pool(list, jobs, async (n) => {
+  const named = list.filter((n) => NAME.test(n.name));  // never even request a hostile name
+  if (named.length !== list.length) console.error(`hub: dropped ${list.length - named.length} name record(s) with an invalid name`);
+  const out = await pool(named, jobs, async (n) => {
     const full = await getJson<NameRecord>(`${HUB}/name/${encodeURIComponent(n.name)}`);
     return { ...n, ...full, versions: full.versions ?? [{ version: n.latest.version, hash: n.latest.hash, ts: n.latest.ts }] };
   });
+  return validNameRecords(out);
 }
 
 export async function pool<T, R>(items: T[], jobs: number, f: (x: T, i: number) => Promise<R>): Promise<R[]> {

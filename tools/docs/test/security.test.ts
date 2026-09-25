@@ -5,8 +5,8 @@ import { describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, sep } from "node:path";
-import { ensurePackage, fetchHub, safePath, seedNames, sha256, underRoot, type NameRecord } from "../src/hub.ts";
-import { renderModule, renderPackage } from "../src/render.ts";
+import { ensurePackage, fetchHub, safePath, seedNames, sha256, underRoot, validNameRecords, type NameRecord } from "../src/hub.ts";
+import { modPage, encPath, renderModule, renderPackage } from "../src/render.ts";
 import type { Module, Package, Site } from "../src/model.ts";
 
 const HASH = "0x" + "a".repeat(32);
@@ -100,5 +100,35 @@ describe("hub fetches are bounded", () => {
     } finally {
       server.stop(true);
     }
+  });
+});
+
+describe("hub names are validated (PLAN F1)", () => {
+  const rec = (name: string, versions: { version: string; hash: string }[]): NameRecord => ({
+    name, owner_login: "o", ts: 0, latest: { version: versions[0]?.version ?? "1.0.0.0", hash: versions[0]?.hash ?? HASH, ts: 0, desc: "" },
+    versions: versions.map((v) => ({ ...v, ts: 0 })),
+  });
+  test("planted negative: a hostile name is dropped, a valid one is kept", () => {
+    const kept = validNameRecords([
+      rec("../index", [{ version: "1.0.0.0", hash: HASH }]),
+      rec("valid-package-name", [{ version: "1.0.0.0", hash: HASH }]),
+    ]);
+    expect(kept.map((n) => n.name)).toEqual(["valid-package-name"]);
+  });
+  test("planted negative: a record whose versions are all malformed is dropped", () => {
+    expect(validNameRecords([rec("valid-package-name", [{ version: "1.0", hash: "0xzz" }])])).toEqual([]);
+  });
+});
+
+describe("module paths in links are URL-encoded", () => {
+  test("planted negative: # becomes %23, and / separators survive", () => {
+    expect(modPage(HASH, "a#b.bend")).toBe(`pkg/${HASH}/a%23b.bend.html`);
+    expect(encPath("sub/a b#c.bend")).toBe("sub/a%20b%23c.bend");
+  });
+  test("a rendered package page links the encoded module URL, never the raw one", () => {
+    const p = pkg([mod("a#b.bend")]);
+    const html = renderPackage(site(p), p);
+    expect(html).toContain(`href="a%23b.bend.html"`);
+    expect(html).not.toContain(`href="a#b.bend.html"`);
   });
 });

@@ -17,7 +17,7 @@ import { extractFile, type FileDecls } from "./src/extract.ts";
 import { dependencyEdges, foreignImports, parseImports } from "./src/imports.ts";
 import { licenses } from "./src/license.ts";
 import { attachEdges, displayOrder, finishPackage, groupPackages, moduleHeader, namesByHash, type Group, type Module, type Package, type Site } from "./src/model.ts";
-import { renderAuthors, renderIndex, renderLemmas, renderLlms, renderModule, renderName, renderPackage, renderSearch, renderSource, modPage, pkgPage, srcPage, namePage, setBaseNamespaces } from "./src/render.ts";
+import { renderAuthors, renderIndex, renderLemmas, renderLlms, renderModule, renderName, renderPackage, renderSearch, renderSource, modFile, pkgPage, srcFile, namePage, setBaseNamespaces } from "./src/render.ts";
 import { baseNamespaces } from "./src/status.ts";
 import { buildSearchIndex } from "./src/searchindex.ts";
 import { checkFile, compilerVersion, crossCheck, readStatusCache, sandboxProbe, statusKey, writeStatusCache, type FileClass, type FileStatus } from "./src/status.ts";
@@ -293,8 +293,8 @@ async function main() {
     write(out, pkgPage(p.hash), renderPackage(site, p));
     pages++;
     for (const m of p.modules) {
-      write(out, modPage(p.hash, m.path), renderModule(site, p, m)); pages++;
-      if (m.source !== null) { write(out, srcPage(p.hash, m.path), renderSource(site, p, m)); pages++; }
+      write(out, modFile(p.hash, m.path), renderModule(site, p, m)); pages++;
+      if (m.source !== null) { write(out, srcFile(p.hash, m.path), renderSource(site, p, m)); pages++; }
     }
   }
   const built = new Set(site.packages.map((p) => p.hash));
