@@ -148,12 +148,13 @@ export function fillerLine(text: string, local: string): number | null {
 const passes = (s: FileStatus | null | undefined) => s == null || s.class === "checks" || s.class === "unsafe";
 
 /** Settles each law (proved here, proved in a checking sibling, or open), counts declarations, and sets the package status. */
-export function finishPackage(p: Package, fills: Map<string, string[]>, text: (path: string) => string): void {
+export function finishPackage(p: Package, fills: Map<string, string[]>, text: (path: string) => string, checked = true): void {
   const filledBy = new Map<string, string>();
   for (const [file, list] of fills) for (const f of list) if (!filledBy.has(f)) filledBy.set(f, file);
   const byPath = new Map(p.modules.map((m) => [m.path, m]));
   const c = { laws: 0, proved: 0, defs: 0, types: 0, decls: 0 };
   const effective: FileClass[] = [];
+  let unchecked = false;
   for (const m of p.modules) {
     let unfilled = 0, rescued = 0, rescuedUnsafe = false;
     const src = m.decls ? text(m.path) : "";
@@ -183,7 +184,7 @@ export function finishPackage(p: Package, fills: Map<string, string[]>, text: (p
       if (d.proved) c.proved++;
     }
     const s = m.status;
-    if (s === null) continue;
+    if (s === null) { unchecked = true; continue; }
     const todo = s.class === "open" ? Number(s.summary.match(/^(\d+) TODO/)?.[1] ?? NaN) : NaN;
     // Checked alone, a LAWS.bend reports each law without a def as open; when that count is exactly
     // its laws proved by siblings that check, the file counts as checking for the package.
@@ -193,7 +194,8 @@ export function finishPackage(p: Package, fills: Map<string, string[]>, text: (p
     } else effective.push(s.class);
   }
   p.counts = c;
-  p.status = effective.length > 0 ? worst(effective) : null;
+  // A package with a file the checker never ran on is not checked, not the worst of the rest.
+  p.status = checked && unchecked ? null : effective.length > 0 ? worst(effective) : null;
 }
 
 export function attachEdges(pkgs: Package[], edges: Edge[]): void {

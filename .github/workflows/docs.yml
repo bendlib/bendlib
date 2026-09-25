@@ -26,6 +26,7 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - run: bun tools/install-bend.ts
       - run: sudo apt-get install -y bubblewrap
+      - run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - uses: actions/cache@v4
         with:
           path: |
@@ -33,7 +34,7 @@ jobs:
             ~/.cache/bendlib
           key: docs-${{ hashFiles('toolchain.json') }}-${{ github.run_id }}
           restore-keys: docs-${{ hashFiles('toolchain.json') }}-
-      - run: bun tools/docs/build.ts --jobs 4
+      - run: bun tools/docs/build.ts --jobs 4 --require-sandbox
       - uses: actions/upload-pages-artifact@v3
         with:
           path: tools/docs/dist

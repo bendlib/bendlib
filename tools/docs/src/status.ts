@@ -8,7 +8,7 @@ import { stripCommentsAndStrings } from "../../mathlib/lib.ts";
 
 export const BEND = process.env.BEND_CLI ?? join(homedir(), ".bend", "bin", "bend");
 
-export type FileClass = "checks" | "unsafe" | "open" | "fails" | "timeout";
+export type FileClass = "checks" | "unsafe" | "open" | "fails" | "timeout" | "sandbox";
 export type FileStatus = {
   class: FileClass;
   summary: string;       // one line for badges and tables
@@ -44,6 +44,10 @@ export function classify(out: string, exitCode: number | null, timedOut: boolean
   if (timedOut) return { ...base, class: "timeout", summary: `no answer within ${Math.round(seconds)} s`, detail: text.slice(0, 2000) };
   if (exitCode === 0 && text === "All terms check.") return { ...base, class: "checks", summary: "All terms check.", detail: "" };
   const lines = text.split("\n");
+  // bwrap failing before the checker starts is a sandbox failure, not a verdict on the file.
+  if (exitCode !== 0 && /^bwrap: /.test((lines[0] ?? "").trim())) {
+    return { ...base, class: "sandbox", summary: "checker did not run: sandbox setup failed", detail: text };
+  }
   const rely = lines.find((l) => /^All terms check, but \d+ defs? (rely|relies) on unsafe or foreign code:?$/.test(l.trim()));
   if (exitCode === 0 && rely !== undefined) {
     const defs = unsafeDefs(lines.slice(lines.indexOf(rely) + 1));
@@ -103,15 +107,26 @@ export function crossCheck(s: FileStatus, source: string): FileStatus {
 
 export type CheckOptions = { bendLib: string; timeoutSec: number; memMb: number; cwd: string };
 
-let bwrapProbe: boolean | null = null;
+/** The bwrap binary the probe and the checks share; `BEND_DOCS_BWRAP` overrides the PATH lookup. */
+export function bwrapPath(): string {
+  return process.env.BEND_DOCS_BWRAP ?? "bwrap";
+}
 
-/** Whether per-file checks run inside bwrap; the `bwrap --version` probe runs at most once. */
-export function sandboxAvailable(): boolean {
-  if (bwrapProbe === null) {
-    try { bwrapProbe = Bun.spawnSync(["bwrap", "--version"], { stdout: "ignore", stderr: "ignore" }).exitCode === 0; }
-    catch { bwrapProbe = false; }
+const sandboxProbes = new Map<string, { ok: boolean; why: string }>();
+
+/** Probes that bwrap can actually start a namespace; `--version` exits 0 even where userns is blocked. */
+export function sandboxProbe(bwrap = bwrapPath()): { ok: boolean; why: string } {
+  const hit = sandboxProbes.get(bwrap);
+  if (hit !== undefined) return hit;
+  let r: { ok: boolean; why: string };
+  try {
+    const p = Bun.spawnSync([bwrap, "--unshare-all", "--die-with-parent", "--ro-bind", "/", "/", "--tmpfs", "/tmp", "--dev", "/dev", "--", "true"], { stdout: "ignore", stderr: "pipe" });
+    r = p.exitCode === 0 ? { ok: true, why: "" } : { ok: false, why: new TextDecoder().decode(p.stderr).trim() };
+  } catch (e) {
+    r = { ok: false, why: e instanceof Error ? e.message : String(e) };
   }
-  return bwrapProbe;
+  sandboxProbes.set(bwrap, r);
+  return r;
 }
 
 /** The argv `checkFile` spawns: the pinned compiler under the memory cap, inside bwrap when sandboxed. */
@@ -120,13 +135,13 @@ export function checkCommand(file: string, o: CheckOptions, sandbox: boolean): s
   const inner = ["bash", "-c", `ulimit -v ${cap}; exec "$0" "$1" --check-only`, BEND, file];
   if (!sandbox) return inner;
   // `--dev /dev` is required: the Bun-compiled bend aborts when / is a read-only bind without a fresh /dev.
-  return ["bwrap", "--unshare-all", "--die-with-parent", "--ro-bind", "/", "/", "--tmpfs", "/tmp", "--dev", "/dev",
+  return [bwrapPath(), "--unshare-all", "--die-with-parent", "--ro-bind", "/", "/", "--tmpfs", "/tmp", "--dev", "/dev",
     "--bind", o.bendLib, o.bendLib, "--chdir", o.cwd, ...inner];
 }
 
 export async function checkFile(file: string, o: CheckOptions): Promise<FileStatus> {
   const t0 = performance.now();
-  const proc = Bun.spawn(checkCommand(file, o, sandboxAvailable()), {
+  const proc = Bun.spawn(checkCommand(file, o, sandboxProbe().ok), {
     cwd: o.cwd,
     env: { ...process.env, BEND_LIB: o.bendLib, BEND_NO_TELEMETRY: "1" },
     stdout: "pipe", stderr: "pipe", stdin: "ignore",
@@ -147,7 +162,10 @@ export function compilerVersion(): string {
 }
 
 export type StatusCache = Record<string, FileStatus>;
-export const statusKey = (hash: string, path: string, compiler: string) => `${compiler} ${hash}/${path}`;
+// Cache-key format version. A future FileStatus shape change can set it (e.g. "f2 ") to discard
+// every entry; kept empty for this fix so the old keys stay readable for stale()'s targeted heal.
+const STATUS_FORMAT = "";
+export const statusKey = (hash: string, path: string, compiler: string) => `${STATUS_FORMAT}${compiler} ${hash}/${path}`;
 
 export function readStatusCache(file: string): StatusCache {
   return existsSync(file) ? JSON.parse(readFileSync(file, "utf8")) : {};

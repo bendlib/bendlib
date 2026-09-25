@@ -4,7 +4,8 @@
 //
 // usage: bun tools/docs/build.ts [--limit N] [--only name@version|0xhash,...] [--no-check]
 //          [--local entry.bend] [--jobs N] [--timeout SEC] [--mem-mb MB] [--out DIR] [--cache DIR]
-// exit: 0 site written · 1 fatal error (network, hub data) · 2 usage or toolchain mismatch
+//          [--require-sandbox]
+// exit: 0 site written · 1 fatal error or required-sandbox checks failed · 2 usage or toolchain mismatch
 
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -19,7 +20,7 @@ import { attachEdges, displayOrder, finishPackage, moduleHeader, namesByHash, ty
 import { renderAuthors, renderIndex, renderLemmas, renderLlms, renderModule, renderName, renderPackage, renderSearch, renderSource, modPage, pkgPage, srcPage, namePage, setBaseNamespaces } from "./src/render.ts";
 import { baseNamespaces } from "./src/status.ts";
 import { buildSearchIndex } from "./src/searchindex.ts";
-import { checkFile, compilerVersion, crossCheck, readStatusCache, sandboxAvailable, statusKey, writeStatusCache, type FileClass } from "./src/status.ts";
+import { checkFile, compilerVersion, crossCheck, readStatusCache, sandboxProbe, statusKey, writeStatusCache, type FileClass, type FileStatus } from "./src/status.ts";
 
 const HERE = import.meta.dir;
 const ROOT = resolve(HERE, "../..");
@@ -28,15 +29,15 @@ const EXTRACT_FORMAT = 2;
 // Modules larger than this get no source page; their declarations link to the raw hub file.
 const MAX_SRC_BYTES = 400 * 1024;
 
-type Args = { limit: number | null; only: string[] | null; local: string | null; check: boolean; jobs: number; timeout: number; memMb: number; out: string; cache: string };
+type Args = { limit: number | null; only: string[] | null; local: string | null; check: boolean; jobs: number; timeout: number; memMb: number; out: string; cache: string; requireSandbox: boolean };
 
 function usage(msg: string): never {
-  console.error(`build: ${msg}\nusage: bun tools/docs/build.ts [--limit N] [--only name@version|0xhash,...] [--no-check] [--local entry.bend] [--jobs N] [--timeout SEC] [--mem-mb MB] [--out DIR] [--cache DIR]`);
+  console.error(`build: ${msg}\nusage: bun tools/docs/build.ts [--limit N] [--only name@version|0xhash,...] [--no-check] [--local entry.bend] [--jobs N] [--timeout SEC] [--mem-mb MB] [--out DIR] [--cache DIR] [--require-sandbox]`);
   process.exit(2);
 }
 
 function parseArgs(argv: string[]): Args {
-  const a: Args = { limit: null, only: null, local: null, check: true, jobs: 8, timeout: 20, memMb: 4096, out: join(HERE, "dist"), cache: join(HERE, ".cache") };
+  const a: Args = { limit: null, only: null, local: null, check: true, jobs: 8, timeout: 20, memMb: 4096, out: join(HERE, "dist"), cache: join(HERE, ".cache"), requireSandbox: false };
   let outSet = false;
   const num = (i: number) => {
     const n = Number(argv[i + 1]);
@@ -46,6 +47,7 @@ function parseArgs(argv: string[]): Args {
   for (let i = 0; i < argv.length; i++) {
     const f = argv[i];
     if (f === "--no-check") a.check = false;
+    else if (f === "--require-sandbox") a.requireSandbox = true;
     else if (f === "--limit") a.limit = num(i++);
     else if (f === "--jobs") a.jobs = Math.floor(num(i++));
     else if (f === "--timeout") a.timeout = num(i++);
@@ -58,6 +60,13 @@ function parseArgs(argv: string[]): Args {
   }
   if (a.local !== null && !outSet) a.out = join(HERE, "dist", "local");
   return a;
+}
+
+/** A cached status is stale when absent, a timeout with more room now, or a pre-probe sandbox failure. */
+export function stale(c: FileStatus | undefined, timeout: number): boolean {
+  return c === undefined
+    || (c.class === "timeout" && c.seconds < timeout - 1)
+    || (c.class === "fails" && /^bwrap: /.test(c.detail));
 }
 
 const log = (s: string) => console.error(s);
@@ -114,6 +123,12 @@ async function main() {
   if (compiler !== pinned) {
     console.error(`build: toolchain.json pins bend ${pinned}, but the installed bend is ${compiler}; statuses must come from the pinned compiler`);
     process.exit(2);
+  }
+  const sandbox = sandboxProbe();
+  if (args.check && !sandbox.ok) {
+    const why = sandbox.why.split("\n")[0] || "probe failed";
+    if (args.requireSandbox) { console.error(`build: sandbox required but unusable: ${why}`); process.exit(2); }
+    log(`sandbox: unusable, checking unsandboxed (${why})`);
   }
   const lib = join(args.cache, "lib");
   mkdirSync(lib, { recursive: true });
@@ -184,20 +199,26 @@ async function main() {
   const statusFile = join(args.cache, "status.json");
   const cache = readStatusCache(statusFile);
   let checkedNew = 0;
+  let sandboxFails = 0;
   if (args.check) {
     const todo: { hash: string; path: string }[] = [];
-    // A cached timeout is retried when this run allows more time than it had.
-    const stale = (c: (typeof cache)[string] | undefined) => c === undefined || (c.class === "timeout" && c.seconds < args.timeout - 1);
-    for (let i = 0; i < entries.length; i++) for (const { path } of manifests[i]) if (path.endsWith(".bend") && stale(cache[statusKey(entries[i].hash, path, compiler)])) todo.push({ hash: entries[i].hash, path });
+    for (let i = 0; i < entries.length; i++) for (const { path } of manifests[i]) if (path.endsWith(".bend") && stale(cache[statusKey(entries[i].hash, path, compiler)], args.timeout)) todo.push({ hash: entries[i].hash, path });
     let done = 0;
     await pool(todo, args.jobs, async ({ hash, path }) => {
-      cache[statusKey(hash, path, compiler)] = await checkFile(join(lib, hash, path), { bendLib: lib, timeoutSec: args.timeout, memMb: args.memMb, cwd: join(lib, hash) });
+      const s = await checkFile(join(lib, hash, path), { bendLib: lib, timeoutSec: args.timeout, memMb: args.memMb, cwd: join(lib, hash) });
+      // A sandbox failure is not a file status: never cache it, so the next run retries the check.
+      if (s.class === "sandbox") sandboxFails++;
+      else cache[statusKey(hash, path, compiler)] = s;
       checkedNew++;
       if (++done % 50 === 0) { log(`check: ${done}/${todo.length}`); writeStatusCache(statusFile, cache); }
     });
     writeStatusCache(statusFile, cache);
   }
-  log(`check: ${args.check ? `${checkedNew} files checked, the rest from cache` : "skipped (--no-check)"} · sandbox: ${sandboxAvailable() ? "bwrap" : "none"} (${secs(t)})`);
+  log(`check: ${args.check ? `${checkedNew} files checked, the rest from cache` : "skipped (--no-check)"} · sandbox: ${sandbox.ok ? "bwrap" : "none"} (${secs(t)})`);
+  if (args.requireSandbox && sandboxFails > 0) {
+    console.error(`build: ${sandboxFails} file(s) could not be checked: sandbox setup failed`);
+    process.exit(1);
+  }
 
   const pkgs: Package[] = entries.map((e, i) => {
     const manifest = manifests[i];
@@ -223,7 +244,7 @@ async function main() {
       status: null,
       counts: { laws: 0, proved: 0, defs: 0, types: 0, decls: 0 },
     };
-    finishPackage(p, fills, (path) => readFileSync(join(lib, e.hash, path), "utf8"));
+    finishPackage(p, fills, (path) => readFileSync(join(lib, e.hash, path), "utf8"), args.check);
     return p;
   });
   const edges = dependencyEdges(pkgs.map((p) => ({ hash: p.hash, files: p.modules })), resolveName);
@@ -288,7 +309,7 @@ async function main() {
   if (local !== null) console.log(`local package page: ${pkgPage(local.hash)}`);
 }
 
-main().catch((e) => {
+if (import.meta.main) main().catch((e) => {
   console.error(`build: ${e instanceof Error ? e.stack ?? e.message : String(e)}`);
   process.exit(1);
 });

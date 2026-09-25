@@ -2,10 +2,11 @@
 // `bend <file> --check-only` on 2.0.27 for hub files (named in each test).
 
 import { describe, expect, test } from "bun:test";
-import { mkdtempSync } from "node:fs";
+import { chmodSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { BEND, checkCommand, checkFile, classify, crossCheck, sandboxAvailable, worst } from "../src/status.ts";
+import { BEND, checkCommand, checkFile, classify, crossCheck, sandboxProbe, worst, type FileStatus } from "../src/status.ts";
+import { stale } from "../build.ts";
 
 describe("classify", () => {
   test("exactly 'All terms check.' with exit 0 is checks", () => {
@@ -38,6 +39,15 @@ describe("classify", () => {
   });
   test("a kill on timeout is timeout, whatever was printed", () => {
     expect(classify("", null, true, 20.2).class).toBe("timeout");
+  });
+  test("planted negative: bwrap failing before the checker is sandbox, not fails", () => {
+    const s = classify("bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted\n", 1, false, 0.01);
+    expect(s.class).toBe("sandbox");
+    expect(s.summary).toBe("checker did not run: sandbox setup failed");
+  });
+  test("planted negative: a real checker error that mentions bwrap later is still fails", () => {
+    const s = classify("Error:\n- expected : a fresh constructor name\nbwrap: nope\n", 1, false, 1);
+    expect(s.class).toBe("fails");
   });
   test("package status is the worst file status", () => {
     expect(worst(["checks", "unsafe", "checks"])).toBe("unsafe");
@@ -96,7 +106,47 @@ describe("checkCommand", () => {
   });
 });
 
-const hasBwrap = sandboxAvailable();
+/** Writes a fake bwrap executable in a fresh temp dir and returns its path. */
+function fakeBwrap(script: string): string {
+  const dir = mkdtempSync(join(tmpdir(), "bend-docs-bwrap-"));
+  const p = join(dir, "bwrap");
+  writeFileSync(p, script);
+  chmodSync(p, 0o755);
+  return p;
+}
+
+describe("sandboxProbe", () => {
+  test("planted negative: a bwrap that only answers --version fails the real probe", () => {
+    const fake = fakeBwrap("#!/bin/sh\n[ \"$1\" = \"--version\" ] && exit 0\necho \"bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted\" >&2\nexit 1\n");
+    const r = sandboxProbe(fake);
+    expect(r.ok).toBe(false);
+    expect(r.why).toContain("RTM_NEWADDR");
+  });
+  test("a real namespace start passes", () => {
+    const probe = sandboxProbe();
+    if (probe.ok) expect(probe.why).toBe("");
+  });
+});
+
+describe("stale", () => {
+  const s = (c: FileStatus["class"], detail = "", seconds = 0): FileStatus => ({ class: c, summary: "", detail, exitCode: 1, seconds });
+  test("a pre-probe bwrap failure in the cache is re-checked", () => {
+    expect(stale(s("fails", "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"), 20)).toBe(true);
+  });
+  test("planted negative: a genuine checker failure stays cached", () => {
+    expect(stale(s("fails", "- expected : a fresh constructor name"), 20)).toBe(false);
+  });
+  test("planted negative: a timeout keeps its time budget rule", () => {
+    expect(stale(s("timeout", "", 5), 20)).toBe(true);
+    expect(stale(s("timeout", "", 19.5), 20)).toBe(false);
+  });
+  test("a missing entry is stale and a fresh check is not", () => {
+    expect(stale(undefined, 20)).toBe(true);
+    expect(stale(s("checks"), 20)).toBe(false);
+  });
+});
+
+const hasBwrap = sandboxProbe().ok;
 
 describe("checkFile under the sandbox", () => {
   test.skipIf(!hasBwrap)("the good fixture checks inside bwrap", async () => {

@@ -24,10 +24,11 @@ const date = (ts: number) => new Date(ts).toISOString().slice(0, 10);
 
 const STATUS_TEXT: Record<FileClass, string> = {
   checks: "checks", unsafe: "relies on unsafe/foreign", open: "open laws/TODOs", fails: "fails", timeout: "timeout",
+  sandbox: "not checked",
 };
 
 function statusBadge(c: FileClass | null, title = ""): string {
-  if (c === null) return `<span class="st st-none" title="not checked in this build">not checked</span>`;
+  if (c === null || c === "sandbox") return `<span class="st st-none" title="not checked in this build">not checked</span>`;
   return `<span class="st st-${c}"${title ? ` title="${esc(title)}"` : ""}>${STATUS_TEXT[c]}</span>`;
 }
 

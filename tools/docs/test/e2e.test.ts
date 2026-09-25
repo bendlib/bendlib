@@ -2,7 +2,7 @@
 // verify, extract, check on the installed bend) and inspects the generated site.
 
 import { beforeAll, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { compile, matchStatement } from "../src/shape.ts";
@@ -13,6 +13,15 @@ const MATHLIB = "0xafc61ca8b7738a6df7f28eddf80168f8";   // bend-mathlib@0.1.0.1
 const TENSORS = "0x39d8166231e68361eb37e8bef9287b8a";   // bend-tensors@0.0.0.2
 const ANON = "0x6648eb78d8a978a0e437eabbfbc841cd";      // anonymous; imports 0xe49a3e65…/parse.bend
 const PARSE = "0xe49a3e6521e1b71e55654a885f27bcc1";
+
+/** Writes a fake bwrap executable in a fresh temp dir and returns its path. */
+function fakeBwrap(script: string): string {
+  const dir = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "bend-docs-fakebwrap-"));
+  const p = join(dir, "bwrap");
+  writeFileSync(p, script);
+  chmodSync(p, 0o755);
+  return p;
+}
 
 const root = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "bend-docs-e2e-"));
 const out = join(root, "dist");
@@ -178,4 +187,37 @@ describe("--local preview", () => {
     expect(msg).toContain("usage: bun tools/docs/build.ts");
     expect(msg).not.toMatch(/\n\s+at /);
   });
+});
+
+describe("sandbox setup failures are not statuses", () => {
+  const probeFails = "#!/bin/sh\n[ \"$1\" = \"--version\" ] && exit 0\necho \"bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted\" >&2\nexit 1\n";
+  // Passes the probe (no --check-only), then fails every checked file like the CI symptom.
+  const checkFails = "#!/bin/sh\nfor a in \"$@\"; do case \"$a\" in *--check-only*) echo \"bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted\" >&2; exit 1;; esac; done\nexit 0\n";
+
+  test("--require-sandbox aborts with exit 2 before any status is written", () => {
+    const fake = fakeBwrap(probeFails);
+    const dir = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "bend-docs-req-"));
+    const p = Bun.spawnSync([process.execPath, join(import.meta.dir, "..", "build.ts"),
+      "--only", "bend-mathlib@0.1.0.1", "--require-sandbox", "--out", join(dir, "dist"), "--cache", join(dir, "cache")],
+      { env: { ...process.env, BEND_DOCS_BWRAP: fake } });
+    const msg = new TextDecoder().decode(p.stdout) + new TextDecoder().decode(p.stderr);
+    expect(p.exitCode).toBe(2);
+    expect(msg).toContain("sandbox required but unusable");
+    expect(msg).toContain("RTM_NEWADDR");
+    expect(existsSync(join(dir, "cache", "status.json"))).toBe(false);
+  }, 120_000);
+
+  test("a sandbox that passes the probe but fails every check caches no status and renders not checked", () => {
+    const fake = fakeBwrap(checkFails);
+    const dir = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "bend-docs-sbx-"));
+    const out = join(dir, "dist");
+    const p = Bun.spawnSync([process.execPath, join(import.meta.dir, "..", "build.ts"),
+      "--only", "bend-mathlib@0.1.0.1", "--out", out, "--cache", join(dir, "cache"), "--jobs", "4"],
+      { env: { ...process.env, BEND_DOCS_BWRAP: fake } });
+    const msg = new TextDecoder().decode(p.stdout) + new TextDecoder().decode(p.stderr);
+    expect(p.exitCode).toBe(0);
+    expect(msg).toContain("sandbox: bwrap");
+    expect(Object.keys(JSON.parse(readFileSync(join(dir, "cache", "status.json"), "utf8")))).toHaveLength(0);
+    expect(readFileSync(join(out, "pkg", MATHLIB, "index.html"), "utf8")).toContain("not checked");
+  }, 300_000);
 });
