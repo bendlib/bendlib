@@ -7,8 +7,12 @@ on:
     - cron: "17 5 * * *"
   workflow_dispatch:
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  pinned:
+  tests:
     runs-on: ubuntu-latest
     env:
       BEND_NO_TELEMETRY: "1"
@@ -20,11 +24,28 @@ jobs:
       - run: bun tools/install-bend.ts
       - run: sudo apt-get install -y bubblewrap
       - run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/bendlib
+          key: bendlib-${{ hashFiles('toolchain.json') }}
       - run: bun test tools/
+
+  gates:
+    runs-on: ubuntu-latest
+    env:
+      BEND_NO_TELEMETRY: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
+      - run: bun tools/install-bend.ts
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/bendlib
+          key: bendlib-${{ hashFiles('toolchain.json') }}
       - run: bun tools/comments.ts
       - run: bun tools/mathlib/check.ts packages/bend-mathlib
-      - name: lawcheck every mathlib module
-        run: for m in $(find packages/bend-mathlib -name '*.bend' | sort); do bun tools/lawcheck/cli.ts "$m" --max-instances 100 || exit 1; done
       - run: bun tools/mathlib/lint.ts packages/bend-mathlib --erasure
       - run: bun tools/mathlib/twins.ts packages/bend-mathlib --check
       - run: bun tools/mathlib/lock.ts packages/bend-mathlib --check
@@ -36,7 +57,46 @@ jobs:
           else
             bun tools/mathlib/lock.ts packages/bend-mathlib --check --against "$tag"
           fi
-      - run: bun tools/mathlib/index.ts packages/bend-mathlib bend-mathlib 0.1.0.1 --check
+      - name: index check (version from RELEASES.md)
+        run: |
+          v=$(awk -F'|' '/bend-mathlib/{v=$3} END{gsub(/ /,"",v);print v}' RELEASES.md)
+          bun tools/mathlib/index.ts packages/bend-mathlib bend-mathlib "$v" --check
+
+  lawcheck:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module: [nat, list, equal, bool, all]
+    env:
+      BEND_NO_TELEMETRY: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun tools/install-bend.ts
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/bendlib
+          key: bendlib-${{ hashFiles('toolchain.json') }}
+      - name: lawcheck stamp ${{ matrix.module }} (lookup)
+        id: stamp
+        uses: actions/cache@v4
+        with:
+          path: .lawcheck-stamp
+          key: lawcheck-${{ matrix.module }}-${{ hashFiles('packages/bend-mathlib/**','tools/lawcheck/**','tools/reader/**','toolchain.json') }}
+          lookup-only: true
+      - name: lawcheck ${{ matrix.module }}
+        if: steps.stamp.outputs.cache-hit != 'true'
+        run: bun tools/lawcheck/cli.ts packages/bend-mathlib/${{ matrix.module }}.bend --max-instances 100
+      - name: stamp lawcheck ${{ matrix.module }}
+        if: steps.stamp.outputs.cache-hit != 'true'
+        run: touch .lawcheck-stamp
+      - name: save lawcheck stamp ${{ matrix.module }}
+        if: steps.stamp.outputs.cache-hit != 'true'
+        uses: actions/cache@v4
+        with:
+          path: .lawcheck-stamp
+          key: lawcheck-${{ matrix.module }}-${{ hashFiles('packages/bend-mathlib/**','tools/lawcheck/**','tools/reader/**','toolchain.json') }}
 
   latest-compiler:
     # Early warning only: the newest Bend release against our sources.
