@@ -175,33 +175,50 @@ async function fetchTag(vdir: string, version: string): Promise<BendSource> {
 
   fs.mkdirSync(path.dirname(vdir), { recursive: true });
   const tmp = fs.mkdtempSync(path.join(path.dirname(vdir), `.${version}.tmp-`));
-  const archiveName = `${tag}.tar.gz`;
-  fs.writeFileSync(path.join(tmp, archiveName), buf);
-  fs.mkdirSync(path.join(tmp, "src"));
-  const tar = Bun.spawnSync(["tar", "-xzf", path.join(tmp, archiveName), "-C", path.join(tmp, "src"), "--strip-components=1"],
-    { stdout: "pipe", stderr: "pipe" });
-  if (tar.exitCode !== 0) {
-    throw new SourceError(`tar failed on ${url}: ${tar.stderr.toString()} (partial files left in ${tmp})`);
+  let moved = false;
+  try {
+    const archiveName = `${tag}.tar.gz`;
+    fs.writeFileSync(path.join(tmp, archiveName), buf);
+    fs.mkdirSync(path.join(tmp, "src"));
+    // only bend2/ is read (bend.ts, base.bend, effs/); bench/ and media/ are ~69 MB of the archive
+    const tar = Bun.spawnSync(["tar", "-xzf", path.join(tmp, archiveName), "-C", path.join(tmp, "src"),
+      "--strip-components=1", "--wildcards", "*/bend2/*"], { stdout: "pipe", stderr: "pipe" });
+    if (tar.exitCode !== 0) {
+      throw new SourceError(`tar failed on ${url}: ${tar.stderr.toString()}`);
+    }
+    const dv = declaredVersion(path.join(tmp, "src"));
+    if (dv !== version) {
+      throw new SourceError(`${url} declares VERSION ${dv} in bend2/main.ts, expected ${version}`);
+    }
+    const files: Record<string, string> = {};
+    for (const f of PINNED) {
+      files[f] = sha256(fs.readFileSync(path.join(tmp, "src", f)));
+    }
+    verifyPinned(path.join(tmp, "src"), version, "fetched");
+    const man: Manifest = { version, tag, url, archive: archiveName, archiveSha256, commit, fetchedAt: new Date().toISOString(), files };
+    fs.writeFileSync(path.join(tmp, "manifest.json"), JSON.stringify(man, null, 2) + "\n");
+    fs.writeFileSync(path.join(tmp, "archive.sha256"), `${archiveSha256}  ${archiveName}\n`);
+    if (fs.existsSync(vdir)) {
+      // another process won the race; use theirs, the finally removes ours
+      return verifyCache(vdir, version);
+    }
+    try {
+      fs.renameSync(tmp, vdir);
+    } catch (e) {
+      const code = (e as { code?: string }).code;
+      if (code === "ENOTEMPTY" || code === "EEXIST") {
+        return verifyCache(vdir, version); // a concurrent winner appeared between the check and the rename
+      }
+      throw e;
+    }
+    moved = true;
+    const dir = path.join(vdir, "src");
+    return { version, dir, bendTs: path.join(dir, "bend2", "bend.ts"), origin: "fetched", archiveSha256, commit };
+  } finally {
+    if (!moved) {
+      try { fs.rmSync(tmp, { recursive: true, force: true }); } catch { /* best effort */ }
+    }
   }
-  const dv = declaredVersion(path.join(tmp, "src"));
-  if (dv !== version) {
-    throw new SourceError(`${url} declares VERSION ${dv} in bend2/main.ts, expected ${version} (partial files left in ${tmp})`);
-  }
-  const files: Record<string, string> = {};
-  for (const f of PINNED) {
-    files[f] = sha256(fs.readFileSync(path.join(tmp, "src", f)));
-  }
-  verifyPinned(path.join(tmp, "src"), version, "fetched");
-  const man: Manifest = { version, tag, url, archive: archiveName, archiveSha256, commit, fetchedAt: new Date().toISOString(), files };
-  fs.writeFileSync(path.join(tmp, "manifest.json"), JSON.stringify(man, null, 2) + "\n");
-  fs.writeFileSync(path.join(tmp, "archive.sha256"), `${archiveSha256}  ${archiveName}\n`);
-  if (fs.existsSync(vdir)) {
-    // another process won the race; use theirs (and leave ours for inspection)
-    return verifyCache(vdir, version);
-  }
-  fs.renameSync(tmp, vdir);
-  const dir = path.join(vdir, "src");
-  return { version, dir, bendTs: path.join(dir, "bend2", "bend.ts"), origin: "fetched", archiveSha256, commit };
 }
 
 export type SourceOptions = {

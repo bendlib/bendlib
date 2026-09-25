@@ -33,8 +33,12 @@ export function normalize(ds: Decl[], bendLib?: string): Decl[] {
 
 export async function dump(c: Case): Promise<{ version: string; decls: Decl[] }> {
   const bendLib = c.hub ? fs.realpathSync(freshBendLib()) : undefined;
-  const L = await load(path.join(REPO, c.file), { bendLib });
-  return { version: L.source.version, decls: normalize(decls(L, { scope: "all-non-base" }), bendLib) };
+  try {
+    const L = await load(path.join(REPO, c.file), { bendLib });
+    return { version: L.source.version, decls: normalize(decls(L, { scope: "all-non-base" }), bendLib) };
+  } finally {
+    if (bendLib !== undefined) fs.rmSync(bendLib, { recursive: true, force: true });
+  }
 }
 
 export function goldenPath(c: Case): string {

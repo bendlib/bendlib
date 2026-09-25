@@ -21,6 +21,20 @@ async function readErr(p: Promise<unknown>): Promise<BendReadError> {
   throw new Error("expected a BendReadError, but the load succeeded");
 }
 
+// A minimal separate cache: only what verifyCache reads (manifest, archive hash, archive, bend2).
+function copyCache(s: { dir: string; version: string }): string {
+  const vdir = path.dirname(s.dir);
+  const man = JSON.parse(fs.readFileSync(path.join(vdir, "manifest.json"), "utf8"));
+  const cache = fs.mkdtempSync(path.join(os.tmpdir(), "bendlib-reader-cache-"));
+  const copy = path.join(cache, "bend", s.version);
+  fs.mkdirSync(copy, { recursive: true });
+  for (const name of ["manifest.json", "archive.sha256", man.archive]) {
+    fs.copyFileSync(path.join(vdir, name), path.join(copy, name));
+  }
+  fs.cpSync(path.join(vdir, "src", "bend2"), path.join(copy, "src", "bend2"), { recursive: true });
+  return cache;
+}
+
 describe("source", () => {
   test("installed version matches the pinned toolchain", () => {
     const pinned = JSON.parse(fs.readFileSync(path.join(REPO, "toolchain.json"), "utf8")).bend.version;
@@ -42,10 +56,8 @@ describe("source", () => {
   test("a tampered cached bend.ts is refused", async () => {
     const s = await bendSource();
     if (s.origin === "local") return;
-    const vdir = path.dirname(s.dir);
-    const cache = fs.mkdtempSync(path.join(os.tmpdir(), "bendlib-reader-cache-"));
+    const cache = copyCache(s);
     const copy = path.join(cache, "bend", s.version);
-    fs.cpSync(vdir, copy, { recursive: true });
     fs.appendFileSync(path.join(copy, "src", "bend2", "bend.ts"), "\n// tampered\n");
     const old = process.env.BENDLIB_CACHE;
     process.env.BENDLIB_CACHE = cache;
@@ -53,16 +65,15 @@ describe("source", () => {
       await expect(bendSource()).rejects.toThrow(/bend2\/bend\.ts has sha256 .* recorded/);
     } finally {
       if (old === undefined) delete process.env.BENDLIB_CACHE; else process.env.BENDLIB_CACHE = old;
+      fs.rmSync(cache, { recursive: true, force: true });
     }
   });
 
   test("a poisoned cache with a rewritten manifest is refused by the pin", async () => {
     const s = await bendSource();
     if (s.origin === "local") return;
-    const vdir = path.dirname(s.dir);
-    const cache = fs.mkdtempSync(path.join(os.tmpdir(), "bendlib-reader-poison-"));
+    const cache = copyCache(s);
     const copy = path.join(cache, "bend", s.version);
-    fs.cpSync(vdir, copy, { recursive: true });
     const bend = path.join(copy, "src", "bend2", "bend.ts");
     fs.appendFileSync(bend, "\n// poisoned\n");
     const man = JSON.parse(fs.readFileSync(path.join(copy, "manifest.json"), "utf8"));
@@ -74,6 +85,7 @@ describe("source", () => {
       await expect(bendSource()).rejects.toThrow(/pinned/);
     } finally {
       if (old === undefined) delete process.env.BENDLIB_CACHE; else process.env.BENDLIB_CACHE = old;
+      fs.rmSync(cache, { recursive: true, force: true });
     }
   });
 
@@ -81,12 +93,16 @@ describe("source", () => {
     const s = await bendSource();
     if (s.origin === "local") return;
     const fake = fs.mkdtempSync(path.join(os.tmpdir(), "bendlib-reader-bin-"));
-    const bin = path.join(fake, "bin", "bend");
-    fs.mkdirSync(path.dirname(bin), { recursive: true });
-    fs.writeFileSync(bin, `#!/bin/sh\necho "bend ${s.version}"\n`, { mode: 0o755 });
-    fs.mkdirSync(path.join(fake, "bend2"), { recursive: true });
-    fs.writeFileSync(path.join(fake, "bend2", "base.bend"), "not the installed base.bend\n");
-    await expect(bendSource({ bin })).rejects.toThrow(/pinned/);
+    try {
+      const bin = path.join(fake, "bin", "bend");
+      fs.mkdirSync(path.dirname(bin), { recursive: true });
+      fs.writeFileSync(bin, `#!/bin/sh\necho "bend ${s.version}"\n`, { mode: 0o755 });
+      fs.mkdirSync(path.join(fake, "bend2"), { recursive: true });
+      fs.writeFileSync(path.join(fake, "bend2", "base.bend"), "not the installed base.bend\n");
+      await expect(bendSource({ bin })).rejects.toThrow(/pinned/);
+    } finally {
+      fs.rmSync(fake, { recursive: true, force: true });
+    }
   });
 
   test("a local checkout at another version is refused", async () => {
@@ -199,11 +215,15 @@ describe("decls", () => {
 
   test("open law is reported unproved", async () => {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "bendlib-reader-open-"));
-    const f = path.join(tmp, "open.bend");
-    fs.writeFileSync(f, "import Base\n\n# stated, not proved\nlaw zero_add:\n  for n: Nat\n  {Nat.add(0n, n) == n : Nat}\n");
-    const [d] = decls(await load(f));
-    expect(d).toMatchObject({ kind: "law", proved: false, line: 4, doc: "stated, not proved" });
-    expect(d.proof).toBeUndefined();
+    try {
+      const f = path.join(tmp, "open.bend");
+      fs.writeFileSync(f, "import Base\n\n# stated, not proved\nlaw zero_add:\n  for n: Nat\n  {Nat.add(0n, n) == n : Nat}\n");
+      const [d] = decls(await load(f));
+      expect(d).toMatchObject({ kind: "law", proved: false, line: 4, doc: "stated, not proved" });
+      expect(d.proof).toBeUndefined();
+    } finally {
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
   });
 });
 
@@ -211,13 +231,17 @@ describe("hub", () => {
   test("hub package by hash loads into a private BEND_LIB only", async () => {
     const homeBefore = fs.existsSync(HOME_LIB) ? fs.readdirSync(HOME_LIB).sort() : [];
     const lib = fs.realpathSync(freshBendLib());
-    const L = await load(path.join(FIX, "hub_list.bend"), { bendLib: lib });
-    expect(fs.existsSync(path.join(lib, HUB_PKG, "list.bend"))).toBe(true);
-    const ns = HUB_PKG + "/list";
-    const imp = decls(L, { scope: "all-non-base" }).filter((d) => d.origin === "imported");
-    expect(imp.length).toBe(6);
-    expect(imp.every((d) => d.namespace === ns && d.file === path.join(lib, HUB_PKG, "list.bend"))).toBe(true);
-    expect(fs.existsSync(HOME_LIB) ? fs.readdirSync(HOME_LIB).sort() : []).toEqual(homeBefore);
+    try {
+      const L = await load(path.join(FIX, "hub_list.bend"), { bendLib: lib });
+      expect(fs.existsSync(path.join(lib, HUB_PKG, "list.bend"))).toBe(true);
+      const ns = HUB_PKG + "/list";
+      const imp = decls(L, { scope: "all-non-base" }).filter((d) => d.origin === "imported");
+      expect(imp.length).toBe(6);
+      expect(imp.every((d) => d.namespace === ns && d.file === path.join(lib, HUB_PKG, "list.bend"))).toBe(true);
+      expect(fs.existsSync(HOME_LIB) ? fs.readdirSync(HOME_LIB).sort() : []).toEqual(homeBefore);
+    } finally {
+      fs.rmSync(lib, { recursive: true, force: true });
+    }
   }, 60_000);
 });
 
