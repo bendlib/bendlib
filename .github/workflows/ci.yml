@@ -14,6 +14,8 @@ jobs:
       BEND_NO_TELEMETRY: "1"
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: oven-sh/setup-bun@v2
       - run: bun tools/install-bend.ts
       - run: sudo apt-get install -y bubblewrap
@@ -26,6 +28,14 @@ jobs:
       - run: bun tools/mathlib/lint.ts packages/bend-mathlib --erasure
       - run: bun tools/mathlib/twins.ts packages/bend-mathlib --check
       - run: bun tools/mathlib/lock.ts packages/bend-mathlib --check
+      - name: lock trust anchor (published entries vs the newest bend-mathlib tag)
+        run: |
+          tag=$(git describe --tags --match 'bend-mathlib-v*' --abbrev=0 2>/dev/null || true)
+          if [ -z "$tag" ]; then
+            echo "no bend-mathlib-v* tag yet; skipping --against"
+          else
+            bun tools/mathlib/lock.ts packages/bend-mathlib --check --against "$tag"
+          fi
       - run: bun tools/mathlib/index.ts packages/bend-mathlib bend-mathlib 0.1.0.1 --check
 
   latest-compiler:
