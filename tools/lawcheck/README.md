@@ -58,7 +58,7 @@ bun tools/lawcheck/cli.ts mutate LAWS.bend --json          # machine output
 
 ```
 $ bun tools/lawcheck/cli.ts mutate tools/lawcheck/test/fixtures/mut_weak.bend
-lawcheck mutate 0.2.0 · tools/lawcheck/test/fixtures/mut_weak.bend (impl lib_ok.bend) · bend 2.0.27 · ≤50 instances/law
+lawcheck mutate 0.2.1 · tools/lawcheck/test/fixtures/mut_weak.bend (impl lib_ok.bend) · bend 2.0.27 · ≤50 instances/law
 size  1/4 valid mutants killed · 3 survived · 6 invalid
       survived  arm-copy  line 12  1n+size(r) → 0n
       survived  drop-succ  line 12  1n+size(r) → size(r)

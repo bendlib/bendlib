@@ -81,7 +81,7 @@ export type MutateReport = {
   defs: { name: string; mutants: MutantResult[] }[];
 };
 
-export const VERSION = "0.2.0";
+export const VERSION = "0.2.1";
 
 class Skip extends Error {}
 
