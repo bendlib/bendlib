@@ -5,6 +5,7 @@ on:
   pull_request:
   schedule:
     - cron: "17 5 * * *"
+  workflow_dispatch:
 
 jobs:
   pinned:
@@ -27,9 +28,11 @@ jobs:
 
   latest-compiler:
     # Early warning only: the newest Bend release against our sources.
-    if: github.event_name == 'schedule'
+    if: github.event_name != 'push' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    continue-on-error: true
+    permissions:
+      contents: read
+      issues: write
     env:
       BEND_NO_TELEMETRY: "1"
     steps:
@@ -45,3 +48,17 @@ jobs:
       - run: bun tools/lawcheck/cli.ts packages/bend-mathlib/nat.bend --max-instances 50
       - name: F-fact regression (research/experiments/run.sh)
         run: bash research/experiments/run.sh
+      - name: open or update the nightly failure issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          v=$($HOME/.bend/bin/bend version | cut -d' ' -f2)
+          t="nightly: bend $v breaks bendlib"
+          n=$(gh issue list --state open --search "in:title \"$t\"" --json number --jq '.[0].number')
+          if [ -n "$n" ] && [ "$n" != "null" ]; then
+            gh issue comment "$n" --body "$RUN_URL"
+          else
+            gh issue create --title "$t" --body "$RUN_URL"
+          fi

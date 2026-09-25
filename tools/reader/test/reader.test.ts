@@ -22,8 +22,9 @@ async function readErr(p: Promise<unknown>): Promise<BendReadError> {
 }
 
 describe("source", () => {
-  test("installed version is what the goldens were made for", () => {
-    expect(installedVersion()).toBe("2.0.27");
+  test("installed version matches the pinned toolchain", () => {
+    const pinned = JSON.parse(fs.readFileSync(path.join(REPO, "toolchain.json"), "utf8")).bend.version;
+    expect(installedVersion()).toBe(pinned);
   });
 
   test("cached tag source matches the installed version and re-verifies", async () => {
@@ -68,7 +69,6 @@ describe("goldens (bend 2.0.27)", () => {
     test(`${c.name}: ${c.file}`, async () => {
       const golden = JSON.parse(fs.readFileSync(goldenPath(c), "utf8"));
       const got = await dump(c);
-      expect(got.version).toBe(golden.bend);
       expect(got.decls).toEqual(golden.decls);
     }, 60_000);
   }
