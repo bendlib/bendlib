@@ -8,21 +8,22 @@
 //              `match` that calls only Base functions (so it unifies across versions)
 //   internal   a public law's binders / exs / claim may not name an internal_* helper
 //   erasure    (--erasure) every binder that CAN be erased is: tried in a scratch copy
-// usage: bun tools/mathlib/lint.ts [pkgdir] [--erasure] [--allow-types]
-// exit: 0 clean · 1 findings · 2 usage/toolchain error
+//   kernel     (--kernel) predicates may match and call own defs; `type`s allowed; a LICENSE is required
+// usage: bun tools/mathlib/lint.ts [pkgdir] [--erasure] [--allow-types] [--kernel] · exit: 0/1/2
 
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 import { BEND, PkgError, ROOT, baseNames, packageModules, parseModule, type Module } from "./lib.ts";
 
-const USAGE = "usage: bun tools/mathlib/lint.ts [pkgdir] [--erasure] [--allow-types]";
+const USAGE = "usage: bun tools/mathlib/lint.ts [pkgdir] [--erasure] [--allow-types] [--kernel]";
 const usage = (msg: string): never => { console.error(`lint: ${msg}\n${USAGE}`); process.exit(2); };
 
 const args = process.argv.slice(2);
 const pkg = resolve(args.find((a) => !a.startsWith("--")) ?? join(ROOT, "packages", "bend-mathlib"));
 const doErasure = args.includes("--erasure");
-const allowTypes = args.includes("--allow-types");
+const kernel = args.includes("--kernel");
+const allowTypes = args.includes("--allow-types") || kernel;
 
 const findings: string[] = [];
 const at = (m: Module, line: number, msg: string) => findings.push(`${relative(ROOT, m.file)}:${line}: ${msg}`);
@@ -31,6 +32,8 @@ let files: string[];
 try { files = packageModules(pkg); } catch (e) { if (e instanceof PkgError) usage(e.message); throw e; }
 const base = await baseNames().catch((e: unknown) => usage(e instanceof Error ? e.message : String(e)));
 const mods = files.map((f) => parseModule(f));
+
+if (kernel && !existsSync(join(pkg, "LICENSE"))) findings.push(`${relative(ROOT, join(pkg, "LICENSE"))}: a --kernel package requires a LICENSE file`);
 
 for (const m of mods) {
   for (const law of m.laws) {
@@ -49,12 +52,24 @@ for (const m of mods) {
     if (!NAME.test(d.name)) at(m, d.line, `def name '${d.name}' must be lowercase snake_case without dots`);
     if (!d.name.startsWith("internal_") && /->\s*(Data|Type)\s*:\s*$/.test(d.header)) {
       const body = d.body.filter((l) => l.trim() !== "");
-      if (body.length !== 1) at(m, d.line, `predicate '${d.name}' must have a one-line body`);
+      if (body.length !== 1 && !kernel) at(m, d.line, `predicate '${d.name}' must have a one-line body`);
       const text = body.join(" ");
-      if (/\bmatch\b/.test(text)) at(m, d.line, `predicate '${d.name}' must not match (it would be nominal across versions)`);
+      if (/\bmatch\b/.test(text) && !kernel) at(m, d.line, `predicate '${d.name}' must not match (it would be nominal across versions)`);
+      // A predicate may call its own template parameters (`~le`, `~eq`): they are substituted
+      // by the caller with a closed term, so the body stays a plain application of Base.
+      const templates = new Set([...d.header.matchAll(/~([A-Za-z_][A-Za-z0-9_]*)\s*:/g)].map((t) => t[1]));
+      const own = new Set([...m.defs.map((x) => x.name), ...m.laws.map((x) => x.name)]);
+      const localAliases = new Set([...m.text.matchAll(/^import\s+\.\.?\/\S+\.bend\s+as\s+([A-Za-z_][A-Za-z0-9_]*)/gm)].map((i) => i[1]));
+      const samePackage = (id: string) => kernel && (own.has(id) || localAliases.has(id.split(".")[0]));
       for (const call of text.matchAll(/([A-Za-z_][A-Za-z0-9_.]*)\s*\(/g)) {
         const fn = call[1];
-        if (!base.has(fn)) at(m, d.line, `predicate '${d.name}' calls '${fn}', which is not a Base function`);
+        if (!base.has(fn) && !templates.has(fn) && !samePackage(fn)) at(m, d.line, `predicate '${d.name}' calls '${fn}', which is not a Base function`);
+      }
+      // A non-Base def passed without a call (`~MNat.le`, `~helper`) is just as nominal.
+      for (const ref of text.matchAll(/(?<![A-Za-z0-9_.])([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+|[a-z_][A-Za-z0-9_]*)(?![A-Za-z0-9_.]*\s*\()/g)) {
+        const id = ref[1];
+        const foreign = id.includes(".") ? !base.has(id) && !/^[A-Z]/.test(id.split(".").pop()!) : own.has(id);
+        if (foreign && !samePackage(id)) at(m, d.line, `predicate '${d.name}' refers to '${id}', which is not a Base function`);
       }
     }
   }

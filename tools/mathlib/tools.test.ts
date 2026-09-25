@@ -120,6 +120,63 @@ test("lint flags a predicate whose -> Data is on a continuation line, and the on
   expect(r.out).toContain("predicate 'single_pred' calls 'Frobnicate', which is not a Base function");
 });
 
+const preds = join(dir, "fixtures/preds");
+
+test("lint allows a predicate's own ~template params, flags non-Base calls and uncalled refs (planted negatives)", () => {
+  const r = run("lint.ts", preds);
+  expect(r.code).toBe(1);
+  expect(r.out).toContain("3 finding(s) in 5 module(s)");
+  // the two candidate predicates (own `~le`/`~eq`) are clean
+  expect(r.out).not.toContain("sorted_by.bend");
+  expect(r.out).not.toContain("mem.bend");
+  // planted negatives: a non-Base call, a ~MNat.le passed uncalled, and an own def passed uncalled
+  expect(r.out).toContain("bad_call.bend:6: predicate 'bad_call' calls 'helper', which is not a Base function");
+  expect(r.out).toContain("bad_ref.bend:4: predicate 'bad_ref' refers to 'MNat.le', which is not a Base function");
+  expect(r.out).toContain("bad_own.bend:6: predicate 'bad_own' refers to 'own_helper', which is not a Base function");
+});
+
+const kern = join(dir, "fixtures/kernel");
+
+test("lint: normal mode flags a kernel predicate's match, own call, body length and type", () => {
+  const r = run("lint.ts", kern);
+  expect(r.code).toBe(1);
+  expect(r.out).toContain("predicate 'kernel_pred' must have a one-line body");
+  expect(r.out).toContain("predicate 'kernel_pred' must not match (it would be nominal across versions)");
+  expect(r.out).toContain("predicate 'kernel_pred' calls 'own_le', which is not a Base function");
+  expect(r.out).toContain("predicate 'kernel_pred' calls 'Sub.sub_le', which is not a Base function");
+  expect(r.out).toContain("type 'Box': bend-mathlib holds no datatypes (use a kernel package)");
+});
+
+test("lint --kernel allows match, same-package defs and types but requires a LICENSE (planted negative)", () => {
+  const r = run("lint.ts", kern, "--kernel");
+  expect(r.code).toBe(1);
+  expect(r.out).toContain("a --kernel package requires a LICENSE file");
+  expect(r.out).not.toContain("must not match");
+  expect(r.out).not.toContain("calls 'own_le'");
+  expect(r.out).not.toContain("calls 'Sub.sub_le'");
+  expect(r.out).not.toContain("type 'Box'");
+});
+
+test("lint --kernel is clean once the package dir carries a LICENSE (acceptance form)", () => {
+  const tmp = mkdtempSync(join(tmpdir(), "bend-kernel-"));
+  const dst = join(tmp, "kernel");
+  cpSync(kern, dst, { recursive: true });
+  cpSync(join(ROOT, "packages", "bend-mathlib", "LICENSE"), join(dst, "LICENSE"));
+  const r = run("lint.ts", dst, "--kernel");
+  expect(r.code).toBe(0);
+  expect(r.out).toContain("0 finding(s)");
+});
+
+test("lint --kernel is clean on the candidate kernel once a LICENSE is added (xv/k acceptance)", () => {
+  const tmp = mkdtempSync(join(tmpdir(), "bend-kernel-xvk-"));
+  const dst = join(tmp, "k");
+  cpSync(join(ROOT, "research", "candidates", "perm", "generic", "xv", "k"), dst, { recursive: true });
+  cpSync(join(ROOT, "packages", "bend-mathlib", "LICENSE"), join(dst, "LICENSE"));
+  const r = run("lint.ts", dst, "--kernel");
+  expect(r.code).toBe(0);
+  expect(r.out).toContain("0 finding(s)");
+});
+
 test("lock locks a predicate whose -> Data is on a continuation line, and the one-line control", () => {
   const tmp = mkdtempSync(join(tmpdir(), "bend-multiline-"));
   cpSync(multiline, tmp, { recursive: true });
