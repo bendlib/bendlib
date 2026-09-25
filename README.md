@@ -5,7 +5,7 @@ import instead of re-proving, and tools that keep laws honest.
 
 | Part | What | Status |
 |---|---|---|
-| [`bend-mathlib`](packages/bend-mathlib) | 119 published lemmas about `Nat`, `Bool`, `List`, equality — generic, proved, zero `@unsafe` | **0.1.0.1 on BendHub** |
+| [`bend-mathlib`](packages/bend-mathlib) | 276 published lemmas (117 `_sym` twins) about `Nat`, `Bool`, `List`, equality — generic, proved, zero `@unsafe` | **0.2.0.0 on BendHub** |
 | [`@bendlib/reader`](tools/reader) | Reads Bend source with the official parser of your installed compiler version | working |
 | [`lawcheck`](tools/lawcheck) | Finds counterexamples to laws before you try to prove them, and shrinks them; mutation mode shows how well the laws pin each def | v0.2 working |
 | [Bend Docs](https://bendlib.github.io/bendlib/) | API docs, checker status and law-shape search for every BendHub package | **live**, rebuilt hourly |
@@ -15,8 +15,8 @@ import instead of re-proving, and tools that keep laws honest.
 ![86 lines by hand vs two imports and four rewrites](examples/demo/demo.gif)
 
 ```python
-import bend-mathlib@0.1.0.1/nat.bend as MNat
-import bend-mathlib@0.1.0.1/list.bend as MList
+import bend-mathlib@0.2.0.0/nat.bend as MNat
+import bend-mathlib@0.2.0.0/list.bend as MList
 
 law my_rev:
   for xs: List<&2, U32>
@@ -27,7 +27,7 @@ def my_rev(xs):
 ```
 
 Every lemma with its statement: [packages/bend-mathlib/README.md](packages/bend-mathlib/README.md).
-By hash (content-pinned): `import 0xafc61ca8b7738a6df7f28eddf80168f8/nat.bend as MNat`.
+By hash (content-pinned): `import 0x3b339f308342d91e7e6c71e057d59f1b/nat.bend as MNat`.
 
 ## Principles
 
@@ -62,7 +62,7 @@ for m in $(find packages/bend-mathlib -name '*.bend' | sort); do bun tools/lawch
 bun tools/mathlib/lint.ts packages/bend-mathlib --erasure
 bun tools/mathlib/twins.ts packages/bend-mathlib --check
 bun tools/mathlib/lock.ts packages/bend-mathlib --check
-bun tools/mathlib/index.ts packages/bend-mathlib bend-mathlib 0.1.0.1 --check
+bun tools/mathlib/index.ts packages/bend-mathlib bend-mathlib 0.2.0.0 --check
 ```
 
 Published statements never change: a fix gets a new name (`PLAN.md` §3.1 rule 2). Full procedure and
