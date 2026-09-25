@@ -54,7 +54,7 @@ async function slot<T>(jobs: number, fn: () => Promise<T>): Promise<T> {
 
 let counter = 0;
 
-async function runBatch(E: Engine, items: Item[]): Promise<{ out: string; code: number | null; timedOut: boolean }> {
+export async function runBatch(E: Engine, items: Item[]): Promise<{ out: string; code: number | null; timedOut: boolean }> {
   const file = path.join(E.dir, `b${counter++}.bend`);
   const src = [E.header, ...items.map((it) => `law ${it.id}:\n  ${it.claim}\n\ndef ${it.id}():\n  ${it.hole ? "?g" : "{==}"}\n`)].join("\n");
   fs.writeFileSync(file, src);
@@ -84,7 +84,7 @@ function field(lines: string[], key: string): string | null {
   return parts.join(" ");
 }
 
-function locate(out: string): Located | null {
+export function locate(out: string): Located | null {
   const lines = out.split("\n");
   const li = lines.findIndex((l) => l.startsWith("Location: "));
   if (li < 0) return null;
@@ -95,7 +95,7 @@ function locate(out: string): Located | null {
 }
 
 /** A clean batch is exactly `All terms check.`; `Error: N TODOs found.` means open proofs in an import. */
-const cleanCheck = (out: string) => out.trim() === "All terms check.";
+export const cleanCheck = (out: string) => out.trim() === "All terms check.";
 const openCheck = (out: string) => /\d+ TODOs? found/.test(out);
 
 /** The "All terms check, but N defs rely on unsafe or foreign code:" verdict, with the relying defs. */
@@ -115,10 +115,9 @@ function unsafeVerdict(out: string): { count: number; defs: string[] } | null {
 
 // A huge unary Nat can overflow either the checker's own guard or the host JS
 // stack, depending on the term (F31).
-const overflowed = (out: string) => /the machine stack overflowed|Maximum call stack size exceeded/.test(out);
-
+export const overflowed = (out: string) => /the machine stack overflowed|Maximum call stack size exceeded/.test(out);
 /** Evaluates every item; with `stopAtFail`, returns as soon as one item genuinely fails. */
-export async function evaluate(E: Engine, items: Item[], stopAtFail = false): Promise<Map<string, Outcome>> {
+export async function evaluate(E: Engine, items: Item[], stopAtFail = false, stopAtUndecidable = false): Promise<Map<string, Outcome>> {
   const res = new Map<string, Outcome>();
   let rest = items;
   while (rest.length > 0) {
@@ -177,6 +176,7 @@ export async function evaluate(E: Engine, items: Item[], stopAtFail = false): Pr
     else o = { r: "fail", expected, observed };
     res.set(it.id, o);
     if (stopAtFail && o.r === "fail") break;
+    if (stopAtUndecidable && o.r === "undecidable") break;
     rest = rest.slice(idx + 1);
   }
   return res;

@@ -6,7 +6,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { BendReadError, decls, load, show, type Decl, type Loaded } from "../../reader/index.ts";
 import { stripCommentsAndStrings } from "../../mathlib/lib.ts";
-import { bendBin, evaluate, evaluateAll, ModuleError, type Engine, type Item, type Outcome } from "./checker.ts";
+import { bendBin, cleanCheck, evaluate, evaluateAll, locate, ModuleError, overflowed, runBatch, type Engine, type Item, type Outcome } from "./checker.ts";
 import { defSpan, mutants } from "./mutate.ts";
 import { mentions, rewrite, Shadowed, splitEquation } from "./terms.ts";
 import { parseTy, showTy, substTy, type Ty } from "./types.ts";
@@ -88,6 +88,9 @@ class Skip extends Error {}
 type Value = { name: string; ty: Ty };
 type FunBinder = { name: string; args: string[]; ret: string };
 type ExBinder = { name: string; ty: Ty };
+type PredStmt = { params: string[]; lhs: string; rhs: string; type: string };
+type PremSig = { k: "eq" } | { k: "pred"; stmt: PredStmt } | { k: "opaque" };
+type Slot = { lhs: string; rhs: string; type: string };
 type Plan = {
   d: Decl;
   kind: LawResult["claim"];
@@ -98,6 +101,8 @@ type Plan = {
   funs: FunBinder[];
   exs: ExBinder[];
   premises: string[];
+  premiseSigs: PremSig[];
+  claimSig: PremSig;
 };
 type Inst = { vals: Val[]; types: Map<string, string>; funs: string[] };
 
@@ -199,13 +204,22 @@ function universe(L: Loaded, maxNat = 30): Universe {
   return new Universe(adts, maxNat);
 }
 
-function plan(L: Loaded, d: Decl, predicates: Set<string>, U: Universe): Plan {
+function plan(L: Loaded, d: Decl, predicates: Map<string, PredStmt | null>, U: Universe): Plan {
   const binders = d.binders ?? [];
-  const p: Plan = { d, kind: "other", claim: "", typeParams: [], quantParams: [], values: [], funs: [], exs: [], premises: [] };
+  const p: Plan = { d, kind: "other", claim: "", typeParams: [], quantParams: [], values: [], funs: [], exs: [], premises: [], premiseSigs: [], claimSig: { k: "opaque" } };
   const premiseNames: string[] = [];
   const isPredicateApp = (s: string) => {
     const head = applicationHead(s);
     return head !== null && predicates.has(head);
+  };
+  const sigOf = (s: string): PremSig => {
+    if (s.trim().startsWith("{")) return { k: "eq" };
+    const head = applicationHead(s);
+    if (head !== null) {
+      const st = predicates.get(head);
+      if (st !== undefined && st !== null) return { k: "pred", stmt: st };
+    }
+    return { k: "opaque" };
   };
   for (const b of binders) {
     const t = b.type;
@@ -216,20 +230,21 @@ function plan(L: Loaded, d: Decl, predicates: Set<string>, U: Universe): Plan {
     if (tmpl && t.startsWith("{")) throw new Skip("template hypothesis (v0.3)");
     if (t === "Quant") p.quantParams.push(b.name);
     else if (/^(Type|Data|Kind\(.*\))$/.test(t)) p.typeParams.push(b.name);
-    else if (t.startsWith("{")) { p.premises.push(t); premiseNames.push(b.name); }
+    else if (t.startsWith("{")) { p.premises.push(t); p.premiseSigs.push(sigOf(t)); premiseNames.push(b.name); }
     else if (/^&[A-Za-z_]\w*:/.test(t)) {
       const sig = splitSigma(t);
       const ty = sig === null ? null : parseTy(sig.value);
       if (sig === null || ty === null) throw new Skip(`\`where\` premise on ${b.name}: cannot generate values of ${sig?.value ?? t} (v0.3)`);
       p.values.push({ name: b.name, ty });
       p.premises.push(sig.body);
+      p.premiseSigs.push(sigOf(sig.body));
     }
     else if (t.includes("->")) throw new Skip(`function-typed binder ${b.name}: ${t} (v0.2)`);
     else if (tmpl) throw new Skip(`template binder ~${b.name}: ${t} (v0.2)`);
     else {
       const ty = parseTy(t);
       if (ty !== null && generable(U, substTy(ty, envTypes(p, TYPE_CHOICES[0])))) p.values.push({ name: b.name, ty });
-      else if (isPredicateApp(t)) { p.premises.push(t); premiseNames.push(b.name); }
+      else if (isPredicateApp(t)) { p.premises.push(t); p.premiseSigs.push(sigOf(t)); premiseNames.push(b.name); }
       else if (ty === null) throw new Skip(`binder ${b.name}: cannot generate values of ${t}`);
       else p.values.push({ name: b.name, ty });
     }
@@ -240,12 +255,14 @@ function plan(L: Loaded, d: Decl, predicates: Set<string>, U: Universe): Plan {
     if (splitArrow(d.statement.type).length > 1) throw new Skip("equation between functions: definitional inequality is not a counterexample");
     p.kind = "equation";
     p.claim = `{${d.statement.lhs} == ${d.statement.rhs} : ${d.statement.type}}`;
+    p.claimSig = { k: "eq" };
   } else if (tip === "Empty" && p.premises.length > 0) {
     p.kind = "refutation";
     p.claim = "Empty";
   } else if (isPredicateApp(tip)) {
     p.kind = "predicate";
     p.claim = tip;
+    p.claimSig = sigOf(tip);
   } else if (/^&[A-Za-z_]\w*:/.test(tip)) {
     let body = tip;
     for (;;) {
@@ -305,6 +322,73 @@ export function applicationHead(s: string): string | null {
   }
   return m[1];
 }
+
+/** Top-level comma-separated arguments of a whole application `head(a, b, …)`. */
+function applicationArgs(s: string): string[] | null {
+  const open = s.indexOf("(");
+  if (open < 0 || !s.endsWith(")")) return null;
+  const inner = s.slice(open + 1, -1);
+  const out: string[] = [];
+  let depth = 0, field = "";
+  for (const ch of inner) {
+    if ("([{<".includes(ch)) depth++;
+    else if (")]}>".includes(ch)) depth--;
+    if (ch === "," && depth === 0) { out.push(field.trim()); field = ""; }
+    else field += ch;
+  }
+  if (field.trim() !== "") out.push(field.trim());
+  return out;
+}
+
+/** The equation a `Data`-valued predicate def stands for, read from its single-statement body. */
+function predicateStatement(L: Loaded, d: Decl): PredStmt | null {
+  const f = L.files.find((x) => x.path === d.file);
+  if (f === undefined) return null;
+  const lines = f.parsed.split("\n");
+  const params = [...d.signature.matchAll(/@([A-Za-z_]\w*)\s*:/g)].map((m) => m[1]);
+  for (let i = d.line; i < lines.length && i <= d.line + 6; i++) {
+    const line = lines[i].trim();
+    if (line === "" || line.startsWith("#")) continue;
+    const m = /^(\{.*\})$/.exec(line);
+    if (m === null) return null;
+    const eq = splitEquation(m[1]);
+    return eq === null ? null : { params, ...eq };
+  }
+  return null;
+}
+
+/** The equation of one premise, or null when it cannot be turned into one. */
+function premiseSlot(sig: PremSig, raw: string, env: Map<string, string>, qualify: (s: string) => string): Slot | null {
+  if (sig.k === "opaque") return null;
+  if (sig.k === "eq") return splitEquation(rewrite(raw, env, qualify));
+  const args = applicationArgs(raw);
+  if (args === null || args.length !== sig.stmt.params.length) return null;
+  const argq = args.map((a) => rewrite(a, env, qualify));
+  const pe = new Map(sig.stmt.params.map((nm, j) => [nm, argq[j]]));
+  return { lhs: rewrite(sig.stmt.lhs, pe, qualify), rhs: rewrite(sig.stmt.rhs, pe, qualify), type: rewrite(sig.stmt.type, pe, qualify) };
+}
+
+const nestPair = (vs: string[]): string => vs.length <= 1 ? vs[0] : `(${vs[0]}, ${nestPair(vs.slice(1))})`;
+const nestType = (ts: string[]): string => ts.length <= 1 ? ts[0] : ts.length === 2 ? `${ts[0]} & ${ts[1]}` : `${ts[0]} & (${nestType(ts.slice(1))})`;
+
+/** Splits the checker's flattened tuple `(a, b, …)` at top-level commas. */
+function splitTuple(s: string): string[] | null {
+  const t = s.trim();
+  if (!t.startsWith("(") || !t.endsWith(")")) return null;
+  const out: string[] = [];
+  let depth = 0, field = "";
+  for (const ch of t.slice(1, -1)) {
+    if ("([{".includes(ch)) depth++;
+    else if (")]}".includes(ch)) depth--;
+    if (ch === "," && depth === 0) { out.push(field.trim()); field = ""; }
+    else field += ch;
+  }
+  out.push(field.trim());
+  return out;
+}
+
+/** Components safe to compare by printed form: a Bool, a number/char/string literal. */
+const trustComp = (s: string) => /^(True\{\}|False\{\}|-?\d+n|-?\d+|'[^']*'|"(?:[^"\\]|\\.)*")$/.test(s);
 
 function generable(U: Universe, ty: Ty): boolean {
   try {
@@ -659,7 +743,8 @@ export async function lawcheck(file: string, o: Options): Promise<Report> {
   validate(L);
   const own = decls(L, { scope: "own" });
   const allDecls = decls(L, { scope: "all" });
-  const predicates = new Set(allDecls.filter((d) => d.predicate).map((d) => d.name));
+  const predicates = new Map<string, PredStmt | null>();
+  for (const d of allDecls) if (d.predicate) predicates.set(d.name, predicateStatement(L, d));
   const baseFiles = new Set(allDecls.filter((d) => d.origin === "base").map((d) => d.file));
   const U = universe(L, o.maxNat);
   const { header, qualify, display, nameOut } = aliasMap(L);
@@ -682,7 +767,7 @@ export async function lawcheck(file: string, o: Options): Promise<Report> {
   return { tool: "lawcheck", version: VERSION, bend: L.source.version, file: abs, seed: o.seed, size: o.size, maxInstances: o.maxInstances, tmpDir: tmp, checkerRuns: E.runs, laws: results };
 }
 
-async function checkLaw(L: Loaded, d: Decl, li: number, o: Options, U: Universe, predicates: Set<string>, E: Engine, qualify: (s: string) => string, nameOut: (s: string) => string): Promise<LawResult> {
+async function checkLaw(L: Loaded, d: Decl, li: number, o: Options, U: Universe, predicates: Map<string, PredStmt | null>, E: Engine, qualify: (s: string) => string, nameOut: (s: string) => string): Promise<LawResult> {
   const base: LawResult = { name: d.name, file: d.file, line: d.line, proved: d.proved === true, claim: "other", status: "skip", instances: 0, failures: 0 };
   let p: Plan;
   try {
@@ -712,9 +797,12 @@ async function checkLaw(L: Loaded, d: Decl, li: number, o: Options, U: Universe,
     p.values.forEach((v, i) => denv.set(v.name, render(inst.vals[i], nameOut)));
     for (const e of extra) denv.set(e.name, e.n);
     try {
+      const premises = p.premises.map((s) => rewrite(s, env, qualify));
       return {
         claim: rewrite(p.claim, env, qualify),
-        premises: p.premises.map((s) => rewrite(s, env, qualify)),
+        claimSlot: premiseSlot(p.claimSig, p.claim, env, qualify),
+        premises,
+        slots: p.premises.map((s, i) => premiseSlot(p.premiseSigs[i], s, env, qualify)),
         shown: rewrite(p.claim, denv, nameOut, false),
         shownPremises: p.premises.map((s) => rewrite(s, denv, nameOut, false)),
       };
@@ -725,8 +813,50 @@ async function checkLaw(L: Loaded, d: Decl, li: number, o: Options, U: Universe,
   };
   const id = () => `lc_${li}_${n++}`;
 
+  // Premises of many instances in one declaration: the checker normalizes the whole tuple on both
+  // sides, so one run decides every component (PLAN F22).
+  async function heldTuple(cands: Inst[]): Promise<{ kept: Inst[]; tooLarge: number } | null> {
+    const groups: { inst: Inst; slots: Slot[] }[] = [];
+    for (const c of cands) {
+      const slots = texts(c).slots;
+      if (slots.some((s) => s === null)) return null;
+      groups.push({ inst: c, slots: slots as Slot[] });
+    }
+    const CHUNK = 32;
+    const kept: Inst[] = [];
+    for (let start = 0; start < groups.length; start += CHUNK) {
+      const chunk = groups.slice(start, start + CHUNK);
+      const slots = chunk.flatMap((g) => g.slots);
+      const item = { id: id(), claim: `{${nestPair(slots.map((s) => s.lhs))} == ${nestPair(slots.map((s) => s.rhs))} : ${nestType(slots.map((s) => s.type))}}` };
+      const { out, timedOut } = await runBatch(E, [item]);
+      if (timedOut || overflowed(out)) return null;
+      const loc = locate(out);
+      if (loc === null) {
+        if (!cleanCheck(out)) return null;
+        kept.push(...chunk.map((g) => g.inst));
+        continue;
+      }
+      if (loc.def !== item.id || loc.pointed !== "{==}") return null;
+      const exp = splitTuple(loc.expected ?? ""), obs = splitTuple(loc.observed ?? "");
+      if (exp === null || obs === null || exp.length !== slots.length || obs.length !== slots.length) return null;
+      if (!exp.every(trustComp) || !obs.every(trustComp)) return null;
+      let k = 0;
+      for (const g of chunk) {
+        let holds = true;
+        for (let j = 0; j < g.slots.length; j++) if (exp[k + j] !== obs[k + j]) { holds = false; break; }
+        if (holds) kept.push(g.inst);
+        k += g.slots.length;
+      }
+    }
+    return { kept, tooLarge: 0 };
+  }
+
   async function holding(cands: Inst[]): Promise<{ kept: Inst[]; tooLarge: number } | string> {
     if (p.premises.length === 0) return { kept: cands, tooLarge: 0 };
+    if (E.unsafe.length === 0) {
+      const batched = await heldTuple(cands);
+      if (batched !== null) return batched;
+    }
     const items = cands.map((c) => texts(c).premises.map((claim) => ({ id: id(), claim })));
     const res = await evaluateAll(E, items.flat());
     const all = [...res.values()];
@@ -741,6 +871,36 @@ async function checkLaw(L: Loaded, d: Decl, li: number, o: Options, U: Universe,
     });
     return { kept, tooLarge };
   }
+
+  // Claims of many instances in one declaration, like premises: the checker prints every failing
+  // component's two sides, so one run decides the whole law (PLAN F22).
+  const claimBatches = async (sat: Inst[]): Promise<{ items: Item[]; res: Map<string, Outcome> } | null> => {
+    const ts = sat.map((c) => texts(c));
+    if (ts.some((t) => t.claimSlot === null)) return null;
+    const items = sat.map((_, i) => ({ id: id(), claim: ts[i].claim }));
+    const out = new Map<string, Outcome>();
+    const CHUNK = 256;
+    for (let start = 0; start < items.length; start += CHUNK) {
+      const chunk = items.slice(start, start + CHUNK);
+      const slots = ts.slice(start, start + CHUNK).map((t) => t.claimSlot as Slot);
+      const bid = id();
+      const claim = `{${nestPair(slots.map((s) => s.lhs))} == ${nestPair(slots.map((s) => s.rhs))} : ${nestType(slots.map((s) => s.type))}}`;
+      const { out: raw, timedOut } = await runBatch(E, [{ id: bid, claim }]);
+      if (timedOut || overflowed(raw)) return null;
+      const loc = locate(raw);
+      if (loc === null) {
+        if (!cleanCheck(raw)) return null;
+        for (const it of chunk) out.set(it.id, { r: "pass" });
+        continue;
+      }
+      if (loc.def !== bid || loc.pointed !== "{==}") return null;
+      const exp = splitTuple(loc.expected ?? ""), obs = splitTuple(loc.observed ?? "");
+      if (exp === null || obs === null || exp.length !== chunk.length || obs.length !== chunk.length) return null;
+      if (!exp.every(trustComp) || !obs.every(trustComp)) return null;
+      for (let i = 0; i < chunk.length; i++) out.set(chunk[i].id, exp[i] === obs[i] ? { r: "pass" } : { r: "fail", expected: E.display(exp[i]), observed: E.display(obs[i]) });
+    }
+    return { items, res: out };
+  };
 
   const problem = (out: Outcome): LawResult | null => {
     if (out.r === "undecidable") return { ...base, status: "skip", reason: `not decidable by evaluation (${out.detail})` };
@@ -827,8 +987,20 @@ async function checkLaw(L: Loaded, d: Decl, li: number, o: Options, U: Universe,
     if (p.kind === "refutation") {
       failing = sat.map((inst) => ({ inst }));
     } else {
-      const items = sat.map((inst) => ({ id: id(), claim: texts(inst).claim }));
-      const res = await evaluateAll(E, items);
+      const batched = E.unsafe.length === 0 ? await claimBatches(sat) : null;
+      let items: Item[];
+      let res: Map<string, Outcome>;
+      if (batched !== null) {
+        items = batched.items;
+        res = batched.res;
+      } else {
+        items = sat.map((inst) => ({ id: id(), claim: texts(inst).claim }));
+        // The first batch stops on the first undecidable instance, so a law the checker cannot
+        // decide is skipped at once instead of once per instance (PLAN F22).
+        const head = items.slice(0, 32), tail = items.slice(32);
+        res = await evaluate(E, head, false, true);
+        if (tail.length > 0) for (const [k, v] of await evaluateAll(E, tail)) res.set(k, v);
+      }
       for (const out of res.values()) { const pr = problem(out); if (pr) return pr; }
       const outs = [...res.values()];
       passed = outs.filter((o) => o.r === "pass" || o.r === "open").length;
@@ -1062,10 +1234,13 @@ export async function mutate(file: string, o: MutateOptions): Promise<MutateRepo
     tool: "lawcheck-mutate", version: VERSION, bend: L.source.version, file: abs,
     impl: mode === "impl" ? target : null, seed: opts.seed, maxInstances: opts.maxInstances, tmpDir: tmp, defs: [],
   };
+  // Mutants of one def run in a small pool; the global `slot()` semaphore still caps the bend
+  // processes at `jobs`, so this overlaps their many short runs without oversubscribing (README).
+  const pool = Math.max(1, Math.floor((opts.jobs ?? navigator.hardwareConcurrency) / 4));
   for (const d of defs) {
     const ms = mutants(targetText, d.name, defParams(targetText, d.name));
-    const results: MutantResult[] = [];
-    for (let i = 0; i < ms.length; i++) {
+    const results: MutantResult[] = new Array(ms.length);
+    const runOne = async (i: number): Promise<void> => {
       const m = ms[i];
       const dir = path.join(tmp, "mut", `${d.name}_${i}`);
       fs.mkdirSync(dir, { recursive: true });
@@ -1087,8 +1262,11 @@ export async function mutate(file: string, o: MutateOptions): Promise<MutateRepo
         if (e instanceof ModuleError || e instanceof BendReadError) { res.status = "invalid"; res.detail = e.message.split("\n")[0]; }
         else throw e;
       }
-      results.push(res);
-    }
+      results[i] = res;
+    };
+    let next = 0;
+    const worker = async () => { for (;;) { const i = next++; if (i >= ms.length) return; await runOne(i); } };
+    await Promise.all(Array.from({ length: Math.min(pool, ms.length) }, worker));
     report.defs.push({ name: d.name, mutants: results });
   }
   return report;
