@@ -5,7 +5,7 @@
 // block with one-line claims, immediately followed by its `def name(...)` proof.
 // Third-party code is read with tools/reader (the official parser) instead.
 
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, basename } from "node:path";
 import { homedir } from "node:os";
 
@@ -14,7 +14,7 @@ export const BEND = process.env.BEND_CLI ?? join(homedir(), ".bend", "bin", "ben
 
 export type Binder = { raw: string; name: string; mark: "" | "-" | "+" | "~"; type: string; where: boolean };
 export type Law = {
-  name: string; line: number; doc: string[]; binders: Binder[]; claimLines: string[]; exs: boolean;
+  name: string; line: number; doc: string[]; binders: Binder[]; claimLines: string[]; exs: string[];
   proof?: { line: number; args: string[]; body: string[] };
 };
 export type Def = { name: string; line: number; header: string; body: string[] };
@@ -76,12 +76,12 @@ export function parseModule(file: string, source?: string): Module {
     let m: RegExpMatchArray | null;
     if ((m = l.match(/^import\s+(\S+)/))) mod.imports.push(m[1]);
     else if ((m = l.match(/^law\s+([A-Za-z_][A-Za-z0-9_.]*)\s*:\s*$/))) {
-      const law: Law = { name: m[1], line: i + 1, doc: docAbove(i), binders: [], claimLines: [], exs: false };
+      const law: Law = { name: m[1], line: i + 1, doc: docAbove(i), binders: [], claimLines: [], exs: [] };
       for (const b of block(i)) {
         if (b.trim() === "") continue;
         const bd = parseBinder(b);
         if (bd) law.binders.push(bd);
-        else if (/^\s+exs\s/.test(b)) law.exs = true;
+        else if (/^\s+exs\s/.test(b)) law.exs.push(b.trim());
         else law.claimLines.push(b.trim());
       }
       mod.laws.push(law); lawByName.set(law.name, law);
@@ -103,6 +103,19 @@ export function parseModule(file: string, source?: string): Module {
 
 /** A bad package path; each CLI reports it as a usage error (exit 2). */
 export class PkgError extends Error {}
+
+export type LockEntry = { kind: "law" | "predicate" | "def"; text: string; sha256: string; since: string | null };
+export const LOCK_FORMAT = 2;
+
+// v2 is {format, entries}; a bare entry map is v1 (and what `git show <old-tag>` returns).
+export function parseLock(text: string): Record<string, LockEntry> {
+  const doc = JSON.parse(text) as { entries?: unknown };
+  return (doc.entries !== null && typeof doc.entries === "object" ? doc.entries : doc) as Record<string, LockEntry>;
+}
+
+export function readLock(file: string): Record<string, LockEntry> {
+  return existsSync(file) ? parseLock(readFileSync(file, "utf8")) : {};
+}
 
 export function packageModules(pkgDir: string): string[] {
   let st;

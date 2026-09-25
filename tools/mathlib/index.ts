@@ -3,7 +3,7 @@
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
-import { PkgError, ROOT, packageModules, parseModule } from "./lib.ts";
+import { PkgError, ROOT, packageModules, parseModule, readLock } from "./lib.ts";
 
 const USAGE = "usage: bun tools/mathlib/index.ts <pkgdir> <name> <version> [--check] [--stdout]";
 const usage = (msg: string): never => { console.error(`index: ${msg}\n${USAGE}`); process.exit(2); };
@@ -17,7 +17,7 @@ const cell = (s: string) => "`" + s.replace(/\|/g, "\\|") + "`";
 
 // The lock records the version that first published each entry; absent or null means unreleased.
 const lockFile = join(dir, "PUBLIC_API.lock");
-const lock: Record<string, { since: string | null }> = existsSync(lockFile) ? JSON.parse(readFileSync(lockFile, "utf8")) : {};
+const lock = readLock(lockFile);
 let hasNext = false;
 const sinceCell = (module: string, entry: string) => {
   const since = lock[`${module}.${entry}`]?.since ?? null;

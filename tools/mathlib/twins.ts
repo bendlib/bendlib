@@ -31,7 +31,7 @@ for (const file of files) {
   const mod = parseModule(file, handwritten);
   const out: string[] = [];
   for (const law of mod.laws) {
-    if (law.name.startsWith("internal_") || law.name.endsWith("_sym") || law.exs || !law.proof) continue;
+    if (law.name.startsWith("internal_") || law.name.endsWith("_sym") || law.exs.length > 0 || !law.proof) continue;
     if (law.binders.some((b) => b.where) || law.claimLines.length !== 1) continue;
     // A twin of a conclusion drawn from hypotheses (succ_inj, le_antisymm) is permanent noise.
     if (law.binders.some((b) => b.type.startsWith("{") || /^([a-z_][A-Za-z0-9_.]*|[A-Z])\(/.test(b.type))) continue;

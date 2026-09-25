@@ -6,7 +6,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { hubHash, packageFiles } from "./hash.ts";
-import { baseNames, BEND, parseModule, packageModules } from "./lib.ts";
+import { baseNames, BEND, LOCK_FORMAT, parseLock, parseModule, packageModules, ROOT, type LockEntry } from "./lib.ts";
+import { lockAgainstErrors } from "./lock.ts";
 import { headerVersionError, loginError, publish, regenerateIndex } from "./release.ts";
 
 const dir = import.meta.dir;
@@ -124,9 +125,113 @@ test("lock locks a predicate whose -> Data is on a continuation line, and the on
   cpSync(multiline, tmp, { recursive: true });
   const r = run("lock.ts", tmp, "--update");
   expect(r.code).toBe(0);
-  const lock: Record<string, { kind: string }> = JSON.parse(readFileSync(join(tmp, "PUBLIC_API.lock"), "utf8"));
+  const lock = parseLock(readFileSync(join(tmp, "PUBLIC_API.lock"), "utf8"));
   expect(lock["pred.multiline_pred"]?.kind).toBe("predicate");
   expect(lock["pred.single_pred"]?.kind).toBe("predicate");
+});
+
+test("lock: an exs clause is locked, and changing a frozen exs fails (planted negative)", () => {
+  const tmp = mkdtempSync(join(tmpdir(), "bend-lock-exs-"));
+  const src = join(tmp, "m.bend");
+  const lemmas = (exs: string) => [
+    "import Base", "",
+    "# A lemma with a witness.", "law witness:",
+    "  for -x: Nat", `  exs ${exs}`,
+    "  {Nat.is_le(x, w) == True{} : Bool}", "",
+    "def witness(x):", "  x", "",
+  ].join("\n");
+  writeFileSync(src, lemmas("w: Nat"));
+  expect(run("lock.ts", tmp, "--update").code).toBe(0);
+  const lock = parseLock(readFileSync(join(tmp, "PUBLIC_API.lock"), "utf8"));
+  expect(lock["m.witness"].text).toContain("exs w: Nat");
+  expect(run("lock.ts", tmp, "--freeze", "0.1.0.0").code).toBe(0);
+  writeFileSync(src, lemmas("w: Bool"));
+  const r = run("lock.ts", tmp, "--check");
+  expect(r.code).toBe(1);
+  expect(r.out).toContain("m.witness (published in 0.1.0.0) changed");
+});
+
+test("lock: a public value def is locked, and changing a frozen body fails (planted negative)", () => {
+  const tmp = mkdtempSync(join(tmpdir(), "bend-lock-def-"));
+  const src = join(tmp, "m.bend");
+  const def = (body: string) => [
+    "import Base", "",
+    "# Insert x at the front.", "def ins(x: Nat, xs: List<Nat>) -> List<Nat>:",
+    `  ${body}`, "",
+  ].join("\n");
+  writeFileSync(src, def("x <> xs"));
+  expect(run("lock.ts", tmp, "--update").code).toBe(0);
+  const lock = parseLock(readFileSync(join(tmp, "PUBLIC_API.lock"), "utf8"));
+  expect(lock["m.ins"].kind).toBe("def");
+  expect(run("lock.ts", tmp, "--freeze", "0.1.0.0").code).toBe(0);
+  writeFileSync(src, def("xs <> x"));
+  const r = run("lock.ts", tmp, "--check");
+  expect(r.code).toBe(1);
+  expect(r.out).toContain("m.ins (published in 0.1.0.0) changed");
+});
+
+test("lint: a public law statement may not name an internal_ helper (planted pair)", () => {
+  const bad = mkdtempSync(join(tmpdir(), "bend-lint-internal-bad-"));
+  writeFileSync(join(bad, "m.bend"), [
+    "import Base", "",
+    "# Names an internal helper in the public claim.", "law uses_internal:",
+    "  for -x: Nat", "  {internal_z(x) == x : Nat}", "",
+    "def uses_internal(x):", "  x", "",
+  ].join("\n"));
+  const r = run("lint.ts", bad);
+  expect(r.code).toBe(1);
+  expect(r.out).toContain("law 'uses_internal' names internal helper 'internal_z' in its public statement");
+
+  const ok = mkdtempSync(join(tmpdir(), "bend-lint-internal-ok-"));
+  writeFileSync(join(ok, "m.bend"), [
+    "import Base", "",
+    "# An internal helper law may use internal_ names.", "law internal_z_law:",
+    "  for -x: Nat", "  {internal_z(x) == x : Nat}", "",
+    "def internal_z_law(x):", "  x", "",
+  ].join("\n"));
+  const r2 = run("lint.ts", ok);
+  expect(r2.code).toBe(0);
+  expect(r2.out).not.toContain("names internal helper");
+});
+
+const anchored = (over: Partial<LockEntry> = {}): LockEntry => ({ kind: "law", text: "t", sha256: "s", since: "0.1.0.0", ...over });
+
+test("lock --against: only published entries are anchored; any change is reported (planted negatives)", () => {
+  const old = { "m.a": anchored() };
+  expect(lockAgainstErrors(old, { "m.a": anchored() })).toEqual([]);
+  for (const changed of [anchored({ text: "u" }), anchored({ sha256: "u" }), anchored({ kind: "def" }), anchored({ since: "0.2.0.0" })]) {
+    expect(lockAgainstErrors(old, { "m.a": changed })).toHaveLength(1);
+  }
+  expect(lockAgainstErrors(old, {})).toHaveLength(1);
+  expect(lockAgainstErrors({ "m.b": anchored({ since: null }) }, {})).toEqual([]);
+  expect(lockAgainstErrors(old, { "m.a": anchored(), "m.c": anchored({ since: null }) })).toEqual([]);
+});
+
+test("lock --against: the real 0.1.0.1 tag matches; a missing tag is a typed failure", () => {
+  const pkg = join(ROOT, "packages", "bend-mathlib");
+  const ok = run("lock.ts", pkg, "--check", "--against", "bend-mathlib-v0.1.0.1");
+  expect(ok.code).toBe(0);
+  expect(ok.out).toContain("against bend-mathlib-v0.1.0.1: 0 check(s) failed");
+  const bad = run("lock.ts", pkg, "--check", "--against", "no-such-tag-xyz");
+  expect(bad.code).toBe(1);
+  expect(bad.out).toContain("against: cannot read");
+  expect(bad.out).not.toMatch(STACK);
+});
+
+test("lock: writes format 2 and parses both the v2 document and a bare v1 map", () => {
+  const tmp = mkdtempSync(join(tmpdir(), "bend-lock-format-"));
+  writeFileSync(join(tmp, "m.bend"), [
+    "import Base", "",
+    "# A tiny law.", "law tiny:",
+    "  for -x: Nat", "  {x == x : Nat}", "",
+    "def tiny(x):", "  {==}", "",
+  ].join("\n"));
+  expect(run("lock.ts", tmp, "--update").code).toBe(0);
+  const doc = JSON.parse(readFileSync(join(tmp, "PUBLIC_API.lock"), "utf8"));
+  expect(doc.format).toBe(LOCK_FORMAT);
+  expect(parseLock(JSON.stringify(doc))["m.tiny"]).toBeDefined();
+  const bare = parseLock(JSON.stringify({ "m.x": anchored({ since: null }) }));
+  expect(bare["m.x"].text).toBe("t");
 });
 
 test("index keeps a subdir module's relative path in the generated import", () => {
@@ -176,6 +281,7 @@ test("release: a climbing package is a typed usage error, exit 2, no stack", () 
   mkdirSync(join(tmp, "pkg"));
   writeFileSync(join(tmp, "other.bend"), "import Base\n\ndef other() -> U32:\n  7\n");
   writeFileSync(join(tmp, "pkg", "all.bend"), "import Base\nimport ../other.bend as Other\n\ndef f() -> U32:\n  Other.other()\n");
+  expect(run("lock.ts", join(tmp, "pkg"), "--update").code).toBe(0);
   const r = run("release.ts", join(tmp, "pkg"), "some-package-name", "0.1.0.0");
   expect(r.code).toBe(2);
   expect(r.out).toContain("is outside the entry directory");
@@ -381,7 +487,7 @@ test("release publish: a local mock hub exercises publish, verify, link, freeze 
     const got = await publish(pkg, "fixture-package", "0.2.0.0", expected);
     expect(got).toBe(expected);
     expect((await hub.state()).publishes).toEqual([expected]);
-    const lock: Record<string, { since: string | null }> = JSON.parse(readFileSync(join(pkg, "PUBLIC_API.lock"), "utf8"));
+    const lock = parseLock(readFileSync(join(pkg, "PUBLIC_API.lock"), "utf8"));
     expect(Object.values(lock).every((e) => e.since === "0.2.0.0")).toBe(true);
     expect(readFileSync(join(pkg, "README.md"), "utf8")).toContain("fixture-package@0.2.0.0");
     expect(readFileSync(releases, "utf8")).toContain(`| fixture-package | 0.2.0.0 | \`${got}\` |`);

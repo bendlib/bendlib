@@ -6,6 +6,7 @@
 //   types      no `type` declarations (mathlib holds no nominal definitions)
 //   predicates a type-level def (-> Data / -> Type) has a one-line body with no
 //              `match` that calls only Base functions (so it unifies across versions)
+//   internal   a public law's binders / exs / claim may not name an internal_* helper
 //   erasure    (--erasure) every binder that CAN be erased is: tried in a scratch copy
 // usage: bun tools/mathlib/lint.ts [pkgdir] [--erasure] [--allow-types]
 // exit: 0 clean · 1 findings · 2 usage/toolchain error
@@ -34,6 +35,12 @@ const mods = files.map((f) => parseModule(f));
 for (const m of mods) {
   for (const law of m.laws) {
     if (!NAME.test(law.name)) at(m, law.line, `law name '${law.name}' must be lowercase snake_case without dots`);
+    if (!law.name.startsWith("internal_")) {
+      for (const s of [...law.binders.map((b) => b.raw), ...law.exs, ...law.claimLines]) {
+        const hit = /\binternal_[A-Za-z0-9_]*/.exec(s);
+        if (hit) at(m, law.line, `law '${law.name}' names internal helper '${hit[0]}' in its public statement`);
+      }
+    }
     if (!law.name.startsWith("internal_") && law.doc.length === 0) at(m, law.line, `law '${law.name}' has no '#' doc line above it`);
     if (law.claimLines.length !== 1) at(m, law.line, `law '${law.name}' must have exactly one claim line (found ${law.claimLines.length})`);
     if (!law.proof) at(m, law.line, `law '${law.name}' has no 'def ${law.name}(...)' proof directly after it`);
