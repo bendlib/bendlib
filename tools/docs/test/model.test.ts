@@ -4,7 +4,7 @@
 import { describe, expect, test } from "bun:test";
 import { apiDiff, defBody, fillerLine, finishPackage, hasHole, moduleHeader, type Module, type Package } from "../src/model.ts";
 import type { DocDecl } from "../src/extract.ts";
-import { declIds } from "../src/render.ts";
+import { declIds, statementHead } from "../src/render.ts";
 import type { FileStatus } from "../src/status.ts";
 
 const st = (c: FileStatus["class"], summary = ""): FileStatus => ({ class: c, summary, detail: "", exitCode: 0, seconds: 0 });
@@ -100,6 +100,18 @@ describe("finishPackage", () => {
     finishPackage(p, new Map(), () => own);
     expect(p.modules[0].decls![0]).toMatchObject({ proved: false, holes: true });
     expect(p.status).toBe("open");
+  });
+});
+
+describe("statement muting", () => {
+  test("the muted span ends at the brace matching the signature's final }", () => {
+    expect(statementHead("@-x:U32 -> {f(x) == Some{x} : Maybe<U32>}")).toBe("@-x:U32 -> ");
+  });
+  test("planted negative: an inner constructor brace does not end the muted span", () => {
+    expect(statementHead("{Pair{a, b} == Pair{b, a} : Pair}")).toBe("");
+  });
+  test("planted negative: a signature without a statement brace is not muted", () => {
+    expect(statementHead("def f(x: U32) -> U32")).toBe("");
   });
 });
 

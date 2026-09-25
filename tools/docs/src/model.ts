@@ -61,6 +61,8 @@ export type Group = { key: string; latest: Package; members: Package[] };
 export const versionKey = (v: string) => v.split(".").map((x) => x.padStart(8, "0")).join(".");
 const newest = (a: Package, b: Package) => {
   const va = a.names[0]?.version, vb = b.names[0]?.version;
+  // A named release always outranks an anonymous upload of the same lineage, however new.
+  if (!!va !== !!vb) return va ? a : b;
   if (va && vb && va !== vb) return versionKey(va) > versionKey(vb) ? a : b;
   return a.ts >= b.ts ? a : b;
 };

@@ -77,6 +77,7 @@ ${o.body}
 export function renderIndex(site: Site): string {
   const path = "index.html";
   const groups = groupPackages(site.packages);
+  const allChecked = site.checked && site.packages.every((p) => p.modules.every((m) => m.status !== null));
   const rows = groups.map((g) => {
     const p = g.latest, n = p.names[0];
     const search = [label(p), p.desc, n?.owner ?? "", ...g.members.map((m) => m.hash), ...p.names.map((x) => x.name)].join(" ").toLowerCase();
@@ -95,7 +96,7 @@ export function renderIndex(site: Site): string {
   const totals = groups.reduce((a, g) => ({ laws: a.laws + g.latest.counts.laws, decls: a.decls + g.latest.counts.decls }), { laws: 0, decls: 0 });
   const body = `<div id="hero"><h1>Bend Docs</h1>
 <p class="sub">every <b>BendHub</b> package, documented</p>
-<p class="tag">${totals.decls.toLocaleString("en")} declarations and ${totals.laws.toLocaleString("en")} laws, each package checked on bend ${esc(site.compiler)}</p>
+<p class="tag">${totals.decls.toLocaleString("en")} declarations and ${totals.laws.toLocaleString("en")} laws${allChecked ? `, each package checked on bend ${esc(site.compiler)}` : ""}</p>
 <form class="q find" role="search" action="${rel(path, "search.html")}" method="get"><label class="vh" for="filter">Search packages, declarations and laws</label><input id="filter" name="q" type="search" placeholder="a package, a name, a doc word, or a law shape like Nat.add(_, 0n)" spellcheck="false" autocomplete="off"><button class="btn" type="submit">find</button></form>
 <p class="hint">typing filters the packages below · <b>find</b> searches every declaration and law <span id="shown" aria-live="polite"></span></p></div>
 <section><h2>Packages <span class="n">${groups.length} packages · ${site.packages.length} uploads</span></h2>
@@ -197,6 +198,16 @@ function lawCount(ds: DocDecl[]): string {
 
 const GROUPS: [string, string][] = [["law", "Laws"], ["type", "Types"], ["def", "Definitions"], ["template", "Templates"], ["effect", "Effects (foreign code)"], ["unsafe", "Unsafe"]];
 
+/** The signature text before its statement brace; the muted span, e.g. `@-x:U32 -> ` for `@-x:U32 -> {f(x) == Some{x} : Maybe<U32>}`. */
+export function statementHead(signature: string): string {
+  let depth = 0;
+  for (let i = signature.length - 1; i >= 0; i--) {
+    if (signature[i] === "}") depth++;
+    else if (signature[i] === "{" && --depth === 0) return signature.slice(0, i);
+  }
+  return "";
+}
+
 function declHtml(p: Package, m: Module, d: DocDecl, ids: Map<DocDecl, string>, ctors: DocDecl[]): string {
   const id = ids.get(d)!;
   const rawHref = `${HUB}/${p.hash}/${esc(m.path)}`;
@@ -219,9 +230,10 @@ function declHtml(p: Package, m: Module, d: DocDecl, ids: Map<DocDecl, string>, 
             : `<span class="pr pr-open">open</span><span class="muted">no def in the package proves it</span>`;
   }
   if (d.unsafe && d.kind !== "unsafe") marker += ` <span class="k k-unsafe">@unsafe</span>`;
-  const stmt = d.statement
-    ? `<pre class="code sig"><span class="muted">${esc(d.signature.slice(0, d.signature.lastIndexOf("{")))}</span>${esc(d.signature.slice(d.signature.lastIndexOf("{")))}</pre>`
-    : `<pre class="code sig">${esc(d.signature)}</pre>`;
+  const head = d.statement ? statementHead(d.signature) : null;
+  const stmt = head === null
+    ? `<pre class="code sig">${esc(d.signature)}</pre>`
+    : `<pre class="code sig"><span class="muted">${esc(head)}</span>${esc(d.signature.slice(head.length))}</pre>`;
   const effects = d.effects?.length ? `<p class="muted">foreign: ${d.effects.map((e) => `<code>${esc(e)}</code>`).join(", ")}</p>` : "";
   const cs = ctors.length
     ? `<ul class="ctors">${ctors.map((c) => `<li id="${ids.get(c)!}"><code>${esc(c.name)}</code> <pre class="code sig">${esc(c.signature)}</pre>${docHtml(c.doc)}</li>`).join("")}</ul>` : "";
@@ -355,7 +367,7 @@ export function renderSearch(site: Site): string {
 <p>Examples: <a href="?q=List.append(_%2C%20Nil%7B%7D)">List.append(_, Nil{})</a> · <a href="?q=Nat.add(_%2C%200n)">Nat.add(_, 0n)</a> · <a href="?q=List.reverse(List.reverse(_))">List.reverse(List.reverse(_))</a> · <a href="?q=Nat.add(_%2C%20_)%20%3D%3D%20Nat.add(_%2C%20_)">Nat.add(_, _) == Nat.add(_, _)</a></p>
 <h2>Names and docs</h2>
 <p>Any other query searches declaration names and doc comments. Every word must appear. Exact names rank first, then prefixes, then names containing the word, then docs.</p>
-<p>Statements are shown as bend ${esc(site.compiler)} prints them. The index covers ${site.packages.length} packages.</p>
+<p>Statements are shown as bend ${esc(site.compiler)} prints them. The index covers ${groupPackages(site.packages).length} packages (latest version of each).</p>
 </section>`;
   return page({ path, title: "Search · Bend Docs", body, site, scripts: ["assets/search.js"] });
 }

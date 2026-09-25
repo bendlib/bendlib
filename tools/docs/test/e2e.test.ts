@@ -94,6 +94,16 @@ describe("three-package build from the live hub", () => {
     expect(lines.length).toBe(idx.d.filter((r) => r[2] === "law" && r[7] === 1).length);
   });
 
+  test("the search page reports the latest-lineage count of the search index", () => {
+    const idx = JSON.parse(read("search-index.json")) as SearchIndex;
+    expect(idx.p.length).toBeGreaterThan(0);
+    expect(read("search.html")).toContain(`The index covers ${idx.p.length} packages (latest version of each).`);
+  });
+
+  test("the index claims checked statuses only when every file was checked", () => {
+    expect(read("index.html")).toContain("each package checked on bend 2.0.27");
+  });
+
   test("the index lists the three packages, named ones first, with statuses from the real checker", () => {
     const html = read("index.html");
     const [m, t, a] = ['bend-mathlib</a> <span class="pill">@0.1.0.1</span>', 'bend-tensors</a> <span class="pill">@0.0.0.2</span>', `${ANON.slice(0, 10)}…</a>`].map((s) => html.indexOf(`>${s}`));
@@ -187,6 +197,16 @@ describe("--local preview", () => {
     expect(msg).toContain("usage: bun tools/docs/build.ts");
     expect(msg).not.toMatch(/\n\s+at /);
   });
+
+  test("--no-check drops the 'each package checked' claim from the index", () => {
+    const entry = join(import.meta.dir, "..", "..", "mathlib", "fixtures", "good", "list.bend");
+    const dir = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "bend-docs-nocheck-"));
+    const p = Bun.spawnSync([process.execPath, join(import.meta.dir, "..", "build.ts"),
+      "--local", entry, "--no-check", "--out", dir, "--cache", join(dir, "cache")]);
+    const msg = new TextDecoder().decode(p.stdout) + new TextDecoder().decode(p.stderr);
+    if (p.exitCode !== 0) throw new Error(`build exited ${p.exitCode}:\n${msg}`);
+    expect(readFileSync(join(dir, "index.html"), "utf8")).not.toContain("each package checked on bend");
+  }, 120_000);
 });
 
 describe("sandbox setup failures are not statuses", () => {

@@ -26,6 +26,14 @@ test("anonymous re-uploads with the same files and description merge; different 
   expect(g.latest.hash).toBe("0x2");
 });
 
+test("a named release outranks a newer identical anonymous upload", () => {
+  const named = pkg("0xn", 1, ["a.bend", "LICENSE"], "d", ["named-package-x", "1.0.0.0"]);
+  const anon = pkg("0xq", 5, ["LICENSE", "a.bend"], "d");
+  const gs = groupPackages([named, anon]);
+  expect(gs.length).toBe(1);
+  expect(gs[0].latest.hash).toBe("0xn");
+});
+
 test("an anonymous upload identical to a named package joins its lineage", () => {
   const gs = groupPackages([pkg("0xn", 2, ["a.bend", "LICENSE"], "d", ["named-package-x", "1.0.0.0"]), pkg("0xq", 1, ["LICENSE", "a.bend"], "d")]);
   expect(gs.length).toBe(1);
