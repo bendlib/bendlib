@@ -122,17 +122,26 @@ test("lint flags a predicate whose -> Data is on a continuation line, and the on
 
 const preds = join(dir, "fixtures/preds");
 
-test("lint allows a predicate's own ~template params, flags non-Base calls and uncalled refs (planted negatives)", () => {
+test("lint allows a predicate's own ~template params, lambda binders, and flags non-Base calls/uncalled refs (planted negatives)", () => {
   const r = run("lint.ts", preds);
   expect(r.code).toBe(1);
   expect(r.out).toContain("3 finding(s) in 5 module(s)");
   // the two candidate predicates (own `~le`/`~eq`) are clean
   expect(r.out).not.toContain("sorted_by.bend");
   expect(r.out).not.toContain("mem.bend");
+  // a directory named `evidence/` is skipped as deliberately-failing negatives
+  expect(r.out).not.toContain("ev_bad.bend");
+  expect(r.out).not.toContain("evidence/");
   // planted negatives: a non-Base call, a ~MNat.le passed uncalled, and an own def passed uncalled
   expect(r.out).toContain("bad_call.bend:6: predicate 'bad_call' calls 'helper', which is not a Base function");
   expect(r.out).toContain("bad_ref.bend:4: predicate 'bad_ref' refers to 'MNat.le', which is not a Base function");
   expect(r.out).toContain("bad_own.bend:6: predicate 'bad_own' refers to 'own_helper', which is not a Base function");
+});
+
+test("lint still flags a bad file when the evidence directory is passed directly (negative fixtures)", () => {
+  const r = run("lint.ts", join(preds, "evidence"));
+  expect(r.code).toBe(1);
+  expect(r.out).toContain("evidence/ev_bad.bend:6: predicate 'ev_bad' calls 'ev_helper', which is not a Base function");
 });
 
 const kern = join(dir, "fixtures/kernel");

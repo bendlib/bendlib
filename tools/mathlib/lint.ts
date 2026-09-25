@@ -1,11 +1,11 @@
 // lint: enforce bend-mathlib's permanent-API conventions (PLAN.md §3.1).
 //
 //   names      law/def names are lowercase snake_case, no dots (the compiler enforces F5 Base collisions)
-//   docs       every public law has a `#` doc line directly above it
-//   claims     every claim is exactly one line; every law has a proof right below it
+//   docs/claims every public law has a `#` doc line, one claim line and a proof right below it
 //   types      no `type` declarations (mathlib holds no nominal definitions)
-//   predicates a type-level def (-> Data / -> Type) has a one-line body with no
-//              `match` that calls only Base functions (so it unifies across versions)
+//   predicates a type-level def (-> Data / -> Type) has a one-line body with no `match` that calls
+//              only Base functions, its own `~` templates and lambda-bound names; a directory named
+//              `evidence/` is skipped as deliberately-failing negatives unless it is the package itself
 //   internal   a public law's binders / exs / claim may not name an internal_* helper
 //   erasure    (--erasure) every binder that CAN be erased is: tried in a scratch copy
 //   kernel     (--kernel) predicates may match and call own defs; `type`s allowed; a LICENSE is required
@@ -13,7 +13,7 @@
 
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, relative, resolve } from "node:path";
+import { dirname, join, relative, resolve, sep } from "node:path";
 import { BEND, PkgError, ROOT, baseNames, packageModules, parseModule, type Module } from "./lib.ts";
 
 const USAGE = "usage: bun tools/mathlib/lint.ts [pkgdir] [--erasure] [--allow-types] [--kernel]";
@@ -30,6 +30,9 @@ const at = (m: Module, line: number, msg: string) => findings.push(`${relative(R
 const NAME = /^[a-z][a-z0-9_]*$/;
 let files: string[];
 try { files = packageModules(pkg); } catch (e) { if (e instanceof PkgError) usage(e.message); throw e; }
+// `evidence/` holds deliberately-failing negatives; skip it below the package root, but still
+// lint it when it is the package itself (a directly-passed path keeps failing).
+files = files.filter((f) => !relative(pkg, f).split(sep).slice(0, -1).includes("evidence"));
 const base = await baseNames().catch((e: unknown) => usage(e instanceof Error ? e.message : String(e)));
 const mods = files.map((f) => parseModule(f));
 
@@ -58,18 +61,21 @@ for (const m of mods) {
       // A predicate may call its own template parameters (`~le`, `~eq`): they are substituted
       // by the caller with a closed term, so the body stays a plain application of Base.
       const templates = new Set([...d.header.matchAll(/~([A-Za-z_][A-Za-z0-9_]*)\s*:/g)].map((t) => t[1]));
+      // A lambda's parameters (`+x => k => m => ...`) are locally bound, so a call to one
+      // (`k(Some{x})`) is not a non-Base function reference.
+      const lambdas = new Set([...text.matchAll(/([A-Za-z_][A-Za-z0-9_]*)\s*=>/g)].map((b) => b[1]));
       const own = new Set([...m.defs.map((x) => x.name), ...m.laws.map((x) => x.name)]);
       const localAliases = new Set([...m.text.matchAll(/^import\s+\.\.?\/\S+\.bend\s+as\s+([A-Za-z_][A-Za-z0-9_]*)/gm)].map((i) => i[1]));
       const samePackage = (id: string) => kernel && (own.has(id) || localAliases.has(id.split(".")[0]));
       for (const call of text.matchAll(/([A-Za-z_][A-Za-z0-9_.]*)\s*\(/g)) {
         const fn = call[1];
-        if (!base.has(fn) && !templates.has(fn) && !samePackage(fn)) at(m, d.line, `predicate '${d.name}' calls '${fn}', which is not a Base function`);
+        if (!base.has(fn) && !templates.has(fn) && !lambdas.has(fn) && !samePackage(fn)) at(m, d.line, `predicate '${d.name}' calls '${fn}', which is not a Base function`);
       }
       // A non-Base def passed without a call (`~MNat.le`, `~helper`) is just as nominal.
       for (const ref of text.matchAll(/(?<![A-Za-z0-9_.])([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+|[a-z_][A-Za-z0-9_]*)(?![A-Za-z0-9_.]*\s*\()/g)) {
         const id = ref[1];
         const foreign = id.includes(".") ? !base.has(id) && !/^[A-Z]/.test(id.split(".").pop()!) : own.has(id);
-        if (foreign && !samePackage(id)) at(m, d.line, `predicate '${d.name}' refers to '${id}', which is not a Base function`);
+        if (foreign && !samePackage(id) && !lambdas.has(id)) at(m, d.line, `predicate '${d.name}' refers to '${id}', which is not a Base function`);
       }
     }
   }
