@@ -49,6 +49,18 @@
       "sha256": "4635a39b07e9d14f378ddb2fda94efeef09272876dc73ffc0cd1f1817779015c",
       "since": null
     },
+    "algebra.foldl_op_eq_foldr_op": {
+      "kind": "law",
+      "text": "for ~B: Data\nfor ~op: B -> B -> B\nfor ~assoc: @x: B -> @y: B -> @z: B -> {op(op(x, y), z) == op(x, op(y, z)) : B}\nfor ~comm: @x: B -> @y: B -> {op(x, y) == op(y, x) : B}\nfor ~z: B\nfor ~id: @x: B -> {op(z, x) == x : B}\nfor +xs: List<&2, B>\n{List.foldl(&2, B, B, op, xs, z) == List.foldr(&2, B, B, op, xs, z) : B}",
+      "sha256": "8267625dc4ef0bd8296ac06ed05c7ef52a4da725bf4a965d8ae7477120d4c378",
+      "since": null
+    },
+    "algebra.foldl_op_eq_foldr_op_sym": {
+      "kind": "law",
+      "text": "for ~B: Data\nfor ~op: B -> B -> B\nfor ~assoc: @x: B -> @y: B -> @z: B -> {op(op(x, y), z) == op(x, op(y, z)) : B}\nfor ~comm: @x: B -> @y: B -> {op(x, y) == op(y, x) : B}\nfor ~z: B\nfor ~id: @x: B -> {op(z, x) == x : B}\nfor +xs: List<&2, B>\n{List.foldr(&2, B, B, op, xs, z) == List.foldl(&2, B, B, op, xs, z) : B}",
+      "sha256": "9c9fd9bc60ebe2eee6b2169db0ed7441c98d8fbc2cd58d74c7e8465c3b04f63d",
+      "since": null
+    },
     "algebra.list_nat_append_assoc4": {
       "kind": "law",
       "text": "for +a: List<&2, Nat>\nfor +b: List<&2, Nat>\nfor +c: List<&2, Nat>\nfor +d: List<&2, Nat>\n{List.append(&2, Nat, List.append(&2, Nat, List.append(&2, Nat, a, b), c), d) == List.append(&2, Nat, a, List.append(&2, Nat, b, List.append(&2, Nat, c, d))) : List<&2, Nat>}",
@@ -1950,6 +1962,42 @@
       "text": "for n: Nat\n{0n == Nat.sub(0n, n) : Nat}",
       "sha256": "d0a8109486dfb3acf63bf80f0826e36f601143cfa901ebb128e0e83c9a48833a",
       "since": "0.2.0.0"
+    },
+    "order.le_antisymm_eq": {
+      "kind": "law",
+      "text": "for ~A: Data\nfor ~le: A -> A -> Bool\nfor ~le_antisymm: @x: A -> @y: A -> {le(x, y) == True{} : Bool} -> {le(y, x) == True{} : Bool} -> {x == y : A}\nfor +a: A\nfor +b: A\nfor ab: {le(a, b) == True{} : Bool}\nfor ba: {le(b, a) == True{} : Bool}\n{a == b : A}",
+      "sha256": "78e9164ff7a4892855b184a4e9d61ecb6085c9833afaf7af4d61126feadf2be6",
+      "since": null
+    },
+    "order.le_total_of_not_le": {
+      "kind": "law",
+      "text": "for ~A: Data\nfor ~le: A -> A -> Bool\nfor ~le_total: @x: A -> @y: A -> {Bool.or(le(x, y), le(y, x)) == True{} : Bool}\nfor +a: A\nfor +b: A\nfor h: {le(a, b) == False{} : Bool}\n{le(b, a) == True{} : Bool}",
+      "sha256": "d1b0ca7268365e2de00977b0da0f6c6f8d5aef5da85f27c6f9f7ea0e6ce920b2",
+      "since": null
+    },
+    "order.le_total_true": {
+      "kind": "law",
+      "text": "for ~A: Data\nfor ~le: A -> A -> Bool\nfor ~le_total: @x: A -> @y: A -> {Bool.or(le(x, y), le(y, x)) == True{} : Bool}\nfor +a: A\nfor +b: A\n{Bool.or(le(a, b), le(b, a)) == True{} : Bool}",
+      "sha256": "32c80c5960527ff4037e8ac664f5091385d915ba4ae4403afb59bc46f9696d28",
+      "since": null
+    },
+    "order.le_total_true_sym": {
+      "kind": "law",
+      "text": "for ~A: Data\nfor ~le: A -> A -> Bool\nfor ~le_total: @x: A -> @y: A -> {Bool.or(le(x, y), le(y, x)) == True{} : Bool}\nfor +a: A\nfor +b: A\n{True{} == Bool.or(le(a, b), le(b, a)) : Bool}",
+      "sha256": "696ce5b87e0a845325fbceb84d9926d9679a7bed2132f4a02e22e80ad8b5a4ad",
+      "since": null
+    },
+    "order.le_trans3": {
+      "kind": "law",
+      "text": "for ~A: Data\nfor ~le: A -> A -> Bool\nfor ~le_trans: @x: A -> @y: A -> @z: A -> {le(x, y) == True{} : Bool} -> {le(y, z) == True{} : Bool} -> {le(x, z) == True{} : Bool}\nfor +a: A\nfor +b: A\nfor +c: A\nfor +d: A\nfor ab: {le(a, b) == True{} : Bool}\nfor bc: {le(b, c) == True{} : Bool}\nfor cd: {le(c, d) == True{} : Bool}\n{le(a, d) == True{} : Bool}",
+      "sha256": "74e7ab9c9ac3e1eac9ba7d0e4e113dfb897ce6141ff259f9d1ab6b8c7bd4084e",
+      "since": null
+    },
+    "order.le_trans4": {
+      "kind": "law",
+      "text": "for ~A: Data\nfor ~le: A -> A -> Bool\nfor ~le_trans: @x: A -> @y: A -> @z: A -> {le(x, y) == True{} : Bool} -> {le(y, z) == True{} : Bool} -> {le(x, z) == True{} : Bool}\nfor +a: A\nfor +b: A\nfor +c: A\nfor +d: A\nfor +e: A\nfor ab: {le(a, b) == True{} : Bool}\nfor bc: {le(b, c) == True{} : Bool}\nfor cd: {le(c, d) == True{} : Bool}\nfor de: {le(d, e) == True{} : Bool}\n{le(a, e) == True{} : Bool}",
+      "sha256": "ffa8ed1e7c9a487889e6708d12354bbecb2f6be78eff1eae9b30ba0defaae00b",
+      "since": null
     },
     "perm.evens": {
       "kind": "def",

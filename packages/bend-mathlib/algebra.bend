@@ -228,6 +228,29 @@ law list_nat_append_assoc4:
 def list_nat_append_assoc4(a, b, c, d):
   op_assoc4(~List<&2, Nat>, ~List.append(&2, Nat), ~internal_list_nat_append_assoc, a, b, c, d)
 
+# Folding left equals folding right for an associative, commutative operation with a left identity.
+law foldl_op_eq_foldr_op:
+  for ~B: Data
+  for ~op: B -> B -> B
+  for ~assoc: @x: B -> @y: B -> @z: B -> {op(op(x, y), z) == op(x, op(y, z)) : B}
+  for ~comm: @x: B -> @y: B -> {op(x, y) == op(y, x) : B}
+  for ~z: B
+  for ~id: @x: B -> {op(z, x) == x : B}
+  for +xs: List<&2, B>
+  {List.foldl(&2, B, B, op, xs, z) == List.foldr(&2, B, B, op, xs, z) : B}
+
+def internal_foldl_foldr(~B: Data, ~op: B -> B -> B, ~assoc: @x: B -> @y: B -> @z: B -> {op(op(x, y), z) == op(x, op(y, z)) : B}, ~comm: @x: B -> @y: B -> {op(x, y) == op(y, x) : B}, ~z: B, ~id: @x: B -> {op(z, x) == x : B}, +xs: List<&2, B>, +acc: B) -> {List.foldl(&2, B, B, op, xs, acc) == op(acc, List.foldr(&2, B, B, op, xs, z)) : B}:
+  match xs:
+    case Nil{}:
+      Equal.sym(B, op(acc, z), acc, Equal.trans(B, op(acc, z), op(z, acc), acc, comm(acc, z), id(acc)))
+    case +h <> +t:
+      %Equal.sym(B, List.foldl(&2, B, B, op, t, op(acc, h)), op(op(acc, h), List.foldr(&2, B, B, op, t, z)), internal_foldl_foldr(~B, ~op, ~assoc, ~comm, ~z, ~id, t, op(acc, h))) : {_ == op(acc, op(h, List.foldr(&2, B, B, op, t, z))) : B}
+      assoc(acc, h, List.foldr(&2, B, B, op, t, z))
+
+def foldl_op_eq_foldr_op(B, op, assoc, comm, z, id, xs):
+  %Equal.sym(B, List.foldl(&2, B, B, op, xs, z), op(z, List.foldr(&2, B, B, op, xs, z)), internal_foldl_foldr(~B, ~op, ~assoc, ~comm, ~z, ~id, xs, z)) : {_ == List.foldr(&2, B, B, op, xs, z) : B}
+  id(List.foldr(&2, B, B, op, xs, z))
+
 # --- generated: _sym twins (tools/mathlib/twins.ts), do not edit ---
 
 # Four-way reassociation from associativity alone, reversed to rewrite toward the simple side.
@@ -412,3 +435,17 @@ law list_nat_append_assoc4_sym:
 
 def list_nat_append_assoc4_sym(a, b, c, d):
   Equal.sym(List<&2, Nat>, List.append(&2, Nat, List.append(&2, Nat, List.append(&2, Nat, a, b), c), d), List.append(&2, Nat, a, List.append(&2, Nat, b, List.append(&2, Nat, c, d))), list_nat_append_assoc4(a, b, c, d))
+
+# Folding left equals folding right for an associative, commutative operation with a left identity, reversed to rewrite toward the simple side.
+law foldl_op_eq_foldr_op_sym:
+  for ~B: Data
+  for ~op: B -> B -> B
+  for ~assoc: @x: B -> @y: B -> @z: B -> {op(op(x, y), z) == op(x, op(y, z)) : B}
+  for ~comm: @x: B -> @y: B -> {op(x, y) == op(y, x) : B}
+  for ~z: B
+  for ~id: @x: B -> {op(z, x) == x : B}
+  for +xs: List<&2, B>
+  {List.foldr(&2, B, B, op, xs, z) == List.foldl(&2, B, B, op, xs, z) : B}
+
+def foldl_op_eq_foldr_op_sym(B, op, assoc, comm, z, id, xs):
+  Equal.sym(B, List.foldl(&2, B, B, op, xs, z), List.foldr(&2, B, B, op, xs, z), foldl_op_eq_foldr_op(~B, ~op, ~assoc, ~comm, ~z, ~id, xs))
