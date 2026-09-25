@@ -2,15 +2,15 @@
 // lawcheck: search for counterexamples to the laws of a Bend 2 file before anyone
 // tries to prove them, and shrink them. Passing laws are NOT proved. `mutate`
 // checks the laws against every small mutant of the target's defs instead.
-// usage: bun tools/lawcheck/cli.ts <file.bend> [--impl <file>] [--size N]
-//          [--max-instances N] [--max-nat N] [--seed S] [--json] [--law name] [--jobs N] [--timeout MS]
+// usage: bun tools/lawcheck/cli.ts <file.bend> [--impl <file>] [--size N] [--max-instances N]
+//          [--max-nat N] [--seed S] [--json] [--law name] [--jobs N] [--timeout MS]
+//          [--native] [--strict] [--allow-skip name,…]
 //        bun tools/lawcheck/cli.ts mutate <laws.bend> [--impl <file>] [--def <name>]
 //          [--json] [--max-instances N] [--seed S] [--size N] [--jobs N] [--timeout MS]
-//   --native  evaluate eligible instances with a compiled program and report checker disagreements (engine N)
-//   --impl  check the laws against another implementation: replaces the file's
-//           local import with the same basename (or its only local import)
-// exit: lawcheck 0 no counterexample · 1 counterexample found · 2 usage, load or tool error
-//       mutate 0 no survivors · 1 at least one survivor · 2 usage, load, tool error or error mutant
+//   --impl swaps a local import; --native adds engine N; --strict makes a skipped law
+//           fail the gate unless it is named in --allow-skip.
+// exit: lawcheck 0 no counterexample · 1 counterexample (or a disallowed skip with --strict) · 2 error
+//       mutate 0 no survivors · 1 survivor · 2 usage, load, tool error or error mutant
 
 import * as path from "node:path";
 import { BendReadError, SourceError } from "../reader/index.ts";
@@ -21,7 +21,7 @@ import {
   type LawResult, type MutateOptions, type MutateReport, type Options, type Report,
 } from "./src/lawcheck.ts";
 
-const USAGE = "usage: bun tools/lawcheck/cli.ts <file.bend> [--impl <file>] [--size N] [--max-instances N] [--max-nat N] [--seed S] [--json] [--law name] [--native] [--jobs N] [--timeout MS]";
+const USAGE = "usage: bun tools/lawcheck/cli.ts <file.bend> [--impl <file>] [--size N] [--max-instances N] [--max-nat N] [--seed S] [--json] [--law name] [--native] [--jobs N] [--timeout MS] [--strict] [--allow-skip name,…]";
 const MUTATE_USAGE = "usage: bun tools/lawcheck/cli.ts mutate <laws.bend> [--impl <file>] [--def <name>] [--json] [--max-instances N] [--seed S] [--size N] [--jobs N] [--timeout MS]";
 
 function die(msg: string): never {
@@ -36,17 +36,23 @@ function num(flag: string, v: string | undefined, min: number, usage: string): n
 }
 
 function parseArgs(argv: string[]) {
-  const o: Options & { file: string; json: boolean } = { file: "", json: false, size: 3, maxInstances: 200, seed: 1, maxNat: 30 };
+  const o: Options & { file: string; json: boolean; strict: boolean; allowSkip: Set<string> } = { file: "", json: false, strict: false, allowSkip: new Set(), size: 3, maxInstances: 200, seed: 1, maxNat: 30 };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--json") o.json = true;
     else if (a === "--native") o.native = true;
+    else if (a === "--strict") o.strict = true;
     else if (a === "--size") o.size = num(a, argv[++i], 0, USAGE);
     else if (a === "--max-instances") o.maxInstances = num(a, argv[++i], 1, USAGE);
     else if (a === "--max-nat") o.maxNat = num(a, argv[++i], 1, USAGE);
     else if (a === "--seed") o.seed = num(a, argv[++i], 0, USAGE);
     else if (a === "--jobs") o.jobs = num(a, argv[++i], 1, USAGE);
     else if (a === "--timeout") o.timeoutMs = num(a, argv[++i], 1, USAGE);
+    else if (a === "--allow-skip") {
+      const v = argv[++i];
+      if (v === undefined) die(`${a} needs a comma-separated list\n${USAGE}`);
+      for (const nm of v.split(",")) if (nm.trim() !== "") o.allowSkip.add(nm.trim());
+    }
     else if (a === "--law" || a === "--impl") {
       const v = argv[++i];
       if (v === undefined) die(`${a} needs a value\n${USAGE}`);
@@ -179,7 +185,9 @@ async function runLawcheck(argv: string[]) {
   }
   console.log(o.json ? JSON.stringify(report, null, 2) : human(report));
   const has = (s: LawResult["status"]) => report.laws.some((l) => l.status === s);
-  process.exit(has("fail") ? 1 : has("error") ? 2 : 0);
+  const skipped = report.laws.filter((l) => l.status === "skip" && !o.allowSkip.has(l.name));
+  // --strict: a skipped law is a gap in the gate unless explicitly allowed (README).
+  process.exit(has("fail") || (o.strict && skipped.length > 0) ? 1 : has("error") ? 2 : 0);
 }
 
 async function runMutate(argv: string[]) {

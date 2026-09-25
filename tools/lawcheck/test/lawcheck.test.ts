@@ -481,7 +481,32 @@ describe("errors", () => {
     expect((await run(path.join(FX, "nope.bend"))).code).toBe(2);
     expect((await run(path.join(FX, "correct.bend"), "--law", "nope")).code).toBe(2);
     expect((await run(path.join(FX, "correct.bend"), "--size", "x")).code).toBe(2);
+    expect((await run(path.join(FX, "correct.bend"), "--allow-skip")).code).toBe(2);
+    expect((await run("mutate", path.join(FX, "mut_weak.bend"), "--strict")).code).toBe(2);
   }, T);
+});
+
+describe("strict mode", () => {
+  test("a skipped law fails the gate under --strict unless allowed", async () => {
+    const file = path.join(FX, "strict_skip.bend");
+    const plain = await run(file, "--jobs", "4");
+    expect(plain.code).toBe(0);
+    expect(plain.stdout).toContain("~ vacuous");
+    const strict = await run(file, "--strict", "--jobs", "4");
+    expect(strict.code).toBe(1);
+    expect(strict.stdout).toContain("~ vacuous");
+    const allowed = await run(file, "--strict", "--allow-skip", "vacuous", "--jobs", "4");
+    expect(allowed.code).toBe(0);
+    const wrong = await run(file, "--strict", "--allow-skip", "other,vacuous", "--jobs", "4");
+    expect(wrong.code).toBe(0);
+    const absent = await run(file, "--strict", "--allow-skip", "other", "--jobs", "4");
+    expect(absent.code).toBe(1);
+  }, T);
+
+  test("--allow-skip without --strict is accepted and changes nothing", async () => {
+    const r = await run(path.join(FX, "strict_skip.bend"), "--allow-skip", "vacuous", "--jobs", "4");
+    expect(r.code).toBe(0);
+  });
 });
 
 describe("term rewriting", () => {
