@@ -4,7 +4,7 @@
 // usage: bun tools/install-bend.ts
 
 import { createHash } from "node:crypto";
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -22,6 +22,8 @@ const sum = createHash("sha256").update(bytes).digest("hex");
 if (sum !== archive.sha256) { console.error(`sha256 mismatch for ${archive.file}: ${sum}`); process.exit(1); }
 
 const tmp = mkdtempSync(join(tmpdir(), "bend-install-"));
+// process.exit() skips finally, so clean up the temp dir from an exit handler.
+process.on("exit", () => { try { rmSync(tmp, { recursive: true, force: true }); } catch { /* best effort */ } });
 writeFileSync(join(tmp, archive.file), bytes);
 const tar = Bun.spawnSync(["tar", "-xzf", join(tmp, archive.file), "-C", tmp]);
 if (tar.exitCode !== 0) { console.error(new TextDecoder().decode(tar.stderr)); process.exit(1); }
