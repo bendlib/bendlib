@@ -5,6 +5,49 @@ Machine-checked lemmas for Bend 2, checked with `bend 2.0.27`.
 Rewriting: `%e : P` replaces the right side of `e` with its left side, so `name` expands the simple
 side into the compound one and `name_sym` simplifies the compound side.
 
+Rows marked `next` are proved in this repository but not yet published: the import lines above do not contain them yet.
+
+## algebra
+
+```python
+import bend-mathlib@0.3.0.0/algebra.bend as MAlgebra
+```
+
+| lemma | statement | meaning | since |
+|---|---|---|---|
+| `op_assoc4(~A, ~op, ~assoc, a, b, c, d)` | `∀ ~A: Data, ~op: A -> A -> A, ~assoc: @x: A -> @y: A -> @z: A -> {op(op(x, y), z) == op(x, op(y, z)) : A}, +a: A, +b: A, +c: A, +d: A. {op(op(op(a, b), c), d) == op(a, op(b, op(c, d))) : A}` | Four-way reassociation from associativity alone. | next |
+| `op_left_comm(~A, ~op, ~assoc, ~comm, a, b, c)` | `∀ ~A: Data, ~op: A -> A -> A, ~assoc: @x: A -> @y: A -> @z: A -> {op(op(x, y), z) == op(x, op(y, z)) : A}, ~comm: @x: A -> @y: A -> {op(x, y) == op(y, x) : A}, +a: A, +b: A, +c: A. {op(a, op(b, c)) == op(b, op(a, c)) : A}` | Left commutation from associativity and commutativity. | next |
+| `op_right_comm(~A, ~op, ~assoc, ~comm, a, b, c)` | `∀ ~A: Data, ~op: A -> A -> A, ~assoc: @x: A -> @y: A -> @z: A -> {op(op(x, y), z) == op(x, op(y, z)) : A}, ~comm: @x: A -> @y: A -> {op(x, y) == op(y, x) : A}, +a: A, +b: A, +c: A. {op(op(a, b), c) == op(op(a, c), b) : A}` | Right commutation from associativity and commutativity. | next |
+| `op_four(~A, ~op, ~assoc, ~comm, a, b, c, d)` | `∀ ~A: Data, ~op: A -> A -> A, ~assoc: @x: A -> @y: A -> @z: A -> {op(op(x, y), z) == op(x, op(y, z)) : A}, ~comm: @x: A -> @y: A -> {op(x, y) == op(y, x) : A}, +a: A, +b: A, +c: A, +d: A. {op(op(a, b), op(c, d)) == op(op(a, c), op(b, d)) : A}` | Middle-four interchange from associativity and commutativity. | next |
+| `op_comm3(~A, ~op, ~comm, a, b, c)` | `∀ ~A: Data, ~op: A -> A -> A, ~comm: @x: A -> @y: A -> {op(x, y) == op(y, x) : A}, +a: A, +b: A, +c: A. {op(op(a, b), c) == op(c, op(b, a)) : A}` | Three-way commutation from commutativity alone. | next |
+| `nat_add_left_comm(a, b, c)` | `∀ +a: Nat, +b: Nat, +c: Nat. {Nat.add(a, Nat.add(b, c)) == Nat.add(b, Nat.add(a, c)) : Nat}` | Nat addition is left-commutative. | next |
+| `nat_add_right_comm(a, b, c)` | `∀ +a: Nat, +b: Nat, +c: Nat. {Nat.add(Nat.add(a, b), c) == Nat.add(Nat.add(a, c), b) : Nat}` | Nat addition is right-commutative. | next |
+| `nat_add_four(a, b, c, d)` | `∀ +a: Nat, +b: Nat, +c: Nat, +d: Nat. {Nat.add(Nat.add(a, b), Nat.add(c, d)) == Nat.add(Nat.add(a, c), Nat.add(b, d)) : Nat}` | Nat addition's middle-four interchange. | next |
+| `nat_mul_left_comm(a, b, c)` | `∀ +a: Nat, +b: Nat, +c: Nat. {Nat.mul(a, Nat.mul(b, c)) == Nat.mul(b, Nat.mul(a, c)) : Nat}` | Nat multiplication is left-commutative. | next |
+| `nat_mul_right_comm(a, b, c)` | `∀ +a: Nat, +b: Nat, +c: Nat. {Nat.mul(Nat.mul(a, b), c) == Nat.mul(Nat.mul(a, c), b) : Nat}` | Nat multiplication is right-commutative. | next |
+| `nat_mul_four(a, b, c, d)` | `∀ +a: Nat, +b: Nat, +c: Nat, +d: Nat. {Nat.mul(Nat.mul(a, b), Nat.mul(c, d)) == Nat.mul(Nat.mul(a, c), Nat.mul(b, d)) : Nat}` | Nat multiplication's middle-four interchange. | next |
+| `bool_and_left_comm(a, b, c)` | `∀ +a: Bool, +b: Bool, +c: Bool. {Bool.and(a, Bool.and(b, c)) == Bool.and(b, Bool.and(a, c)) : Bool}` | Bool and is left-commutative. | next |
+| `bool_and_right_comm(a, b, c)` | `∀ +a: Bool, +b: Bool, +c: Bool. {Bool.and(Bool.and(a, b), c) == Bool.and(Bool.and(a, c), b) : Bool}` | Bool and is right-commutative. | next |
+| `bool_or_left_comm(a, b, c)` | `∀ +a: Bool, +b: Bool, +c: Bool. {Bool.or(a, Bool.or(b, c)) == Bool.or(b, Bool.or(a, c)) : Bool}` | Bool or is left-commutative. | next |
+| `bool_or_right_comm(a, b, c)` | `∀ +a: Bool, +b: Bool, +c: Bool. {Bool.or(Bool.or(a, b), c) == Bool.or(Bool.or(a, c), b) : Bool}` | Bool or is right-commutative. | next |
+| `list_nat_append_assoc4(a, b, c, d)` | `∀ +a: List<&2, Nat>, +b: List<&2, Nat>, +c: List<&2, Nat>, +d: List<&2, Nat>. {List.append(&2, Nat, List.append(&2, Nat, List.append(&2, Nat, a, b), c), d) == List.append(&2, Nat, a, List.append(&2, Nat, b, List.append(&2, Nat, c, d))) : List<&2, Nat>}` | Four-way reassociation for List append over Nat. | next |
+| `op_assoc4_sym(~A, ~op, ~assoc, a, b, c, d)` | `∀ ~A: Data, ~op: A -> A -> A, ~assoc: @x: A -> @y: A -> @z: A -> {op(op(x, y), z) == op(x, op(y, z)) : A}, +a: A, +b: A, +c: A, +d: A. {op(a, op(b, op(c, d))) == op(op(op(a, b), c), d) : A}` | Four-way reassociation from associativity alone, reversed to rewrite toward the simple side. | next |
+| `op_left_comm_sym(~A, ~op, ~assoc, ~comm, a, b, c)` | `∀ ~A: Data, ~op: A -> A -> A, ~assoc: @x: A -> @y: A -> @z: A -> {op(op(x, y), z) == op(x, op(y, z)) : A}, ~comm: @x: A -> @y: A -> {op(x, y) == op(y, x) : A}, +a: A, +b: A, +c: A. {op(b, op(a, c)) == op(a, op(b, c)) : A}` | Left commutation from associativity and commutativity, reversed to rewrite toward the simple side. | next |
+| `op_right_comm_sym(~A, ~op, ~assoc, ~comm, a, b, c)` | `∀ ~A: Data, ~op: A -> A -> A, ~assoc: @x: A -> @y: A -> @z: A -> {op(op(x, y), z) == op(x, op(y, z)) : A}, ~comm: @x: A -> @y: A -> {op(x, y) == op(y, x) : A}, +a: A, +b: A, +c: A. {op(op(a, c), b) == op(op(a, b), c) : A}` | Right commutation from associativity and commutativity, reversed to rewrite toward the simple side. | next |
+| `op_four_sym(~A, ~op, ~assoc, ~comm, a, b, c, d)` | `∀ ~A: Data, ~op: A -> A -> A, ~assoc: @x: A -> @y: A -> @z: A -> {op(op(x, y), z) == op(x, op(y, z)) : A}, ~comm: @x: A -> @y: A -> {op(x, y) == op(y, x) : A}, +a: A, +b: A, +c: A, +d: A. {op(op(a, c), op(b, d)) == op(op(a, b), op(c, d)) : A}` | Middle-four interchange from associativity and commutativity, reversed to rewrite toward the simple side. | next |
+| `op_comm3_sym(~A, ~op, ~comm, a, b, c)` | `∀ ~A: Data, ~op: A -> A -> A, ~comm: @x: A -> @y: A -> {op(x, y) == op(y, x) : A}, +a: A, +b: A, +c: A. {op(c, op(b, a)) == op(op(a, b), c) : A}` | Three-way commutation from commutativity alone, reversed to rewrite toward the simple side. | next |
+| `nat_add_left_comm_sym(a, b, c)` | `∀ +a: Nat, +b: Nat, +c: Nat. {Nat.add(b, Nat.add(a, c)) == Nat.add(a, Nat.add(b, c)) : Nat}` | Nat addition is left-commutative, reversed to rewrite toward the simple side. | next |
+| `nat_add_right_comm_sym(a, b, c)` | `∀ +a: Nat, +b: Nat, +c: Nat. {Nat.add(Nat.add(a, c), b) == Nat.add(Nat.add(a, b), c) : Nat}` | Nat addition is right-commutative, reversed to rewrite toward the simple side. | next |
+| `nat_add_four_sym(a, b, c, d)` | `∀ +a: Nat, +b: Nat, +c: Nat, +d: Nat. {Nat.add(Nat.add(a, c), Nat.add(b, d)) == Nat.add(Nat.add(a, b), Nat.add(c, d)) : Nat}` | Nat addition's middle-four interchange, reversed to rewrite toward the simple side. | next |
+| `nat_mul_left_comm_sym(a, b, c)` | `∀ +a: Nat, +b: Nat, +c: Nat. {Nat.mul(b, Nat.mul(a, c)) == Nat.mul(a, Nat.mul(b, c)) : Nat}` | Nat multiplication is left-commutative, reversed to rewrite toward the simple side. | next |
+| `nat_mul_right_comm_sym(a, b, c)` | `∀ +a: Nat, +b: Nat, +c: Nat. {Nat.mul(Nat.mul(a, c), b) == Nat.mul(Nat.mul(a, b), c) : Nat}` | Nat multiplication is right-commutative, reversed to rewrite toward the simple side. | next |
+| `nat_mul_four_sym(a, b, c, d)` | `∀ +a: Nat, +b: Nat, +c: Nat, +d: Nat. {Nat.mul(Nat.mul(a, c), Nat.mul(b, d)) == Nat.mul(Nat.mul(a, b), Nat.mul(c, d)) : Nat}` | Nat multiplication's middle-four interchange, reversed to rewrite toward the simple side. | next |
+| `bool_and_left_comm_sym(a, b, c)` | `∀ +a: Bool, +b: Bool, +c: Bool. {Bool.and(b, Bool.and(a, c)) == Bool.and(a, Bool.and(b, c)) : Bool}` | Bool and is left-commutative, reversed to rewrite toward the simple side. | next |
+| `bool_and_right_comm_sym(a, b, c)` | `∀ +a: Bool, +b: Bool, +c: Bool. {Bool.and(Bool.and(a, c), b) == Bool.and(Bool.and(a, b), c) : Bool}` | Bool and is right-commutative, reversed to rewrite toward the simple side. | next |
+| `bool_or_left_comm_sym(a, b, c)` | `∀ +a: Bool, +b: Bool, +c: Bool. {Bool.or(b, Bool.or(a, c)) == Bool.or(a, Bool.or(b, c)) : Bool}` | Bool or is left-commutative, reversed to rewrite toward the simple side. | next |
+| `bool_or_right_comm_sym(a, b, c)` | `∀ +a: Bool, +b: Bool, +c: Bool. {Bool.or(Bool.or(a, c), b) == Bool.or(Bool.or(a, b), c) : Bool}` | Bool or is right-commutative, reversed to rewrite toward the simple side. | next |
+| `list_nat_append_assoc4_sym(a, b, c, d)` | `∀ +a: List<&2, Nat>, +b: List<&2, Nat>, +c: List<&2, Nat>, +d: List<&2, Nat>. {List.append(&2, Nat, a, List.append(&2, Nat, b, List.append(&2, Nat, c, d))) == List.append(&2, Nat, List.append(&2, Nat, List.append(&2, Nat, a, b), c), d) : List<&2, Nat>}` | Four-way reassociation for List append over Nat, reversed to rewrite toward the simple side. | next |
+
 ## bool
 
 ```python
@@ -340,4 +383,4 @@ import bend-mathlib@0.3.0.0/nat.bend as MNat
 | `not_is_le_sym(a, b)` | `∀ a: Nat, b: Nat. {Nat.is_lt(b, a) == Bool.not(Nat.is_le(a, b)) : Bool}` | Not (a <= b) tests the same as b < a, reversed to rewrite toward the simple side. | 0.2.0.0 |
 | `not_is_lt_sym(a, b)` | `∀ a: Nat, b: Nat. {Nat.is_le(b, a) == Bool.not(Nat.is_lt(a, b)) : Bool}` | Not (a < b) tests the same as b <= a, reversed to rewrite toward the simple side. | 0.2.0.0 |
 
-170 lemmas + 117 generated _sym twins, 6 predicates. Generated by `tools/mathlib/index.ts`.
+186 lemmas + 133 generated _sym twins, 6 predicates. Generated by `tools/mathlib/index.ts`.

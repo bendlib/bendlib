@@ -7,3 +7,4 @@ import ./nat.bend as MNat
 import ./list.bend as MList
 import ./perm.bend as MPerm
 import ./sort.bend as MSort
+import ./algebra.bend as MAlgebra
