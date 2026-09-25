@@ -3,7 +3,7 @@
 // and render a static site with relative links into tools/docs/dist/.
 //
 // usage: bun tools/docs/build.ts [--limit N] [--only name@version|0xhash,...] [--no-check]
-//          [--local entry.bend] [--jobs N] [--timeout SEC] [--mem-mb MB] [--out DIR] [--cache DIR]
+//          [--local entry.bend] [--jobs N] [--timeout SEC (default 60)] [--mem-mb MB] [--out DIR] [--cache DIR]
 //          [--require-sandbox]
 // exit: 0 site written · 1 fatal error or required-sandbox checks failed · 2 usage or toolchain mismatch
 
@@ -28,16 +28,18 @@ const ROOT = resolve(HERE, "../..");
 const EXTRACT_FORMAT = 2;
 // Modules larger than this get no source page; their declarations link to the raw hub file.
 const MAX_SRC_BYTES = 400 * 1024;
+// PLAN §5.2: big proofs check in ~29 s, so 20 s produced false timeouts (bend-4r8.12).
+export const DEFAULT_TIMEOUT = 60;
 
 type Args = { limit: number | null; only: string[] | null; local: string | null; check: boolean; jobs: number; timeout: number; memMb: number; out: string; cache: string; requireSandbox: boolean };
 
 function usage(msg: string): never {
-  console.error(`build: ${msg}\nusage: bun tools/docs/build.ts [--limit N] [--only name@version|0xhash,...] [--no-check] [--local entry.bend] [--jobs N] [--timeout SEC] [--mem-mb MB] [--out DIR] [--cache DIR] [--require-sandbox]`);
+  console.error(`build: ${msg}\nusage: bun tools/docs/build.ts [--limit N] [--only name@version|0xhash,...] [--no-check] [--local entry.bend] [--jobs N] [--timeout SEC (default 60)] [--mem-mb MB] [--out DIR] [--cache DIR] [--require-sandbox]`);
   process.exit(2);
 }
 
 function parseArgs(argv: string[]): Args {
-  const a: Args = { limit: null, only: null, local: null, check: true, jobs: 8, timeout: 20, memMb: 4096, out: join(HERE, "dist"), cache: join(HERE, ".cache"), requireSandbox: false };
+  const a: Args = { limit: null, only: null, local: null, check: true, jobs: 8, timeout: DEFAULT_TIMEOUT, memMb: 4096, out: join(HERE, "dist"), cache: join(HERE, ".cache"), requireSandbox: false };
   let outSet = false;
   const num = (i: number) => {
     const n = Number(argv[i + 1]);

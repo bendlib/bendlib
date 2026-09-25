@@ -6,7 +6,7 @@ import { chmodSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { BEND, checkCommand, checkFile, classify, crossCheck, sandboxProbe, worst, type FileStatus } from "../src/status.ts";
-import { stale } from "../build.ts";
+import { stale, DEFAULT_TIMEOUT } from "../build.ts";
 
 describe("classify", () => {
   test("exactly 'All terms check.' with exit 0 is checks", () => {
@@ -140,9 +140,18 @@ describe("stale", () => {
     expect(stale(s("timeout", "", 5), 20)).toBe(true);
     expect(stale(s("timeout", "", 19.5), 20)).toBe(false);
   });
+  test("a timeout cached under the old 20 s default is re-checked with the new 60 s budget", () => {
+    expect(stale(s("timeout", "", 20), DEFAULT_TIMEOUT)).toBe(true);
+  });
   test("a missing entry is stale and a fresh check is not", () => {
     expect(stale(undefined, 20)).toBe(true);
     expect(stale(s("checks"), 20)).toBe(false);
+  });
+});
+
+describe("build defaults", () => {
+  test("the default checker timeout is 60 s (PLAN §5.2)", () => {
+    expect(DEFAULT_TIMEOUT).toBe(60);
   });
 });
 
