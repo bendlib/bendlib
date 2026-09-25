@@ -1956,6 +1956,42 @@
       "text": "def isort_by_sorted_nat(+xs: List<&2, Nat>) -> MList.sorted_by(~Nat, ~Nat.is_le, MPerm.isort_by(~Nat, ~Nat.is_le, xs)):\nisort_by_sorted(~Nat, ~Nat.is_le, ~internal_le_flip_nat, xs)",
       "sha256": "70cf27d697c093a125b1230449d5642d11cecf76788c623128250e50562259d6",
       "since": "0.3.0.0"
+    },
+    "sort.merge_by_sorted": {
+      "kind": "def",
+      "text": "def merge_by_sorted(~A: Data, ~le: A -> A -> Bool, ~le_trans: @x: A -> @y: A -> @z: A -> {le(x, y) == True{} : Bool} -> {le(y, z) == True{} : Bool} -> {le(x, z) == True{} : Bool}, ~le_total: @x: A -> @y: A -> {le(x, y) == False{} : Bool} -> {le(y, x) == True{} : Bool}, +xs: List<&2, A>, +ys: List<&2, A>, +hx: MList.sorted_by(~A, ~le, xs), +hy: MList.sorted_by(~A, ~le, ys)) -> MList.sorted_by(~A, ~le, MPerm.merge_by(~A, ~le, xs, ys)):\nmatch xs ys:\ncase Nil{} _:\nhy\ncase +x <> +xt Nil{}:\nhx\ncase +x <> +xt +y <> +yt:\ninternal_merge_sorted_pick(~A, ~le, ~le_trans, ~le_total, le(x, y), x, xt, y, yt, {==}, hx, hy, merge_by_sorted(~A, ~le, ~le_trans, ~le_total, xt, y <> yt, internal_sorted_tail(~A, ~le, x, xt, hx), hy), merge_by_sorted(~A, ~le, ~le_trans, ~le_total, x <> xt, yt, hx, internal_sorted_tail(~A, ~le, y, yt, hy)))",
+      "sha256": "d6d851eefc1c8d98dda57586c417382be4afb9d76bb664404a081d77019ea119",
+      "since": null
+    },
+    "sort.merge_by_sorted_nat": {
+      "kind": "def",
+      "text": "def merge_by_sorted_nat(+xs: List<&2, Nat>, +ys: List<&2, Nat>, hx: MList.sorted_by(~Nat, ~Nat.is_le, xs), hy: MList.sorted_by(~Nat, ~Nat.is_le, ys)) -> MList.sorted_by(~Nat, ~Nat.is_le, MPerm.merge_by(~Nat, ~Nat.is_le, xs, ys)):\nmerge_by_sorted(~Nat, ~Nat.is_le, ~internal_le_trans_nat, ~internal_le_flip_nat, xs, ys, hx, hy)",
+      "sha256": "a080cc15ea8bda41eee7ce4a425a25248a6d92d75572f2e4f0387fe225c5fe94",
+      "since": null
+    },
+    "sort.msort_by_sorted": {
+      "kind": "def",
+      "text": "def msort_by_sorted(~A: Data, ~le: A -> A -> Bool, ~le_trans: @x: A -> @y: A -> @z: A -> {le(x, y) == True{} : Bool} -> {le(y, z) == True{} : Bool} -> {le(x, z) == True{} : Bool}, ~le_total: @x: A -> @y: A -> {le(x, y) == False{} : Bool} -> {le(y, x) == True{} : Bool}, fuel: Nat, +xs: List<&2, A>, +h: {Nat.is_le(List.length(&2, A, xs), 1n+fuel) == True{} : Bool}) -> MList.sorted_by(~A, ~le, MPerm.msort_by(~A, ~le, fuel, xs)):\nmatch fuel:\ncase 0n:\ninternal_sorted_short(~A, ~le, xs, h)\ncase 1n++f:\nmatch xs:\ncase Nil{}:\nmerge_by_sorted(~A, ~le, ~le_trans, ~le_total, MPerm.msort_by(~A, ~le, f, MPerm.evens(A, xs)), MPerm.msort_by(~A, ~le, f, MPerm.odds(A, xs)), msort_by_sorted(~A, ~le, ~le_trans, ~le_total, f, MPerm.evens(A, xs), MNat.zero_le(1n+f)), msort_by_sorted(~A, ~le, ~le_trans, ~le_total, f, MPerm.odds(A, xs), MNat.zero_le(1n+f)))\ncase +x <> +r:\nmatch r:\ncase Nil{}:\nmerge_by_sorted(~A, ~le, ~le_trans, ~le_total, MPerm.msort_by(~A, ~le, f, MPerm.evens(A, x <> r)), MPerm.msort_by(~A, ~le, f, MPerm.odds(A, x <> r)), msort_by_sorted(~A, ~le, ~le_trans, ~le_total, f, MPerm.evens(A, x <> r), MNat.le_add_right(1n, f)), msort_by_sorted(~A, ~le, ~le_trans, ~le_total, f, MPerm.odds(A, x <> r), MNat.zero_le(1n+f)))\ncase +y <> +t:\nmerge_by_sorted(~A, ~le, ~le_trans, ~le_total, MPerm.msort_by(~A, ~le, f, MPerm.evens(A, x <> y <> t)), MPerm.msort_by(~A, ~le, f, MPerm.odds(A, x <> y <> t)), msort_by_sorted(~A, ~le, ~le_trans, ~le_total, f, MPerm.evens(A, x <> y <> t), MNat.succ_le_succ(List.length(&2, A, MPerm.evens(A, t)), f, MNat.le_trans(List.length(&2, A, MPerm.evens(A, t)), List.length(&2, A, t), f, internal_length_evens_le(~A, t), MNat.le_of_succ_le_succ(List.length(&2, A, t), f, MNat.le_of_succ_le_succ(1n+List.length(&2, A, t), 1n+f, h))))), msort_by_sorted(~A, ~le, ~le_trans, ~le_total, f, MPerm.odds(A, x <> y <> t), MNat.succ_le_succ(List.length(&2, A, MPerm.odds(A, t)), f, MNat.le_trans(List.length(&2, A, MPerm.odds(A, t)), List.length(&2, A, t), f, internal_length_odds_le(~A, t), MNat.le_of_succ_le_succ(List.length(&2, A, t), f, MNat.le_of_succ_le_succ(1n+List.length(&2, A, t), 1n+f, h))))))",
+      "sha256": "41bc2c11d173ec938724806723c9510bb12c2e3a1cdffaeabeeaed64171d60dc",
+      "since": null
+    },
+    "sort.msort_by_sorted_nat": {
+      "kind": "def",
+      "text": "def msort_by_sorted_nat(+xs: List<&2, Nat>, +h: {Nat.is_le(List.length(&2, Nat, xs), 1n+List.length(&2, Nat, xs)) == True{} : Bool}) -> MList.sorted_by(~Nat, ~Nat.is_le, MPerm.msort_by(~Nat, ~Nat.is_le, List.length(&2, Nat, xs), xs)):\nmsort_by_sorted(~Nat, ~Nat.is_le, ~internal_le_trans_nat, ~internal_le_flip_nat, List.length(&2, Nat, xs), xs, h)",
+      "sha256": "1fb78b27245ff1988fa0b27a22d9edabd5ca51bee9cd203e2544adbbc7585070",
+      "since": null
+    },
+    "sort.sort_by_sorted": {
+      "kind": "def",
+      "text": "def sort_by_sorted(~A: Data, ~le: A -> A -> Bool, ~le_trans: @x: A -> @y: A -> @z: A -> {le(x, y) == True{} : Bool} -> {le(y, z) == True{} : Bool} -> {le(x, z) == True{} : Bool}, ~le_total: @x: A -> @y: A -> {le(x, y) == False{} : Bool} -> {le(y, x) == True{} : Bool}, +xs: List<&2, A>) -> MList.sorted_by(~A, ~le, MPerm.sort_by(~A, ~le, xs)):\nmatch xs:\ncase Nil{}:\n{==}\ncase +x <> +t:\nmsort_by_sorted(~A, ~le, ~le_trans, ~le_total, 1n+List.length(&2, A, t), x <> t, MNat.le_succ(1n+List.length(&2, A, t)))",
+      "sha256": "46e703d396d1eeea58f0dc34e867b83b2f09f6c6a225516fc1ffb76bf5ed5ad8",
+      "since": null
+    },
+    "sort.sort_by_sorted_nat": {
+      "kind": "def",
+      "text": "def sort_by_sorted_nat(+xs: List<&2, Nat>) -> MList.sorted_by(~Nat, ~Nat.is_le, MPerm.sort_by(~Nat, ~Nat.is_le, xs)):\nsort_by_sorted(~Nat, ~Nat.is_le, ~internal_le_trans_nat, ~internal_le_flip_nat, xs)",
+      "sha256": "bb5c49e21428c793fecad9b76e8a5a2844cef476844394728ea91730aae5ce8d",
+      "since": null
     }
   }
 }
