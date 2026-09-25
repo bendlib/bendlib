@@ -158,8 +158,9 @@ their expected output, and what not to do. Read the whole bead before starting.
    ```sh
    bun test tools/                 # includes a docs end-to-end test against the live hub (minutes)
    bun tools/comments.ts
-   bun tools/mathlib/check.ts packages/bend-mathlib
-   for m in $(find packages/bend-mathlib -name '*.bend' | sort); do bun tools/lawcheck/cli.ts "$m" --max-instances 100 --strict --allow-skip eq_true_of_ne_false,cong2,subst,le_total,le_total_d || exit 1; done
+   bun tools/mathlib/devlib.ts --check
+   bun tools/mathlib/devlib.ts run -- bun tools/mathlib/check.ts packages/bend-mathlib
+   for m in $(find packages/bend-mathlib -name '*.bend' | sort); do bun tools/mathlib/devlib.ts run -- bun tools/lawcheck/cli.ts "$m" --max-instances 100 --strict --allow-skip eq_true_of_ne_false,cong2,subst,le_total,le_total_d || exit 1; done
    bun tools/mathlib/lint.ts packages/bend-mathlib --erasure
    bun tools/mathlib/twins.ts packages/bend-mathlib --check
    bun tools/mathlib/check.ts packages/bendlib-kernel-list

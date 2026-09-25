@@ -52,7 +52,10 @@ jobs:
           path: ~/.cache/bendlib
           key: bendlib-${{ hashFiles('toolchain.json') }}
       - run: bun tools/comments.ts
-      - run: bun tools/mathlib/check.ts packages/bend-mathlib
+      - name: devlib pins are current
+        run: bun tools/mathlib/devlib.ts --check
+      - name: check mathlib against the local kernel (devlib)
+        run: bun tools/mathlib/devlib.ts run -- bun tools/mathlib/check.ts packages/bend-mathlib
       - run: bun tools/mathlib/lint.ts packages/bend-mathlib --erasure
       - run: bun tools/mathlib/twins.ts packages/bend-mathlib --check
       - name: check the kernel package (bend --check-only)
@@ -79,7 +82,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        module: [nat, list, equal, bool, all]
+        module: [nat, list, equal, bool, perm, sort, all]
     env:
       BEND_NO_TELEMETRY: "1"
     steps:
@@ -92,16 +95,18 @@ jobs:
         with:
           path: ~/.cache/bendlib
           key: bendlib-${{ hashFiles('toolchain.json') }}
+      - name: devlib pins are current
+        run: bun tools/mathlib/devlib.ts --check
       - name: lawcheck stamp ${{ matrix.module }} (lookup)
         id: stamp
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: .lawcheck-stamp
-          key: lawcheck-${{ matrix.module }}-${{ hashFiles('packages/bend-mathlib/**','tools/lawcheck/**','tools/reader/**','toolchain.json') }}
+          key: lawcheck-${{ matrix.module }}-${{ hashFiles('packages/**','tools/lawcheck/**','tools/reader/**','tools/mathlib/**','toolchain.json') }}
           lookup-only: true
       - name: lawcheck ${{ matrix.module }}
         if: steps.stamp.outputs.cache-hit != 'true'
-        run: bun tools/lawcheck/cli.ts packages/bend-mathlib/${{ matrix.module }}.bend --max-instances 100 --strict --allow-skip eq_true_of_ne_false,cong2,subst,le_total,le_total_d
+        run: bun tools/mathlib/devlib.ts run -- bun tools/lawcheck/cli.ts packages/bend-mathlib/${{ matrix.module }}.bend --max-instances 100 --strict --allow-skip eq_true_of_ne_false,cong2,subst,le_total,le_total_d
       - name: stamp lawcheck ${{ matrix.module }}
         if: steps.stamp.outputs.cache-hit != 'true'
         run: touch .lawcheck-stamp
@@ -110,7 +115,7 @@ jobs:
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: .lawcheck-stamp
-          key: lawcheck-${{ matrix.module }}-${{ hashFiles('packages/bend-mathlib/**','tools/lawcheck/**','tools/reader/**','toolchain.json') }}
+          key: lawcheck-${{ matrix.module }}-${{ hashFiles('packages/**','tools/lawcheck/**','tools/reader/**','tools/mathlib/**','toolchain.json') }}
 
   latest-compiler:
     # Early warning only: the newest Bend release against our sources.
@@ -131,7 +136,9 @@ jobs:
         run: |
           v=$($HOME/.bend/bin/bend version | cut -d' ' -f2)
           sed -i "s/\"version\": \"[0-9.]*\"/\"version\": \"$v\"/" toolchain.json
-      - run: bun tools/mathlib/check.ts packages/bend-mathlib
+      - name: devlib pins are current
+        run: bun tools/mathlib/devlib.ts --check
+      - run: bun tools/mathlib/devlib.ts run -- bun tools/mathlib/check.ts packages/bend-mathlib
       - run: bun test tools/reader tools/lawcheck
       - run: bun tools/lawcheck/cli.ts packages/bend-mathlib/nat.bend --max-instances 50 --strict --allow-skip eq_true_of_ne_false,cong2,subst,le_total,le_total_d
       - name: F-fact regression (research/experiments/run.sh)
