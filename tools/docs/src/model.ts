@@ -165,6 +165,8 @@ export function finishPackage(p: Package, fills: Map<string, string[]>, text: (p
       if (d.kind !== "law") { c.defs++; continue; }
       c.laws++;
       if (d.proved && d.proofLine !== undefined && hasHole(defBody(src, d.proofLine))) { d.proved = false; d.holes = true; }
+      // A proof in a file the checker did not accept is not a proof, whatever the reader inferred.
+      if (d.proved && m.status !== null && !passes(m.status)) { d.proved = false; d.unverified = m.status.class; }
       if (!d.proved && !d.holes) {
         unfilled++;
         const by = filledBy.get(`${m.path}#${d.name}`);

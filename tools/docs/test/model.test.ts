@@ -47,6 +47,34 @@ describe("finishPackage", () => {
     expect(p.status).toBe("checks");
     expect(p.counts).toMatchObject({ laws: 1, proved: 1 });
   });
+  test("a law with a proof in its own timed-out file is unverified, not proved", () => {
+    const p = pkg([mod("m.bend", [law("a", true, 1)], st("timeout"))]);
+    finishPackage(p, new Map(), text);
+    expect(p.modules[0].decls![0]).toMatchObject({ proved: false, unverified: "timeout" });
+    expect(p.counts.proved).toBe(0);
+    expect(p.counts.laws).toBe(1);
+  });
+  test("planted negative: the same law in a checking file stays proved", () => {
+    const p = pkg([mod("m.bend", [law("a", true, 1)], st("checks", "All terms check."))]);
+    finishPackage(p, new Map(), text);
+    expect(p.modules[0].decls![0]).toMatchObject({ proved: true });
+    expect(p.modules[0].decls![0].unverified).toBeUndefined();
+    expect(p.counts.proved).toBe(1);
+  });
+  test("planted negative: a law with a ?hole in a failing file is a hole, not unverified", () => {
+    const own = "law a:\n  {x == x : Nat}\n\ndef a():\n  ?TODO\n";
+    const p = pkg([mod("m.bend", [law("a", true, 4)], st("timeout"))]);
+    finishPackage(p, new Map(), () => own);
+    expect(p.modules[0].decls![0]).toMatchObject({ proved: false, holes: true });
+    expect(p.modules[0].decls![0].unverified).toBeUndefined();
+  });
+  test("planted negative: a law proved by a checking sibling survives its own file's timeout", () => {
+    const p = pkg([mod("LAWS.bend", [law("a", false)], st("timeout")), mod("PROOF.bend", [], st("checks", "All terms check."))]);
+    finishPackage(p, new Map([["PROOF.bend", ["LAWS.bend#a"]]]), text);
+    expect(p.modules[0].decls![0].proved).toBe(true);
+    expect(p.modules[0].decls![0].unverified).toBeUndefined();
+    expect(p.counts.proved).toBe(1);
+  });
   test("planted negative: a ?TODO in the sibling's proof keeps the law and the package open", () => {
     const p = pkg([mod("LAWS.bend", [law("a", false), law("b", false)], st("open", "2 TODOs found.")), mod("PROOF.bend", [], st("open", "1 TODO found."))]);
     finishPackage(p, new Map([["PROOF.bend", ["LAWS.bend#a", "LAWS.bend#b"]]]), text);

@@ -210,11 +210,13 @@ function declHtml(p: Package, m: Module, d: DocDecl, ids: Map<DocDecl, string>, 
     const fst = by ? p.modules.find((x) => x.path === by)?.status?.class : undefined;
     marker = d.proved
       ? `<span class="pr pr-yes">proved</span>${by ? `<span class="muted">in ${byLink}</span>` : ""}`
-      : d.holes
-        ? `<span class="pr pr-open">open</span><span class="muted">a ?hole is left in its proof${by ? ` in ${byLink}` : ""}</span>`
-        : by
-          ? `<span class="pr pr-open">open</span><span class="muted">its proof in ${byLink} does not pass the checker (${fst ? STATUS_TEXT[fst] : "not loaded"})</span>`
-          : `<span class="pr pr-open">open</span><span class="muted">no def in the package proves it</span>`;
+      : d.unverified
+        ? `<span class="pr pr-open">unverified</span><span class="muted">its file does not pass the checker (${d.unverified})</span>`
+        : d.holes
+          ? `<span class="pr pr-open">open</span><span class="muted">a ?hole is left in its proof${by ? ` in ${byLink}` : ""}</span>`
+          : by
+            ? `<span class="pr pr-open">open</span><span class="muted">its proof in ${byLink} does not pass the checker (${fst ? STATUS_TEXT[fst] : "not loaded"})</span>`
+            : `<span class="pr pr-open">open</span><span class="muted">no def in the package proves it</span>`;
   }
   if (d.unsafe && d.kind !== "unsafe") marker += ` <span class="k k-unsafe">@unsafe</span>`;
   const stmt = d.statement

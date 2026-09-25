@@ -3,11 +3,12 @@
 
 import { relative } from "node:path";
 import { load, decls, BendReadError, type BendSource, type Decl, type Loaded } from "../../reader/index.ts";
+import type { FileClass } from "./status.ts";
 
 export type DocDecl = {
   name: string; kind: Decl["kind"]; line: number; doc: string | null; signature: string;
   statement?: { lhs: string; rhs: string; type: string };
-  proved?: boolean; proofLine?: number; holes?: boolean; unsafe?: boolean; predicate?: boolean; templates?: number;
+  proved?: boolean; proofLine?: number; holes?: boolean; unverified?: FileClass; unsafe?: boolean; predicate?: boolean; templates?: number;
   ctors?: string[]; type?: string; effects?: string[];
 };
 
