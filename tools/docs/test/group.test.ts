@@ -40,3 +40,13 @@ test("an anonymous upload identical to a named package joins its lineage", () =>
   expect(gs[0].latest.hash).toBe("0xn");
   expect(gs[0].members.length).toBe(2);
 });
+
+test("4000 packages group well under 100 ms", () => {
+  const many = Array.from({ length: 4000 }, (_, i) =>
+    pkg(`0x${i.toString(16).padStart(32, "0")}`, i + 1, [`m${i}.bend`], `d${i}`, [`pkg-name-${String(i).padStart(6, "0")}`, "1.0.0.0"]));
+  const t0 = performance.now();
+  const gs = groupPackages(many);
+  const ms = performance.now() - t0;
+  expect(gs.length).toBe(4000);
+  expect(ms).toBeLessThan(100);
+});

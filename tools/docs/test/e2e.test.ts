@@ -7,6 +7,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { compile, matchStatement } from "../src/shape.ts";
 import type { SearchIndex } from "../src/searchindex.ts";
+import { sha256 } from "../src/hub.ts";
 import { hubHash, packageFiles } from "../../mathlib/hash.ts";
 
 const MATHLIB = "0xafc61ca8b7738a6df7f28eddf80168f8";   // bend-mathlib@0.1.0.1
@@ -240,4 +241,46 @@ describe("sandbox setup failures are not statuses", () => {
     expect(Object.keys(JSON.parse(readFileSync(join(dir, "cache", "status.json"), "utf8")))).toHaveLength(0);
     expect(readFileSync(join(out, "pkg", MATHLIB, "index.html"), "utf8")).toContain("not checked");
   }, 300_000);
+});
+
+describe("a broken hub package does not abort the build", () => {
+  test("one package's ensurePackage failure is listed as 'could not fetch'", async () => {
+    const body = "import Base\n\ndef f() -> U32:\n  7\n";
+    const manifest = `${sha256(body)} m.bend\n`;
+    const fine = "0x" + sha256(manifest).slice(0, 32);
+    const broken = "0x" + "b".repeat(32);
+    const index = [
+      { hash: fine, files: { "m.bend": Buffer.byteLength(body) }, bytes: Buffer.byteLength(body), ts: 1, desc: "fine" },
+      { hash: broken, files: { "n.bend": 1 }, bytes: 1, ts: 2, desc: "broken" },
+    ];
+    const server = Bun.serve({
+      port: 0,
+      fetch(req) {
+        const p = new URL(req.url).pathname;
+        if (p === "/index.json") return Response.json(index);
+        if (p === "/names.json") return Response.json([]);
+        if (p === `/${fine}/manifest`) return new Response(manifest);
+        if (p === `/${fine}/m.bend`) return new Response(body);
+        return new Response("not found", { status: 404 });
+      },
+    });
+    try {
+      const dir = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "bend-docs-brokenhub-"));
+      const out = join(dir, "dist");
+      // Async spawn: the in-process hub must keep serving while the child fetches.
+      const proc = Bun.spawn([process.execPath, join(import.meta.dir, "..", "build.ts"),
+        "--only", `${fine},${broken}`, "--no-check", "--out", out, "--cache", join(dir, "cache")],
+        { env: { ...process.env, BEND_HUB: `http://127.0.0.1:${server.port}` }, stdout: "pipe", stderr: "pipe" });
+      const [so, se] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text()]);
+      const code = await proc.exited;
+      expect(code).toBe(0);
+      expect(so + se).toContain("could not fetch");
+      expect(existsSync(join(out, "pkg", fine, "index.html"))).toBe(true);
+      const html = readFileSync(join(out, "index.html"), "utf8");
+      expect(html).toContain(broken);
+      expect(html).toContain("could not fetch");
+    } finally {
+      server.stop(true);
+    }
+  }, 120_000);
 });

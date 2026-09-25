@@ -17,10 +17,13 @@ const pkg = (modules: Module[]): Package => ({
   names: [], licenses: [], modules, deps: [], rdeps: [], status: null,
   counts: { laws: 0, proved: 0, defs: 0, types: 0, decls: 0 },
 });
-const site = (p: Package): Site => ({
-  built: "2026-01-01T00:00:00Z", compiler: "2.0.27", checked: true, partial: false, local: false,
-  packages: [p], byHash: new Map([[p.hash, p]]), names: [],
-});
+const site = (p: Package): Site => {
+  const g = { key: `files:${p.hash}`, latest: p, members: [p] };
+  return {
+    built: "2026-01-01T00:00:00Z", compiler: "2.0.27", checked: true, partial: false, local: false,
+    packages: [p], byHash: new Map([[p.hash, p]]), groups: [g], groupOf: new Map([[p.hash, g]]), fetchFails: [], names: [],
+  };
+};
 
 describe("hub filenames cannot inject HTML", () => {
   test("a hostile module path renders escaped, not as a tag or attribute", () => {

@@ -5,7 +5,7 @@ import { posix } from "node:path";
 import type { DocDecl } from "./extract.ts";
 import type { Edge } from "./imports.ts";
 import { HUB, type NameRecord } from "./hub.ts";
-import { apiDiff, groupPackages, label, published, shortHash, versionKey, type Module, type Package, type Site } from "./model.ts";
+import { apiDiff, label, published, shortHash, versionKey, type Module, type Package, type Site } from "./model.ts";
 import type { FileClass } from "./status.ts";
 
 export const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
@@ -76,7 +76,7 @@ ${o.body}
 
 export function renderIndex(site: Site): string {
   const path = "index.html";
-  const groups = groupPackages(site.packages);
+  const groups = site.groups;
   const allChecked = site.checked && site.packages.every((p) => p.modules.every((m) => m.status !== null));
   const rows = groups.map((g) => {
     const p = g.latest, n = p.names[0];
@@ -104,7 +104,10 @@ export function renderIndex(site: Site): string {
 <thead><tr><th scope="col">name / version</th><th scope="col">description</th><th scope="col">status</th><th scope="col" class="num">laws</th><th scope="col" class="num">used by</th><th scope="col" class="num">updated</th></tr></thead>
 <tbody>
 ${rows}
-</tbody></table></div></section>`;
+</tbody></table></div></section>
+${site.fetchFails.length ? `<section id="unfetched"><h2>Could not fetch <span class="n">${site.fetchFails.length}</span></h2>
+<p class="muted">These hub packages failed download or verification this build; their pages are missing until a later run.</p>
+<ul>${site.fetchFails.map((f) => `<li><code>${esc(f.hash)}</code> could not fetch: ${esc(f.error)}</li>`).join("")}</ul></section>` : ""}`;
   return page({ path, title: "Bend Docs: BendHub packages", body, site, scripts: ["assets/site.js"] });
 }
 
@@ -157,7 +160,7 @@ export function renderPackage(site: Site, p: Package): string {
   const namesHtml = p.names.length
     ? `<p>${p.names.map((n) => `<a href="${esc(rel(path, namePage(n.name)))}">${esc(n.name)}</a>@${esc(n.version)} by ${esc(n.owner)}`).join("; ")}</p>`
     : `<p class="muted">Anonymous package: import it by hash.</p>`;
-  const g = groupPackages(site.packages).find((x) => x.members.includes(p))!;
+  const g = site.groupOf.get(p.hash)!;
   const siblings = g.members.filter((m) => m !== p);
   const versionsHtml = siblings.length === 0 ? "" : `<details class="vers"><summary>${g.latest === p ? "Earlier versions" : "Other versions"} (${siblings.length})</summary><ul class="edges">${siblings.map((m) =>
     `<li><a href="${rel(path, pkgPage(m.hash))}">${esc(label(m))}</a> <span class="muted">${date(m.ts)}</span>${m === g.latest ? ` <span class="pill">latest</span>` : ""}</li>`).join("")}</ul></details>`;
@@ -367,7 +370,7 @@ export function renderSearch(site: Site): string {
 <p>Examples: <a href="?q=List.append(_%2C%20Nil%7B%7D)">List.append(_, Nil{})</a> · <a href="?q=Nat.add(_%2C%200n)">Nat.add(_, 0n)</a> · <a href="?q=List.reverse(List.reverse(_))">List.reverse(List.reverse(_))</a> · <a href="?q=Nat.add(_%2C%20_)%20%3D%3D%20Nat.add(_%2C%20_)">Nat.add(_, _) == Nat.add(_, _)</a></p>
 <h2>Names and docs</h2>
 <p>Any other query searches declaration names and doc comments. Every word must appear. Exact names rank first, then prefixes, then names containing the word, then docs.</p>
-<p>Statements are shown as bend ${esc(site.compiler)} prints them. The index covers ${groupPackages(site.packages).length} packages (latest version of each).</p>
+<p>Statements are shown as bend ${esc(site.compiler)} prints them. The index covers ${site.groups.length} packages (latest version of each).</p>
 </section>`;
   return page({ path, title: "Search · Bend Docs", body, site, scripts: ["assets/search.js"] });
 }
@@ -386,7 +389,7 @@ export function renderLlms(site: Site): string {
     "",
     "## Packages",
   ];
-  for (const g of groupPackages(site.packages)) {
+  for (const g of site.groups) {
     const p = g.latest;
     const status = p.status === null ? "not checked" : STATUS_TEXT[p.status];
     lines.push(`- [${label(p)}](${pkgPage(p.hash)}): ${p.desc} (${status}, ${p.counts.proved}/${p.counts.laws} laws proved)`);
@@ -397,7 +400,7 @@ export function renderLlms(site: Site): string {
 /** The AI-facing `lemmas.txt`: every proved law of every latest package lineage, tab-separated. */
 export function renderLemmas(site: Site): string {
   const rows: { pkg: string; ref: string; module: string; line: number; name: string; signature: string }[] = [];
-  for (const g of groupPackages(site.packages)) {
+  for (const g of site.groups) {
     const p = g.latest;
     for (const m of p.modules) for (const d of m.decls ?? []) {
       if (d.kind === "law" && d.proved) {

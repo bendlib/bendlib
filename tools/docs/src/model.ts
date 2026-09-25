@@ -37,6 +37,9 @@ export type Site = {
   built: string; compiler: string; checked: boolean; partial: boolean; local: boolean;
   packages: Package[];                // display order: named first, then by recency
   byHash: Map<string, Package>;
+  groups: Group[];                    // one per lineage, in display order
+  groupOf: Map<string, Group>;        // every member hash -> its lineage
+  fetchFails: { hash: string; error: string }[];  // hub packages this build could not fetch or verify
   names: NameRecord[];
 };
 
@@ -79,14 +82,16 @@ export function groupPackages(pkgs: Package[]): Group[] {
   for (const p of pkgs) if (p.names.length > 0) { add(`name:${p.names[0].name}`, p); bySig.set(sig(p), `name:${p.names[0].name}`); }
   for (const p of pkgs) if (p.names.length === 0) add(bySig.get(sig(p)) ?? `files:${sig(p)}`, p);
   for (const g of groups.values()) g.members.sort((a, b) => (newest(a, b) === a ? -1 : 1));
-  return displayOrder([...groups.values()].map((g) => g.latest)).map((p) => [...groups.values()].find((g) => g.latest === p)!);
+  return [...groups.values()].sort((x, y) => order(x.latest, y.latest));
 }
 
+const order = (a: Package, b: Package) => {
+  const na = a.names.length > 0 ? 0 : 1, nb = b.names.length > 0 ? 0 : 1;
+  return na - nb || b.ts - a.ts || a.hash.localeCompare(b.hash);
+};
+
 export function displayOrder(pkgs: Package[]): Package[] {
-  return [...pkgs].sort((a, b) => {
-    const na = a.names.length > 0 ? 0 : 1, nb = b.names.length > 0 ? 0 : 1;
-    return na - nb || b.ts - a.ts || a.hash.localeCompare(b.hash);
-  });
+  return [...pkgs].sort(order);
 }
 
 export type ApiDiff = { added: string[]; removed: string[]; changed: string[] };

@@ -16,7 +16,7 @@ import { ensurePackage, fetchIndex, fetchNames, pool, seedNames, sha256, underRo
 import { extractFile, type FileDecls } from "./src/extract.ts";
 import { dependencyEdges, foreignImports, parseImports } from "./src/imports.ts";
 import { licenses } from "./src/license.ts";
-import { attachEdges, displayOrder, finishPackage, moduleHeader, namesByHash, type Module, type Package, type Site } from "./src/model.ts";
+import { attachEdges, displayOrder, finishPackage, groupPackages, moduleHeader, namesByHash, type Group, type Module, type Package, type Site } from "./src/model.ts";
 import { renderAuthors, renderIndex, renderLemmas, renderLlms, renderModule, renderName, renderPackage, renderSearch, renderSource, modPage, pkgPage, srcPage, namePage, setBaseNamespaces } from "./src/render.ts";
 import { baseNamespaces } from "./src/status.ts";
 import { buildSearchIndex } from "./src/searchindex.ts";
@@ -112,6 +112,15 @@ function stageLocal(entry: string, lib: string): { hash: string; files: Record<s
   return { hash, files, bytes: Object.values(files).reduce((a, b) => a + b, 0), manifest };
 }
 
+// Extraction cache keys embed the reader's source hash, so a reader or extractor fix re-extracts
+// instead of reusing records built by the old code.
+function readerKey(): string {
+  const dir = join(ROOT, "tools", "reader", "src");
+  const files = readdirSync(dir).filter((f) => f.endsWith(".ts")).sort().map((f) => join(dir, f));
+  files.push(join(HERE, "src", "extract.ts"));
+  return sha256(files.map((f) => readFileSync(f)).join("\0")).slice(0, 12);
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   if (args.local !== null) {
@@ -163,18 +172,25 @@ async function main() {
   if (local === null) log(`hub: ${index.length} packages in index.json, ${names.length} names; building ${entries.length} (${secs(t)})`);
 
   t = performance.now();
-  let manifests: ManifestLine[];
+  type Fetched = { entry: IndexEntry; manifest: ManifestLine[] };
+  const good: Fetched[] = [];
+  const fetchFails: { hash: string; error: string }[] = [];
   if (local !== null) {
-    manifests = [local.manifest];
+    good.push({ entry: entries[0], manifest: local.manifest });
     log(`stage: local package staged (${secs(t)})`);
   } else {
     let fetched = 0;
-    manifests = await pool(entries, Math.min(16, args.jobs * 2), async (e) => {
-      const c = await ensurePackage(e.hash, lib, args.cache);
-      if (c.fetched) fetched++;
-      return c.manifest;
+    const results = await pool(entries, Math.min(16, args.jobs * 2), async (e): Promise<Fetched | { entry: IndexEntry; error: string }> => {
+      try {
+        const c = await ensurePackage(e.hash, lib, args.cache);
+        if (c.fetched) fetched++;
+        return { entry: e, manifest: c.manifest };
+      } catch (err) {
+        return { entry: e, error: err instanceof Error ? err.message : String(err) };
+      }
     });
-    log(`fetch: ${fetched} new packages fetched and verified, ${entries.length - fetched} from cache (${secs(t)})`);
+    for (const r of results) if ("manifest" in r) good.push(r); else fetchFails.push({ hash: r.entry.hash, error: r.error });
+    log(`fetch: ${fetched} new packages fetched and verified, ${good.length - fetched} from cache${fetchFails.length ? `, ${fetchFails.length} could not fetch` : ""} (${secs(t)})`);
   }
 
   t = performance.now();
@@ -182,12 +198,12 @@ async function main() {
   if (src.version !== compiler) usage(`reader parses with bend.ts ${src.version}, compiler is ${compiler}`);
   const extracted = new Map<string, Record<string, FileDecls>>();
   let extractedNew = 0;
-  for (let i = 0; i < entries.length; i++) {
-    const e = entries[i];
-    const cfile = join(args.cache, "decls", `${compiler}-f${EXTRACT_FORMAT}`, `${e.hash}.json`);
+  const declsDir = join(args.cache, "decls", `${compiler}-f${EXTRACT_FORMAT}-${readerKey()}`);
+  for (const { entry: e, manifest } of good) {
+    const cfile = join(declsDir, `${e.hash}.json`);
     if (existsSync(cfile)) { extracted.set(e.hash, JSON.parse(readFileSync(cfile, "utf8"))); continue; }
     const rec: Record<string, FileDecls> = {};
-    for (const { path } of manifests[i]) if (path.endsWith(".bend")) {
+    for (const { path } of manifest) if (path.endsWith(".bend")) {
       rec[path] = await extractFile(join(lib, e.hash, path), join(lib, e.hash), lib, src);
       extractedNew++;
     }
@@ -204,7 +220,7 @@ async function main() {
   let sandboxFails = 0;
   if (args.check) {
     const todo: { hash: string; path: string }[] = [];
-    for (let i = 0; i < entries.length; i++) for (const { path } of manifests[i]) if (path.endsWith(".bend") && stale(cache[statusKey(entries[i].hash, path, compiler)], args.timeout)) todo.push({ hash: entries[i].hash, path });
+    for (const { entry: e, manifest } of good) for (const { path } of manifest) if (path.endsWith(".bend") && stale(cache[statusKey(e.hash, path, compiler)], args.timeout)) todo.push({ hash: e.hash, path });
     let done = 0;
     await pool(todo, args.jobs, async ({ hash, path }) => {
       const s = await checkFile(join(lib, hash, path), { bendLib: lib, timeoutSec: args.timeout, memMb: args.memMb, cwd: join(lib, hash) });
@@ -222,8 +238,7 @@ async function main() {
     process.exit(1);
   }
 
-  const pkgs: Package[] = entries.map((e, i) => {
-    const manifest = manifests[i];
+  const pkgs: Package[] = good.map(({ entry: e, manifest }) => {
     const rec = extracted.get(e.hash)!;
     const fills = new Map<string, string[]>();
     const modules: Module[] = manifest.map((m) => m.path).filter((p) => p.endsWith(".bend")).sort().map((path) => {
@@ -252,9 +267,12 @@ async function main() {
   const edges = dependencyEdges(pkgs.map((p) => ({ hash: p.hash, files: p.modules })), resolveName);
   attachEdges(pkgs, edges);
 
+  const groups = groupPackages(pkgs);
+  const groupOf = new Map<string, Group>();
+  for (const g of groups) for (const m of g.members) groupOf.set(m.hash, g);
   const site: Site = {
     built: new Date().toISOString().replace(/\.\d+Z$/, "Z"), compiler, checked: args.check, partial, local: local !== null,
-    packages: displayOrder(pkgs), byHash: new Map(pkgs.map((p) => [p.hash, p])), names,
+    packages: displayOrder(pkgs), byHash: new Map(pkgs.map((p) => [p.hash, p])), groups, groupOf, fetchFails, names,
   };
 
   t = performance.now();
@@ -304,6 +322,7 @@ async function main() {
   console.log(`kinds      ${Object.entries(decls.reduce<Record<string, number>>((a, d) => ({ ...a, [d.kind]: (a[d.kind] ?? 0) + 1 }), {})).map(([k, v]) => `${k} ${v}`).join(", ")}`);
   console.log(`status     files: ${byClass(files.map((m) => m.status?.class))}`);
   console.log(`status     packages: ${byClass(pkgs.map((p) => p.status))}`);
+  for (const f of fetchFails) console.log(`fetch      ${f.hash.slice(0, 10)} could not fetch: ${f.error.split("\n")[0].slice(0, 160)}`);
   console.log(`load       ${files.length - failed.length}/${files.length} files loaded by the reader; ${failed.length} failed:`);
   for (const { p, m } of failed) console.log(`  ${p.hash.slice(0, 10)} ${m.path}: ${m.error!.message.split("\n").map((l) => l.trim()).filter((l) => l && l !== "Error:").slice(0, 2).join(" ").slice(0, 160)}`);
   console.log(`dist       ${out}: ${du.files} files, ${(du.bytes / 1048576).toFixed(1)} MiB (search-index.json ${(statSync(join(out, "search-index.json")).size / 1048576).toFixed(2)} MiB)`);
