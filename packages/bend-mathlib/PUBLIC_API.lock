@@ -1758,6 +1758,204 @@
       "text": "for n: Nat\n{0n == Nat.sub(0n, n) : Nat}",
       "sha256": "d0a8109486dfb3acf63bf80f0826e36f601143cfa901ebb128e0e83c9a48833a",
       "since": "0.2.0.0"
+    },
+    "perm.evens": {
+      "kind": "def",
+      "text": "def evens(-A: Data, xs: List<&2, A>) -> List<&2, A>:\nmatch xs:\ncase Nil{}:\nNil{}\ncase +x <> r:\nmatch r:\ncase Nil{}:\nx <> Nil{}\ncase +y <> t:\nx <> evens(A, t)",
+      "sha256": "ba10b005255bfab76adfc72a31c638286cadc9526d5ff256426d86a5523229c4",
+      "since": null
+    },
+    "perm.insert_by": {
+      "kind": "def",
+      "text": "def insert_by(~A: Data, ~le: A -> A -> Bool, +x: A, xs: List<&2, A>) -> List<&2, A>:\nmatch xs:\ncase Nil{}:\nx <> Nil{}\ncase +y <> +t:\nBool.pick(List<&2, A>, le(x, y), x <> y <> t, y <> insert_by(~A, ~le, x, t))",
+      "sha256": "866b0896d362ab636c6e8bca99dab1642e2e63c6ec8a237fd0c65ed1680c1727",
+      "since": null
+    },
+    "perm.insert_by_perm": {
+      "kind": "def",
+      "text": "def insert_by_perm(~A: Data, ~le: A -> A -> Bool, +x: A, +xs: List<&2, A>) -> K.perm(A, x <> xs, insert_by(~A, ~le, x, xs)):\nmatch xs:\ncase Nil{}:\nperm_refl(A, x <> Nil{})\ncase +y <> t:\ninternal_ins_pick(A, le(x, y), x, y, t, insert_by(~A, ~le, x, t), insert_by_perm(~A, ~le, x, t))",
+      "sha256": "077189f3a3cc7db1de0f10bc09550aba35162c32e37d9ea55627b008a107351c",
+      "since": null
+    },
+    "perm.isort_by": {
+      "kind": "def",
+      "text": "def isort_by(~A: Data, ~le: A -> A -> Bool, xs: List<&2, A>) -> List<&2, A>:\nmatch xs:\ncase Nil{}:\nNil{}\ncase +x <> t:\ninsert_by(~A, ~le, x, isort_by(~A, ~le, t))",
+      "sha256": "c40e62e674f26714bcfbe2b211ad7f54b7bc035ad0f81e6eea6fcc9a156c9f21",
+      "since": null
+    },
+    "perm.isort_by_perm": {
+      "kind": "def",
+      "text": "def isort_by_perm(~A: Data, ~le: A -> A -> Bool, +xs: List<&2, A>) -> K.perm(A, xs, isort_by(~A, ~le, xs)):\nmatch xs:\ncase Nil{}:\nperm_refl(A, Nil{})\ncase +x <> t:\nperm_trans(A, x <> t, x <> isort_by(~A, ~le, t), isort_by(~A, ~le, x <> t), perm_cons(A, x, t, isort_by(~A, ~le, t), isort_by_perm(~A, ~le, t)), insert_by_perm(~A, ~le, x, isort_by(~A, ~le, t)))",
+      "sha256": "0e60ed4c1b430cd5fc5d11ca89fb017cc8031c81162e92b378bf0761a0b4e71a",
+      "since": null
+    },
+    "perm.isort_by_perm_nat": {
+      "kind": "def",
+      "text": "def isort_by_perm_nat(+xs: List<&2, Nat>) -> K.perm(Nat, xs, isort_by(~Nat, ~Nat.is_le, xs)):\nisort_by_perm(~Nat, ~Nat.is_le, xs)",
+      "sha256": "bfa0b6127f59d3e14793d3590e0636865af2b86c0ace54e2c6dd7c9cb59305d1",
+      "since": null
+    },
+    "perm.merge_by": {
+      "kind": "def",
+      "text": "def merge_by(~A: Data, ~le: A -> A -> Bool, xs: List<&2, A>, ys: List<&2, A>) -> List<&2, A>:\nmatch xs ys:\ncase Nil{} _:\nys\ncase +x <> +xt Nil{}:\nx <> xt\ncase +x <> +xt +y <> +yt:\nBool.pick(List<&2, A>, le(x, y), x <> merge_by(~A, ~le, xt, y <> yt), y <> merge_by(~A, ~le, x <> xt, yt))",
+      "sha256": "a8888753e27a3e117831a11a4b5235be456b7bea27477fe467cf6fc4dca6b0a0",
+      "since": null
+    },
+    "perm.merge_by_perm": {
+      "kind": "def",
+      "text": "def merge_by_perm(~A: Data, ~le: A -> A -> Bool, +xs: List<&2, A>, +ys: List<&2, A>) -> K.perm(A, List.append(&2, A, xs, ys), merge_by(~A, ~le, xs, ys)):\nmatch xs ys:\ncase Nil{} _:\nperm_refl(A, ys)\ncase +x <> +xt Nil{}:\nperm_cons(A, x, List.append(&2, A, xt, Nil{}), xt, perm_append_nil(A, xt))\ncase +x <> +xt +y <> +yt:\ninternal_merge_pick(A, le(x, y), x, xt, y, yt, merge_by(~A, ~le, xt, y <> yt), merge_by(~A, ~le, x <> xt, yt), merge_by_perm(~A, ~le, xt, y <> yt), merge_by_perm(~A, ~le, x <> xt, yt))",
+      "sha256": "6c640ad7388f8ca36cca15beb6732e9f80ecbd7eb21db1a8cb287319bc41ce2f",
+      "since": null
+    },
+    "perm.merge_by_perm_nat": {
+      "kind": "def",
+      "text": "def merge_by_perm_nat(+xs: List<&2, Nat>, +ys: List<&2, Nat>) -> K.perm(Nat, List.append(&2, Nat, xs, ys), merge_by(~Nat, ~Nat.is_le, xs, ys)):\nmerge_by_perm(~Nat, ~Nat.is_le, xs, ys)",
+      "sha256": "e3c2aec0f2ea257767435957d0b1ae1863e3feb471ea1ed4b05d6a8e3d0affc9",
+      "since": null
+    },
+    "perm.msort_by": {
+      "kind": "def",
+      "text": "def msort_by(~A: Data, ~le: A -> A -> Bool, fuel: Nat, +xs: List<&2, A>) -> List<&2, A>:\nmatch fuel:\ncase 0n:\nxs\ncase 1n++f:\nmerge_by(~A, ~le, msort_by(~A, ~le, f, evens(A, xs)), msort_by(~A, ~le, f, odds(A, xs)))",
+      "sha256": "562082b98a599771ca1e09996fa202cf0bb6ead7c3ee830d1443a85dab2039fd",
+      "since": null
+    },
+    "perm.msort_by_perm": {
+      "kind": "def",
+      "text": "def msort_by_perm(~A: Data, ~le: A -> A -> Bool, fuel: Nat, +xs: List<&2, A>) -> K.perm(A, xs, msort_by(~A, ~le, fuel, xs)):\nmatch fuel:\ncase 0n:\nperm_refl(A, xs)\ncase 1n++f:\nperm_trans(A, xs, List.append(&2, A, evens(A, xs), odds(A, xs)), msort_by(~A, ~le, 1n+f, xs), split_perm(A, xs), perm_trans(A, List.append(&2, A, evens(A, xs), odds(A, xs)), List.append(&2, A, msort_by(~A, ~le, f, evens(A, xs)), msort_by(~A, ~le, f, odds(A, xs))), msort_by(~A, ~le, 1n+f, xs), perm_append(A, evens(A, xs), msort_by(~A, ~le, f, evens(A, xs)), odds(A, xs), msort_by(~A, ~le, f, odds(A, xs)), msort_by_perm(~A, ~le, f, evens(A, xs)), msort_by_perm(~A, ~le, f, odds(A, xs))), merge_by_perm(~A, ~le, msort_by(~A, ~le, f, evens(A, xs)), msort_by(~A, ~le, f, odds(A, xs)))))",
+      "sha256": "c06f138174ff20b131ca4d8102ebdd3e66694ee50fa740176dc875e72d2b639d",
+      "since": null
+    },
+    "perm.odds": {
+      "kind": "def",
+      "text": "def odds(-A: Data, xs: List<&2, A>) -> List<&2, A>:\nmatch xs:\ncase Nil{}:\nNil{}\ncase +x <> r:\nmatch r:\ncase Nil{}:\nNil{}\ncase +y <> t:\ny <> odds(A, t)",
+      "sha256": "bf3fa71dc4f6047a980d5d4148eddc60fb48aa38db2a70d44eb41ba80651668f",
+      "since": null
+    },
+    "perm.perm_append": {
+      "kind": "def",
+      "text": "def perm_append(-A: Data, +xs: List<&2, A>, +xs2: List<&2, A>, +ys: List<&2, A>, -ys2: List<&2, A>, p: K.perm(A, xs, xs2), q: K.perm(A, ys, ys2)) -> K.perm(A, List.append(&2, A, xs, ys), List.append(&2, A, xs2, ys2)):\nperm_trans(A, List.append(&2, A, xs, ys), List.append(&2, A, ys, xs), List.append(&2, A, xs2, ys2), perm_append_comm(A, xs, ys), perm_trans(A, List.append(&2, A, ys, xs), List.append(&2, A, ys, xs2), List.append(&2, A, xs2, ys2), perm_append_right(A, ys, xs, xs2, p), perm_trans(A, List.append(&2, A, ys, xs2), List.append(&2, A, xs2, ys), List.append(&2, A, xs2, ys2), perm_append_comm(A, ys, xs2), perm_append_right(A, xs2, ys, ys2, q))))",
+      "sha256": "3b47bd1bccfdce55b792c66c3d2a413e21b5963756ce9ad30bec24ab746a341a",
+      "since": null
+    },
+    "perm.perm_append_comm": {
+      "kind": "def",
+      "text": "def perm_append_comm(-A: Data, +xs: List<&2, A>, +ys: List<&2, A>) -> K.perm(A, List.append(&2, A, xs, ys), List.append(&2, A, ys, xs)):\nmatch xs:\ncase Nil{}:\n(Nil{}, Equal.sym(List<&2, A>, List.append(&2, A, ys, Nil{}), ys, internal_append_nil(A, ys)))\ncase +x <> r:\nperm_trans(A, x <> List.append(&2, A, r, ys), x <> List.append(&2, A, ys, r), List.append(&2, A, ys, x <> r), perm_cons(A, x, List.append(&2, A, r, ys), List.append(&2, A, ys, r), perm_append_comm(A, r, ys)), perm_move_rev(A, ys, x, r))",
+      "sha256": "20e8dbadc212c616244a5b734932dc58959c813cceaadb20bb39a9dc78a50d79",
+      "since": null
+    },
+    "perm.perm_append_nil": {
+      "kind": "def",
+      "text": "def perm_append_nil(-A: Data, +xs: List<&2, A>) -> K.perm(A, List.append(&2, A, xs, Nil{}), xs):\n(Nil{}, internal_append_nil(A, xs))",
+      "sha256": "7c73ef5d29f07a432d45b8fd9d9384347e68a80912e4d0ae271bebaccbbf1c0c",
+      "since": null
+    },
+    "perm.perm_append_right": {
+      "kind": "def",
+      "text": "def perm_append_right(-A: Data, +xs: List<&2, A>, +ys: List<&2, A>, -zs: List<&2, A>, h: K.perm(A, ys, zs)) -> K.perm(A, List.append(&2, A, xs, ys), List.append(&2, A, xs, zs)):\nmatch xs:\ncase Nil{}:\nh\ncase +x <> r:\nperm_cons(A, x, List.append(&2, A, r, ys), List.append(&2, A, r, zs), perm_append_right(A, r, ys, zs, h))",
+      "sha256": "29970dd2d6537a24bb07cb35bd8bdfb72c7a7292acf8d3cd1c807bf30e61e4f9",
+      "since": null
+    },
+    "perm.perm_cons": {
+      "kind": "def",
+      "text": "def perm_cons(-A: Data, +x: A, +xs: List<&2, A>, -ys: List<&2, A>, h: K.perm(A, xs, ys)) -> K.perm(A, x <> xs, x <> ys):\n(s, e) = h\n+s = s\n(internal_shift(s), internal_cons_eq(A, s, x, xs, ys, e))",
+      "sha256": "d0f2fdf28ea6095f1eba13d008ebce44918180d6bf511fa29bf9e901c9b307fe",
+      "since": null
+    },
+    "perm.perm_dup": {
+      "kind": "def",
+      "text": "def perm_dup(-A: Data, -xs: List<&2, A>, -ys: List<&2, A>, +h: K.perm(A, xs, ys)) -> K.perm(A, xs, ys) & K.perm(A, xs, ys):\n(h, h)",
+      "sha256": "7847a16f89af74e3e1342e819c08d42b190f6a5c4d4823593228801a9e0de531",
+      "since": null
+    },
+    "perm.perm_length": {
+      "kind": "def",
+      "text": "def perm_length(-A: Data, +xs: List<&2, A>, -ys: List<&2, A>, h: K.perm(A, xs, ys)) -> {List.length(&2, A, ys) == List.length(&2, A, xs) : Nat}:\n(s, e) = h\ninternal_length_eq(A, s, xs, ys, e)",
+      "sha256": "a5f5959037aee50fff005e5e8d8229a6c24a5b723db026b3105cc5e9483a472c",
+      "since": null
+    },
+    "perm.perm_move": {
+      "kind": "def",
+      "text": "def perm_move(-A: Data, +xs: List<&2, A>, +y: A, +t: List<&2, A>) -> K.perm(A, List.append(&2, A, xs, y <> t), y <> List.append(&2, A, xs, t)):\nmatch xs:\ncase Nil{}:\nperm_refl(A, y <> t)\ncase +x <> r:\nperm_trans(A, x <> List.append(&2, A, r, y <> t), x <> y <> List.append(&2, A, r, t), y <> x <> List.append(&2, A, r, t), perm_cons(A, x, List.append(&2, A, r, y <> t), y <> List.append(&2, A, r, t), perm_move(A, r, y, t)), perm_swap(A, x, y, List.append(&2, A, r, t)))",
+      "sha256": "a860c87d9c7c89087a8106ca5a58303d015a0a4cefa70cb87bfaca2791e81754",
+      "since": null
+    },
+    "perm.perm_move_rev": {
+      "kind": "def",
+      "text": "def perm_move_rev(-A: Data, +xs: List<&2, A>, +y: A, +t: List<&2, A>) -> K.perm(A, y <> List.append(&2, A, xs, t), List.append(&2, A, xs, y <> t)):\nmatch xs:\ncase Nil{}:\nperm_refl(A, y <> t)\ncase +x <> r:\nperm_trans(A, y <> x <> List.append(&2, A, r, t), x <> y <> List.append(&2, A, r, t), x <> List.append(&2, A, r, y <> t), perm_swap(A, y, x, List.append(&2, A, r, t)), perm_cons(A, x, y <> List.append(&2, A, r, t), List.append(&2, A, r, y <> t), perm_move_rev(A, r, y, t)))",
+      "sha256": "9004682c10e1eef2dbdd074fc5586385148cdd7ab91978b74dd1e6ca5aca6a8d",
+      "since": null
+    },
+    "perm.perm_nil": {
+      "kind": "def",
+      "text": "def perm_nil(-A: Data) -> K.perm(A, Nil{}, Nil{}):\n(Nil{}, {==})",
+      "sha256": "2735daa0a64c85ef0b5d420d3870eb0ef376fe43a31a7db7663cdaf02eb567bc",
+      "since": null
+    },
+    "perm.perm_refl": {
+      "kind": "def",
+      "text": "def perm_refl(-A: Data, -xs: List<&2, A>) -> K.perm(A, xs, xs):\n(Nil{}, {==})",
+      "sha256": "a020d2254ec8725ca78a750bfc1aae7e1c593b3e75fe623795f6bb8ac5a6cc3a",
+      "since": null
+    },
+    "perm.perm_swap": {
+      "kind": "def",
+      "text": "def perm_swap(-A: Data, -x: A, -y: A, -t: List<&2, A>) -> K.perm(A, x <> y <> t, y <> x <> t):\n(0n <> Nil{}, {==})",
+      "sha256": "ce17e15f4dfde52a0c426757c234ad48c9fcf49caec7766391f637c65b3b12a2",
+      "since": null
+    },
+    "perm.perm_sym": {
+      "kind": "def",
+      "text": "def perm_sym(-A: Data, +xs: List<&2, A>, -ys: List<&2, A>, h: K.perm(A, xs, ys)) -> K.perm(A, ys, xs):\n(s, e) = h\n+s = s\n(internal_invert(s), internal_sym_eq(A, s, xs, ys, e))",
+      "sha256": "2e65fe7433f1cc97e860ac2ce3fc8e488ee19a1e4078a341d3fbcf90999d79b0",
+      "since": null
+    },
+    "perm.perm_trans": {
+      "kind": "def",
+      "text": "def perm_trans(-A: Data, +xs: List<&2, A>, -ys: List<&2, A>, -zs: List<&2, A>, h1: K.perm(A, xs, ys), h2: K.perm(A, ys, zs)) -> K.perm(A, xs, zs):\n(s1, e1) = h1\n(s2, e2) = h2\n+s1 = s1\n+s2 = s2\n(List.append(&2, Nat, s1, s2), internal_trans_eq(A, s1, s2, xs, ys, zs, e1, e2))",
+      "sha256": "cd542e2faa463745d21707727260ee878b6a39295b6460749de1fb19a851e971",
+      "since": null
+    },
+    "perm.sort_by": {
+      "kind": "def",
+      "text": "def sort_by(~A: Data, ~le: A -> A -> Bool, +xs: List<&2, A>) -> List<&2, A>:\nmsort_by(~A, ~le, List.length(&2, A, xs), xs)",
+      "sha256": "88fd90b68a1d2b55318899887035f37364e5fe323d9c3f739cfdf225884d5284",
+      "since": null
+    },
+    "perm.sort_by_perm": {
+      "kind": "def",
+      "text": "def sort_by_perm(~A: Data, ~le: A -> A -> Bool, +xs: List<&2, A>) -> K.perm(A, xs, sort_by(~A, ~le, xs)):\nmsort_by_perm(~A, ~le, List.length(&2, A, xs), xs)",
+      "sha256": "6a6a8566d6e674dd841b45e4255e97e056661b33402aba891016b6d84769b3a3",
+      "since": null
+    },
+    "perm.sort_by_perm_nat": {
+      "kind": "def",
+      "text": "def sort_by_perm_nat(+xs: List<&2, Nat>) -> K.perm(Nat, xs, sort_by(~Nat, ~Nat.is_le, xs)):\nsort_by_perm(~Nat, ~Nat.is_le, xs)",
+      "sha256": "43c3e02385ce321fbc07418d893459db389e1b4839c8dd98996a2731e50a8412",
+      "since": null
+    },
+    "perm.split_perm": {
+      "kind": "def",
+      "text": "def split_perm(-A: Data, +xs: List<&2, A>) -> K.perm(A, xs, List.append(&2, A, evens(A, xs), odds(A, xs))):\nmatch xs:\ncase Nil{}:\nperm_refl(A, Nil{})\ncase +x <> r:\nmatch r:\ncase Nil{}:\nperm_refl(A, x <> Nil{})\ncase +y <> t:\nperm_cons(A, x, y <> t, List.append(&2, A, evens(A, t), y <> odds(A, t)), perm_trans(A, y <> t, y <> List.append(&2, A, evens(A, t), odds(A, t)), List.append(&2, A, evens(A, t), y <> odds(A, t)), perm_cons(A, y, t, List.append(&2, A, evens(A, t), odds(A, t)), split_perm(A, t)), perm_move_rev(A, evens(A, t), y, odds(A, t))))",
+      "sha256": "216c8e1ad9b8d6649a04d110d903992e261255bc48cb11f4ad84a080f6915235",
+      "since": null
+    },
+    "sort.insert_by_sorted": {
+      "kind": "def",
+      "text": "def insert_by_sorted(~A: Data, ~le: A -> A -> Bool, ~le_total: @x: A -> @y: A -> {le(x, y) == False{} : Bool} -> {le(y, x) == True{} : Bool}, +x: A, +xs: List<&2, A>, +h: MList.sorted_by(~A, ~le, xs)) -> MList.sorted_by(~A, ~le, MPerm.insert_by(~A, ~le, x, xs)):\nmatch xs:\ncase Nil{}:\ninternal_sorted_single(~A, ~le, x)\ncase +y <> t:\ninternal_insert_step(~A, ~le, ~le_total, le(x, y), x, y, t, {==}, h)",
+      "sha256": "82c3b77c54c3a16a8dbd0eab020a6606c24e4fcfb695e897371a2114f7af4c03",
+      "since": null
+    },
+    "sort.isort_by_sorted": {
+      "kind": "def",
+      "text": "def isort_by_sorted(~A: Data, ~le: A -> A -> Bool, ~le_total: @x: A -> @y: A -> {le(x, y) == False{} : Bool} -> {le(y, x) == True{} : Bool}, +xs: List<&2, A>) -> MList.sorted_by(~A, ~le, MPerm.isort_by(~A, ~le, xs)):\nmatch xs:\ncase Nil{}:\n{==}\ncase +x <> t:\ninsert_by_sorted(~A, ~le, ~le_total, x, MPerm.isort_by(~A, ~le, t), isort_by_sorted(~A, ~le, ~le_total, t))",
+      "sha256": "907aee436b92d1bd1b5962d7be581a5710512228a36bbd1fe3cf9f2ee05618c2",
+      "since": null
+    },
+    "sort.isort_by_sorted_nat": {
+      "kind": "def",
+      "text": "def isort_by_sorted_nat(+xs: List<&2, Nat>) -> MList.sorted_by(~Nat, ~Nat.is_le, MPerm.isort_by(~Nat, ~Nat.is_le, xs)):\nisort_by_sorted(~Nat, ~Nat.is_le, ~internal_le_flip_nat, xs)",
+      "sha256": "70cf27d697c093a125b1230449d5642d11cecf76788c623128250e50562259d6",
+      "since": null
     }
   }
 }

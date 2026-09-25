@@ -5,3 +5,5 @@ import ./equal.bend as MEqual
 import ./bool.bend as MBool
 import ./nat.bend as MNat
 import ./list.bend as MList
+import ./perm.bend as MPerm
+import ./sort.bend as MSort
