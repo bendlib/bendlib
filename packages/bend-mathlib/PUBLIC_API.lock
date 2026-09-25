@@ -1129,6 +1129,66 @@
       "sha256": "8f0f5f9674137702ad08a359cbbaef0a477511ff9806bb6dec7c1728c02418c1",
       "since": "0.2.0.0"
     },
+    "maybe.maybe_bind_assoc": {
+      "kind": "law",
+      "text": "for ~A: Data\nfor ~B: Data\nfor ~C: Data\nfor -f: A -> Maybe<&2, B>\nfor -g: B -> Maybe<&2, C>\nfor m: Maybe<&2, A>\n{Maybe.bind(&2, B, C, Maybe.bind(&2, A, B, m, f), g) == Maybe.bind(&2, A, C, m, x => Maybe.bind(&2, B, C, f(x), g)) : Maybe<&2, C>}",
+      "sha256": "be1f589c35ec10a265dd4b0eb9069ce5bc458a965263383ee28d6f3f92f8f480",
+      "since": null
+    },
+    "maybe.maybe_bind_assoc_sym": {
+      "kind": "law",
+      "text": "for ~A: Data\nfor ~B: Data\nfor ~C: Data\nfor -f: A -> Maybe<&2, B>\nfor -g: B -> Maybe<&2, C>\nfor m: Maybe<&2, A>\n{Maybe.bind(&2, A, C, m, x => Maybe.bind(&2, B, C, f(x), g)) == Maybe.bind(&2, B, C, Maybe.bind(&2, A, B, m, f), g) : Maybe<&2, C>}",
+      "sha256": "143a6af374db57d573353a96692b79be7e731c42c6cfd0c1cbea81a6113facc0",
+      "since": null
+    },
+    "maybe.maybe_bind_pure": {
+      "kind": "law",
+      "text": "for ~A: Data\nfor m: Maybe<&2, A>\n{Maybe.bind(&2, A, A, m, x => Maybe.pure(&2, A, x)) == m : Maybe<&2, A>}",
+      "sha256": "53e3397f8527633c46faf01cf8ac442fd9d21f1635179279d477f9e0db052e78",
+      "since": null
+    },
+    "maybe.maybe_bind_pure_sym": {
+      "kind": "law",
+      "text": "for ~A: Data\nfor m: Maybe<&2, A>\n{m == Maybe.bind(&2, A, A, m, x => Maybe.pure(&2, A, x)) : Maybe<&2, A>}",
+      "sha256": "f0474c3428a2c15cab7edcd79796de82345f8bf7c9fd37689a5927415a39d05c",
+      "since": null
+    },
+    "maybe.maybe_map_compose": {
+      "kind": "law",
+      "text": "for ~A: Data\nfor ~B: Data\nfor ~C: Data\nfor -f: A -> B\nfor -g: B -> C\nfor m: Maybe<&2, A>\n{Maybe.map(&2, B, C, g, Maybe.map(&2, A, B, f, m)) == Maybe.map(&2, A, C, x => g(f(x)), m) : Maybe<&2, C>}",
+      "sha256": "18af92f69f66c07db0968fe9dc7cfed8406b15a50229b86c3bc25eb24bbed62e",
+      "since": null
+    },
+    "maybe.maybe_map_compose_sym": {
+      "kind": "law",
+      "text": "for ~A: Data\nfor ~B: Data\nfor ~C: Data\nfor -f: A -> B\nfor -g: B -> C\nfor m: Maybe<&2, A>\n{Maybe.map(&2, A, C, x => g(f(x)), m) == Maybe.map(&2, B, C, g, Maybe.map(&2, A, B, f, m)) : Maybe<&2, C>}",
+      "sha256": "c42402635aa90740885114ddfe7050aecffdec6972e899fbc5caf9eb3ab3f83b",
+      "since": null
+    },
+    "maybe.maybe_map_pure": {
+      "kind": "law",
+      "text": "for ~A: Data\nfor ~B: Data\nfor -f: A -> B\nfor -x: A\n{Maybe.map(&2, A, B, f, Maybe.pure(&2, A, x)) == Maybe.pure(&2, B, f(x)) : Maybe<&2, B>}",
+      "sha256": "ece78d0ac752f159a39f68969fa2c2cefd6e8323fd71858a413a9af61057c5cb",
+      "since": null
+    },
+    "maybe.maybe_map_pure_sym": {
+      "kind": "law",
+      "text": "for ~A: Data\nfor ~B: Data\nfor -f: A -> B\nfor -x: A\n{Maybe.pure(&2, B, f(x)) == Maybe.map(&2, A, B, f, Maybe.pure(&2, A, x)) : Maybe<&2, B>}",
+      "sha256": "e1640c9f07f7a3451fd1f6a3e0bfa5f90dd7684017860a239380aa374b9fa722",
+      "since": null
+    },
+    "maybe.maybe_pure_bind": {
+      "kind": "law",
+      "text": "for ~A: Data\nfor ~B: Data\nfor -f: A -> Maybe<&2, B>\nfor -x: A\n{Maybe.bind(&2, A, B, Maybe.pure(&2, A, x), f) == f(x) : Maybe<&2, B>}",
+      "sha256": "98c84a00ef57a87601b407245e285181759eaa36370b132cb505467fe34f51bd",
+      "since": null
+    },
+    "maybe.maybe_pure_bind_sym": {
+      "kind": "law",
+      "text": "for ~A: Data\nfor ~B: Data\nfor -f: A -> Maybe<&2, B>\nfor -x: A\n{f(x) == Maybe.bind(&2, A, B, Maybe.pure(&2, A, x), f) : Maybe<&2, B>}",
+      "sha256": "f72ecd987e5431287e6179b9b9f196001d5375bc665a950dd7c208ae537024db",
+      "since": null
+    },
     "nat.add_add_add_comm": {
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\nfor c: Nat\nfor -d: Nat\n{Nat.add(Nat.add(a, b), Nat.add(c, d)) == Nat.add(Nat.add(a, c), Nat.add(b, d)) : Nat}",
