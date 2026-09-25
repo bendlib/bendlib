@@ -59,4 +59,12 @@ describe("mutate runner", () => {
     await expect(mutate(path.join(FX, "mut_allskip.bend"), { jobs: 4, maxInstances: 5 })).rejects.toThrow(/no law was evaluated on the unmutated code/);
     await expect(mutate(path.join(FX, "mut_nolaws.bend"), { jobs: 4, maxInstances: 5 })).rejects.toThrow(/no law was evaluated on the unmutated code/);
   }, T);
+
+  test("an invalid mutant's detail keeps the checker's expected/observed lines", async () => {
+    const rep = await mutate(path.join(FX, "mut_weak.bend"), { jobs: 4, maxInstances: 5, seed: 1, size: 3 });
+    const inv = rep.defs.flatMap((d: any) => d.mutants).filter((m: any) => m.status === "invalid");
+    expect(inv.length).toBeGreaterThan(0);
+    expect(inv.some((m: any) => (m.detail ?? "").includes("- expected"))).toBe(true);
+    expect(inv.every((m: any) => m.detail !== "Error:")).toBe(true);
+  }, T);
 });

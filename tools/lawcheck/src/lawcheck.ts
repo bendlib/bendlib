@@ -8,7 +8,7 @@ import { BendReadError, decls, load, show, type Decl, type Loaded } from "../../
 import { stripCommentsAndStrings } from "../../mathlib/lib.ts";
 import { bendBin, cleanCheck, evaluate, evaluateAll, locate, ModuleError, overflowed, runBatch, type Engine, type Item, type Outcome } from "./checker.ts";
 import { defSpan, mutants } from "./mutate.ts";
-import { mentions, rewrite, Shadowed, splitEquation } from "./terms.ts";
+import { mentions, rewrite, Shadowed, showTerm, splitEquation, type TermDecl } from "./terms.ts";
 import { parseTy, showTy, substTy, type Ty } from "./types.ts";
 import { measure, mulberry32, render, Universe, Unsupported, type Adt, type Rng, type Val } from "./values.ts";
 
@@ -68,7 +68,7 @@ export type LawResult = {
   counterexample?: Counterexample;
 };
 
-export type Report = { tool: "lawcheck"; version: string; bend: string; file: string; seed: number; size: number; maxInstances: number; tmpDir: string; checkerRuns: number; laws: LawResult[] };
+export type Report = { schema: number; tool: "lawcheck"; version: string; bend: string; file: string; seed: number; size: number; maxInstances: number; maxNat: number; tmpDir: string; checkerRuns: number; laws: LawResult[] };
 
 export type MutantResult = {
   id: string; def: string; op: string; line: number; before: string; after: string;
@@ -76,7 +76,7 @@ export type MutantResult = {
 };
 
 export type MutateReport = {
-  tool: "lawcheck-mutate"; version: string; bend: string; file: string; impl: string | null;
+  schema: number; tool: "lawcheck-mutate"; version: string; bend: string; file: string; impl: string | null;
   seed: number; maxInstances: number; tmpDir: string;
   defs: { name: string; mutants: MutantResult[] }[];
 };
@@ -227,20 +227,20 @@ function plan(L: Loaded, d: Decl, predicates: Map<string, PredStmt | null>, U: U
     if (tmpl && t === "Quant") { p.quantParams.push(b.name); continue; }
     if (tmpl && /^(Type|Data|Kind\(.*\))$/.test(t)) { p.typeParams.push(b.name); continue; }
     if (tmpl && t.includes("->")) { p.funs.push(parseFun(b.name, t)); continue; }
-    if (tmpl && t.startsWith("{")) throw new Skip("template hypothesis (v0.3)");
+    if (tmpl && t.startsWith("{")) throw new Skip("template hypothesis");
     if (t === "Quant") p.quantParams.push(b.name);
     else if (/^(Type|Data|Kind\(.*\))$/.test(t)) p.typeParams.push(b.name);
     else if (t.startsWith("{")) { p.premises.push(t); p.premiseSigs.push(sigOf(t)); premiseNames.push(b.name); }
     else if (/^&[A-Za-z_]\w*:/.test(t)) {
       const sig = splitSigma(t);
       const ty = sig === null ? null : parseTy(sig.value);
-      if (sig === null || ty === null) throw new Skip(`\`where\` premise on ${b.name}: cannot generate values of ${sig?.value ?? t} (v0.3)`);
+      if (sig === null || ty === null) throw new Skip(`\`where\` premise on ${b.name}: cannot generate values of ${sig?.value ?? t}`);
       p.values.push({ name: b.name, ty });
       p.premises.push(sig.body);
       p.premiseSigs.push(sigOf(sig.body));
     }
-    else if (t.includes("->")) throw new Skip(`function-typed binder ${b.name}: ${t} (v0.2)`);
-    else if (tmpl) throw new Skip(`template binder ~${b.name}: ${t} (v0.2)`);
+    else if (t.includes("->")) throw new Skip(`function-typed binder ${b.name}: ${t}`);
+    else if (tmpl) throw new Skip(`template binder ~${b.name}: ${t}`);
     else {
       const ty = parseTy(t);
       if (ty !== null && generable(U, substTy(ty, envTypes(p, TYPE_CHOICES[0])))) p.values.push({ name: b.name, ty });
@@ -269,7 +269,7 @@ function plan(L: Loaded, d: Decl, predicates: Map<string, PredStmt | null>, U: U
       const sig = splitSigma(body);
       if (sig === null) break;
       const ty = parseTy(sig.value);
-      if (ty === null) throw new Skip(`\`exs\` witness ${sig.name}: cannot generate values of ${sig.value} (v0.3)`);
+      if (ty === null) throw new Skip(`\`exs\` witness ${sig.name}: cannot generate values of ${sig.value}`);
       p.exs.push({ name: sig.name, ty });
       body = sig.body;
     }
@@ -748,6 +748,14 @@ export async function lawcheck(file: string, o: Options): Promise<Report> {
   const baseFiles = new Set(allDecls.filter((d) => d.origin === "base").map((d) => d.file));
   const U = universe(L, o.maxNat);
   const { header, qualify, display, nameOut } = aliasMap(L);
+  const termDecls = new Map<string, TermDecl>();
+  for (const d of allDecls) {
+    if (d.kind !== "def" && d.kind !== "template") continue;
+    const info: TermDecl = { params: splitArrow(d.signature).length - 1, templates: d.templates ?? 0 };
+    termDecls.set(d.name, info);
+    const alias = nameOut(d.name);
+    if (alias !== d.name) termDecls.set(alias, info);
+  }
   const E: Engine = { header, dir: tmp, bend: bendBin(), timeoutMs: o.timeoutMs ?? 120000, jobs: o.jobs ?? navigator.hardwareConcurrency, runs: 0, display, unsafe: unsafeModules(L, baseFiles) };
   const all = own.filter((d) => d.kind === "law");
   const laws = all.filter((d) => o.law === undefined || d.name === o.law);
@@ -756,18 +764,18 @@ export async function lawcheck(file: string, o: Options): Promise<Report> {
   if (o.firstFail) {
     results = [];
     for (const d of laws) {
-      const r = await checkLaw(L, d, all.indexOf(d), o, U, predicates, E, qualify, nameOut);
+      const r = await checkLaw(L, d, all.indexOf(d), o, U, predicates, E, qualify, nameOut, termDecls);
       results.push(r);
       if (r.status === "fail") break;
     }
   } else {
-    results = await Promise.all(laws.map((d) => checkLaw(L, d, all.indexOf(d), o, U, predicates, E, qualify, nameOut)));
+    results = await Promise.all(laws.map((d) => checkLaw(L, d, all.indexOf(d), o, U, predicates, E, qualify, nameOut, termDecls)));
   }
   for (const r of results) r.file = abs;
-  return { tool: "lawcheck", version: VERSION, bend: L.source.version, file: abs, seed: o.seed, size: o.size, maxInstances: o.maxInstances, tmpDir: tmp, checkerRuns: E.runs, laws: results };
+  return { schema: 1, tool: "lawcheck", version: VERSION, bend: L.source.version, file: abs, seed: o.seed, size: o.size, maxInstances: o.maxInstances, maxNat: o.maxNat ?? 30, tmpDir: tmp, checkerRuns: E.runs, laws: results };
 }
 
-async function checkLaw(L: Loaded, d: Decl, li: number, o: Options, U: Universe, predicates: Map<string, PredStmt | null>, E: Engine, qualify: (s: string) => string, nameOut: (s: string) => string): Promise<LawResult> {
+async function checkLaw(L: Loaded, d: Decl, li: number, o: Options, U: Universe, predicates: Map<string, PredStmt | null>, E: Engine, qualify: (s: string) => string, nameOut: (s: string) => string, termDecls: Map<string, TermDecl>): Promise<LawResult> {
   const base: LawResult = { name: d.name, file: d.file, line: d.line, proved: d.proved === true, claim: "other", status: "skip", instances: 0, failures: 0 };
   let p: Plan;
   try {
@@ -803,8 +811,8 @@ async function checkLaw(L: Loaded, d: Decl, li: number, o: Options, U: Universe,
         claimSlot: premiseSlot(p.claimSig, p.claim, env, qualify),
         premises,
         slots: p.premises.map((s, i) => premiseSlot(p.premiseSigs[i], s, env, qualify)),
-        shown: rewrite(p.claim, denv, nameOut, false),
-        shownPremises: p.premises.map((s) => rewrite(s, denv, nameOut, false)),
+        shown: showTerm(rewrite(p.claim, denv, nameOut, false), termDecls),
+        shownPremises: p.premises.map((s) => showTerm(rewrite(s, denv, nameOut, false), termDecls)),
       };
     } catch (e) {
       if (e instanceof Shadowed) throw new Skip(`binder ${e.message} is shadowed by a lambda in the claim`);
@@ -1069,7 +1077,7 @@ async function checkLaw(L: Loaded, d: Decl, li: number, o: Options, U: Universe,
         if (eq && shown) {
           cex.lhs = { term: shown.lhs, value: eq.lhs };
           cex.rhs = { term: shown.rhs, value: eq.rhs };
-        } else cex.goal = g.goal;
+        } else cex.goal = showTerm(g.goal, termDecls);
       }
     }
     return { ...base, status: "fail", counterexample: cex };
@@ -1165,6 +1173,14 @@ function defParams(text: string, name: string): string[] {
   return out;
 }
 
+// The checker's error text starts with `Error:` and carries the useful `- expected`/`- observed`
+// and `Location:` lines; keep those, not just the header (README).
+function errorDetail(msg: string): string {
+  const lines = msg.split("\n").map((s) => s.trim()).filter((s) => s !== "");
+  const useful = lines.filter((s) => s.startsWith("- ") || s.startsWith("Location:"));
+  return (useful.length > 0 ? useful : lines).slice(0, 2).join(" ");
+}
+
 /** Runs the laws against every mutant of the target file's defs (PLAN §4.3). */
 export async function mutate(file: string, o: MutateOptions): Promise<MutateReport> {
   const abs = path.resolve(file);
@@ -1231,7 +1247,7 @@ export async function mutate(file: string, o: MutateOptions): Promise<MutateRepo
   }
 
   const report: MutateReport = {
-    tool: "lawcheck-mutate", version: VERSION, bend: L.source.version, file: abs,
+    tool: "lawcheck-mutate", version: VERSION, bend: L.source.version, file: abs, schema: 1,
     impl: mode === "impl" ? target : null, seed: opts.seed, maxInstances: opts.maxInstances, tmpDir: tmp, defs: [],
   };
   // Mutants of one def run in a small pool; the global `slot()` semaphore still caps the bend
@@ -1259,7 +1275,7 @@ export async function mutate(file: string, o: MutateOptions): Promise<MutateRepo
           else if (missed !== undefined) { res.status = "unknown"; res.detail = `law ${missed} not evaluated`; }
         }
       } catch (e) {
-        if (e instanceof ModuleError || e instanceof BendReadError) { res.status = "invalid"; res.detail = e.message.split("\n")[0]; }
+        if (e instanceof ModuleError || e instanceof BendReadError) { res.status = "invalid"; res.detail = errorDetail(e.message); }
         else throw e;
       }
       results[i] = res;

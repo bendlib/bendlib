@@ -74,6 +74,7 @@ describe("mutate CLI", () => {
     expect(r.code).toBe(0);
     expect(r.stderr).toBe("");
     const rep = JSON.parse(r.stdout);
+    expect(rep.schema).toBe(1);
     expect(rep.tool).toBe("lawcheck-mutate");
     expect(rep.version).toBe("0.2.1");
     expect(rep.impl).toContain("lib_ok.bend");

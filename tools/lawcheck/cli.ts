@@ -24,14 +24,17 @@ import {
 const USAGE = "usage: bun tools/lawcheck/cli.ts <file.bend> [--impl <file>] [--size N] [--max-instances N] [--max-nat N] [--seed S] [--json] [--law name] [--native] [--jobs N] [--timeout MS] [--strict] [--allow-skip name,…]";
 const MUTATE_USAGE = "usage: bun tools/lawcheck/cli.ts mutate <laws.bend> [--impl <file>] [--def <name>] [--json] [--max-instances N] [--seed S] [--size N] [--jobs N] [--timeout MS]";
 
-function die(msg: string): never {
-  process.stderr.write(`lawcheck: ${msg}\n`);
+function die(msg: string, kind = "error"): never {
+  if (JSON_MODE) process.stdout.write(JSON.stringify({ error: { kind, message: msg } }) + "\n");
+  else process.stderr.write(`lawcheck: ${msg}\n`);
   process.exit(2);
 }
 
+let JSON_MODE = false;
+
 function num(flag: string, v: string | undefined, min: number, usage: string): number {
   const n = Number(v);
-  if (v === undefined || !Number.isInteger(n) || n < min) die(`${flag} needs an integer ≥ ${min}\n${usage}`);
+  if (v === undefined || !Number.isInteger(n) || n < min) die(`${flag} needs an integer ≥ ${min}\n${usage}`, "usage");
   return n;
 }
 
@@ -50,21 +53,21 @@ function parseArgs(argv: string[]) {
     else if (a === "--timeout") o.timeoutMs = num(a, argv[++i], 1, USAGE);
     else if (a === "--allow-skip") {
       const v = argv[++i];
-      if (v === undefined) die(`${a} needs a comma-separated list\n${USAGE}`);
+      if (v === undefined) die(`${a} needs a comma-separated list\n${USAGE}`, "usage");
       for (const nm of v.split(",")) if (nm.trim() !== "") o.allowSkip.add(nm.trim());
     }
     else if (a === "--law" || a === "--impl") {
       const v = argv[++i];
-      if (v === undefined) die(`${a} needs a value\n${USAGE}`);
+      if (v === undefined) die(`${a} needs a value\n${USAGE}`, "usage");
       if (a === "--law") o.law = v; else o.impl = v;
     } else if (a === "-h" || a === "--help") {
       console.log(USAGE);
       process.exit(0);
-    } else if (a.startsWith("-")) die(`unknown flag ${a}\n${USAGE}`);
+    } else if (a.startsWith("-")) die(`unknown flag ${a}\n${USAGE}`, "usage");
     else if (o.file === "") o.file = a;
-    else die(`one file only (got ${o.file} and ${a})\n${USAGE}`);
+    else die(`one file only (got ${o.file} and ${a})\n${USAGE}`, "usage");
   }
-  if (o.file === "") die(`no file given\n${USAGE}`);
+  if (o.file === "") die(`no file given\n${USAGE}`, "usage");
   return o;
 }
 
@@ -80,16 +83,16 @@ function parseMutateArgs(argv: string[]) {
     else if (a === "--timeout") o.timeoutMs = num(a, argv[++i], 1, MUTATE_USAGE);
     else if (a === "--def" || a === "--impl") {
       const v = argv[++i];
-      if (v === undefined) die(`${a} needs a value\n${MUTATE_USAGE}`);
+      if (v === undefined) die(`${a} needs a value\n${MUTATE_USAGE}`, "usage");
       if (a === "--def") o.def = v; else o.impl = v;
     } else if (a === "-h" || a === "--help") {
       console.log(MUTATE_USAGE);
       process.exit(0);
-    } else if (a.startsWith("-")) die(`unknown flag ${a}\n${MUTATE_USAGE}`);
+    } else if (a.startsWith("-")) die(`unknown flag ${a}\n${MUTATE_USAGE}`, "usage");
     else if (o.file === "") o.file = a;
-    else die(`one file only (got ${o.file} and ${a})\n${MUTATE_USAGE}`);
+    else die(`one file only (got ${o.file} and ${a})\n${MUTATE_USAGE}`, "usage");
   }
-  if (o.file === "") die(`no file given\n${MUTATE_USAGE}`);
+  if (o.file === "") die(`no file given\n${MUTATE_USAGE}`, "usage");
   return o;
 }
 
@@ -177,10 +180,10 @@ async function runLawcheck(argv: string[]) {
   try {
     report = await lawcheck(o.file, o);
   } catch (e) {
-    if (e instanceof UsageError) die(`${e.message}\n${USAGE}`);
-    if (e instanceof BendReadError) die(`cannot load ${o.file}:\n${e.message}`);
-    if (e instanceof SourceError) die(e.message);
-    if (e instanceof ModuleError) die(`${o.file} does not type-check, so no instance can be evaluated:\n${e.message}`);
+    if (e instanceof UsageError) die(`${e.message}\n${USAGE}`, "usage");
+    if (e instanceof BendReadError) die(`cannot load ${o.file}:\n${e.message}`, "load");
+    if (e instanceof SourceError) die(e.message, "source");
+    if (e instanceof ModuleError) die(`${o.file} does not type-check, so no instance can be evaluated:\n${e.message}`, "module");
     throw e;
   }
   console.log(o.json ? JSON.stringify(report, null, 2) : human(report));
@@ -196,10 +199,10 @@ async function runMutate(argv: string[]) {
   try {
     report = await mutate(o.file, o);
   } catch (e) {
-    if (e instanceof UsageError) die(`${e.message}\n${MUTATE_USAGE}`);
-    if (e instanceof BendReadError) die(`cannot load ${o.file}:\n${e.message}`);
-    if (e instanceof SourceError) die(e.message);
-    if (e instanceof ModuleError) die(`${o.file} does not type-check:\n${e.message}`);
+    if (e instanceof UsageError) die(`${e.message}\n${MUTATE_USAGE}`, "usage");
+    if (e instanceof BendReadError) die(`cannot load ${o.file}:\n${e.message}`, "load");
+    if (e instanceof SourceError) die(e.message, "source");
+    if (e instanceof ModuleError) die(`${o.file} does not type-check:\n${e.message}`, "module");
     throw e;
   }
   console.log(o.json ? JSON.stringify(report, null, 2) : humanMutate(report));
@@ -211,6 +214,7 @@ async function runMutate(argv: string[]) {
 }
 
 const argv = process.argv.slice(2);
+JSON_MODE = argv.includes("--json");
 if (argv.includes("--version")) {
   console.log(`lawcheck ${VERSION}`);
   process.exit(0);

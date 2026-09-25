@@ -450,7 +450,7 @@ describe("imports and --impl", () => {
       expect(bad.native.disagreements).toEqual([]);
       expect(bad.counterexample.expected).toBe("0n");
       expect(bad.counterexample.observed).toBe("1n");
-      expect(bad.counterexample.lhs).toEqual({ term: "H.pick_red", value: "0n" });
+      expect(bad.counterexample.lhs).toEqual({ term: "H.pick_red()", value: "0n" });
       // Neither the root's module nor the nested dependency may leak its hash into the readback.
       expect(r.stdout).not.toContain(kernelHash);
       expect(r.stdout).not.toContain(depHash);
@@ -484,6 +484,19 @@ describe("errors", () => {
     expect((await run(path.join(FX, "correct.bend"), "--allow-skip")).code).toBe(2);
     expect((await run("mutate", path.join(FX, "mut_weak.bend"), "--strict")).code).toBe(2);
   }, T);
+
+  test("--json errors emit {\"error\":…} on stdout with the same exit code", async () => {
+    const load = await run(path.join(FX, "syntax_error.bend"), "--json");
+    expect(load.code).toBe(2);
+    expect(load.stderr).toBe("");
+    const e = JSON.parse(load.stdout).error;
+    expect(e.kind).toBe("load");
+    expect(e.message).toContain("cannot load");
+    const usage = await run("--json", "--bogus");
+    expect(usage.code).toBe(2);
+    expect(usage.stderr).toBe("");
+    expect(JSON.parse(usage.stdout).error.kind).toBe("usage");
+  }, T);
 });
 
 describe("strict mode", () => {
@@ -507,6 +520,24 @@ describe("strict mode", () => {
     const r = await run(path.join(FX, "strict_skip.bend"), "--allow-skip", "vacuous", "--jobs", "4");
     expect(r.code).toBe(0);
   });
+});
+
+describe("json schema, maxNat, and term printing", () => {
+  test("the report carries schema and the --max-nat actually used", async () => {
+    const { report } = await json(path.join(FX, "correct.bend"), "--max-nat", "7", "--max-instances", "3");
+    expect(report.schema).toBe(1);
+    expect(report.tool).toBe("lawcheck");
+    expect(report.maxNat).toBe(7);
+  }, T);
+
+  test("zero-arg calls print with () and template arguments print with ~", async () => {
+    const two = law((await json(path.join(FX, "print_term.bend"), "--law", "two_bad", "--jobs", "4")).report, "two_bad");
+    expect(two.status).toBe("fail");
+    expect(two.counterexample.lhs.term).toBe("Nat.add(two(), 0n)");
+    const tm = law((await json(path.join(FX, "templates_map.bend"), "--law", "map_id_bad", "--max-instances", "40")).report, "map_id_bad");
+    expect(tm.counterexample.lhs.term).toContain("~U32");
+    expect(tm.counterexample.claim).toContain("~U32");
+  }, T);
 });
 
 describe("term rewriting", () => {

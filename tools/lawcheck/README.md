@@ -4,7 +4,7 @@
 
 ## Install
 
-Download `lawcheck-<os>-<arch>` from the latest `lawcheck-v*` release at https://github.com/bendlib/bendlib/releases, `chmod +x`, and put it on PATH. It needs `bend` installed; the first run downloads the matching `bend.ts` (network).
+Download `lawcheck-<os>-<arch>` from the latest `lawcheck-v*` release at https://github.com/bendlib/bendlib/releases, `chmod +x`, and put it on PATH. It needs `bend` installed; the first run downloads the matching `bend.ts` (network). On macOS, clear the download quarantine: `xattr -d com.apple.quarantine ./lawcheck-darwin-*`.
 
 ```sh
 bun tools/lawcheck/cli.ts LAWS.bend                  # every law in the file, open or proved
@@ -17,6 +17,8 @@ Options: `--size N` sets the depth of the exhaustive small-scope phase (default 
 
 Exit codes: 0 means no counterexample was found (with `--strict`, also no disallowed skip). 1 means at least one counterexample was found, or `--strict` and a law was skipped that is not in `--allow-skip`. 2 means a usage error, a file that does not load or type-check, or a tool error.
 
+`--json` output carries `schema: 1` and the exact `seed`/`size`/`maxInstances`/`maxNat` it ran with. Under `--json`, errors are written to stdout as `{"error":{"kind":…,"message":…}}` (kinds: `usage`, `load`, `source`, `module`, `error`) with the same exit code 2, instead of text on stderr.
+
 ```
 ✗ ins_sorted  counterexample (shrunk from x = 0n, xs = [5n, 6n] in 3 steps); 1/3 instances failed, premises held in 3/3
              x = 0n
@@ -26,7 +28,7 @@ Exit codes: 0 means no counterexample was found (with `--strict`, also no disall
              rhs  True{} = True{}
              checker: expected False{} · observed True{}
 ✓ dbl_add     10 instances, 0 failures (sizes ≤ 3)
-~ fn_binder   skipped: function-typed binder f: @_:Nat -> Nat (v0.2)
+~ fn_binder   skipped: function-typed binder f: @_:Nat -> Nat
 ```
 
 ## How it works
