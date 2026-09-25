@@ -88,11 +88,12 @@ describe("planted bugs", () => {
 
   test("shrinking reduces random Nat, list and datatype counterexamples", async () => {
     const dbl = law((await json(path.join(FX, "buggy.bend"), "--law", "dbl_add", "--size", "0", "--max-instances", "3", "--seed", "2")).report, "dbl_add");
-    expect(dbl.counterexample.original).toEqual([{ name: "n", value: "7n" }]);
+    expect(dbl.counterexample.original).toEqual([{ name: "n", value: "3n" }]);
     expect(dbl.counterexample.shrinkSteps).toBeGreaterThan(0);
     expect(binds(dbl)).toEqual({ n: "2n" });
-    const sorted = law((await json(path.join(FX, "buggy.bend"), "--law", "ins_sorted", "--size", "0", "--max-instances", "3", "--seed", "2")).report, "ins_sorted");
-    expect(sorted.counterexample.original).toEqual([{ name: "x", value: "0n" }, { name: "xs", value: "[5n, 6n]" }]);
+    const sorted = law((await json(path.join(FX, "buggy.bend"), "--law", "ins_sorted", "--size", "0", "--max-instances", "3", "--seed", "7")).report, "ins_sorted");
+    expect(sorted.counterexample.original).toEqual([{ name: "x", value: "2n" }, { name: "xs", value: "[4n, 14n]" }]);
+    expect(sorted.counterexample.shrinkSteps).toBeGreaterThan(0);
     expect(binds(sorted)).toEqual({ x: "0n", xs: "[1n]" });
     const app = law((await json(path.join(FX, "buggy.bend"), "--law", "app_size", "--size", "0", "--max-instances", "3", "--seed", "6")).report, "app_size");
     expect(app.counterexample.original).toEqual([{ name: "xs", value: "Push{Red{}, Push{Blue{}, Bot{}}}" }, { name: "ys", value: "Push{Green{}, Bot{}}" }]);
@@ -124,12 +125,12 @@ describe("claim kinds and skips", () => {
     expect(code).toBe(1);
     const st = Object.fromEntries(report.laws.map((l: any) => [l.name, l.status]));
     expect(st).toEqual({
-      le_half: "pass", half_le_bad: "fail", p_holds: "skip", lt_irrefl: "pass", add_ne_bad: "fail", le_trans: "pass",
+      le_half: "pass", half_le_bad: "fail", p_holds: "pass", lt_irrefl: "pass", add_ne_bad: "fail", le_trans: "pass",
       append_nil_r: "pass", reverse_id_bad: "fail", pair_swap: "pass", where_law: "pass", fn_binder: "skip", float_law: "skip",
     });
     expect(binds(law(report, "half_le_bad"))).toEqual({ n: "1n" });
     expect(law(report, "half_le_bad").counterexample.goal).toBe("{False{} == True{} : Bool}");
-    expect(law(report, "p_holds").reason).toMatch(/^not decidable by evaluation/);
+    expect(law(report, "p_holds").instances).toBeGreaterThan(0);
     expect(binds(law(report, "add_ne_bad"))).toEqual({ a: "0n", b: "0n" });
     expect(law(report, "lt_irrefl").premise.satisfied).toBe(0);
     const rev = law(report, "reverse_id_bad");
@@ -138,6 +139,95 @@ describe("claim kinds and skips", () => {
     expect(law(report, "where_law").premise.satisfied).toBeGreaterThan(0);
     expect(law(report, "fn_binder").reason).toMatch(/function-typed binder f/);
     expect(law(report, "float_law").reason).toMatch(/F32/);
+  }, T);
+});
+
+describe("random Nat bound, list length, Type predicates, function equations", () => {
+  test("random Nats reach --max-nat and random lists are long enough to break a length bound", async () => {
+    const { code, report } = await json(path.join(FX, "adv.bend"), "--jobs", "4");
+    expect(code).toBe(1);
+    const lt = law(report, "lt_twelve");
+    expect(lt.status).toBe("fail");
+    // The planted bound is 12, so the random phase must have reached a Nat ≥ 12.
+    expect(Number(binds(lt).n.replace("n", ""))).toBeGreaterThanOrEqual(12);
+    const ls = law(report, "list_short");
+    expect(ls.status).toBe("fail");
+    // The planted bound is length 6, so the random list phase must have reached at least that.
+    expect(ls.counterexample.bindings[0].value.split(", ").length).toBeGreaterThanOrEqual(6);
+  }, T);
+
+  test("--max-nat bounds random Nats (planted bound just above the limit does not break)", async () => {
+    const { code, report } = await json(path.join(FX, "adv.bend"), "--law", "lt_twelve", "--max-nat", "11", "--jobs", "4");
+    expect(code).toBe(0);
+    const l = law(report, "lt_twelve");
+    expect(l.status).toBe("pass");
+    expect(l.tooLarge ?? 0).toBe(0);
+  }, T);
+
+  test("an equation between functions is skipped, never failed", async () => {
+    const { code, report } = await json(path.join(FX, "adv.bend"), "--law", "fn_eq", "--jobs", "4");
+    expect(code).toBe(0);
+    const l = law(report, "fn_eq");
+    expect(l.status).toBe("skip");
+    expect(l.reason).toMatch(/equation between functions/);
+  }, T);
+
+  test("a Type-valued predicate is decided: Unit holds, Empty is a counterexample", async () => {
+    const { code, report } = await json(path.join(FX, "pred_type.bend"), "--jobs", "4");
+    expect(code).toBe(1);
+    const l = law(report, "all_zero_bad");
+    expect(l.status).toBe("fail");
+    expect(binds(l)).toEqual({ n: "1n" });
+    expect(l.counterexample.expected).toBe("Empty");
+    expect(l.counterexample.observed).toBe("Unit");
+    expect(l.counterexample.goal).toBe("Empty");
+  }, T);
+
+  test("a Type-valued predicate premise is satisfied in Unit and dropped in Empty", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lawcheck-predpremise-"));
+    const file = path.join(dir, "root.bend");
+    fs.writeFileSync(file, [
+      "import Base",
+      "",
+      "def IsZero(n: Nat) -> Type:",
+      "  match n:",
+      "    case 0n:",
+      "      Unit",
+      "    case 1n+p:",
+      "      Empty",
+      "",
+      "law unit_premise:",
+      "  for n: Nat",
+      "  for h: IsZero(n)",
+      "  {Nat.add(n, 0n) == n : Nat}",
+      "",
+    ].join("\n"));
+    const { code, report } = await json(file, "--jobs", "4", "--max-instances", "20");
+    expect(code).toBe(0);
+    const l = law(report, "unit_premise");
+    expect(l.status).toBe("pass");
+    expect(l.premise.satisfied).toBeGreaterThan(0);
+    expect(l.premise.satisfied).toBeLessThan(l.premise.total);
+  }, T);
+
+  test("a refutation whose every instance is too large is skipped, not passed", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lawcheck-toolarge-"));
+    const file = path.join(dir, "root.bend");
+    fs.writeFileSync(file, [
+      "import Base",
+      "",
+      "law all_too_large:",
+      "  for n: Nat",
+      "  for _: {Nat.pow(20n, 25n) == 0n : Nat}",
+      "  Empty",
+      "",
+    ].join("\n"));
+    const { code, report } = await json(file, "--jobs", "4", "--max-instances", "4");
+    expect(code).toBe(0);
+    const l = law(report, "all_too_large");
+    expect(l.status).toBe("skip");
+    expect(l.reason).toMatch(/^every instance was too large to evaluate/);
+    expect(l.tooLarge).toBeGreaterThan(0);
   }, T);
 });
 

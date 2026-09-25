@@ -236,6 +236,8 @@ function plan(L: Loaded, d: Decl, predicates: Set<string>, U: Universe): Plan {
   }
   const tip = tipOf(L, d.name);
   if (d.statement) {
+    // Definitional inequality of two functions is not a counterexample (PLAN F22).
+    if (splitArrow(d.statement.type).length > 1) throw new Skip("equation between functions: definitional inequality is not a counterexample");
     p.kind = "equation";
     p.claim = `{${d.statement.lhs} == ${d.statement.rhs} : ${d.statement.type}}`;
   } else if (tip === "Empty" && p.premises.length > 0) {
@@ -783,9 +785,9 @@ async function checkLaw(L: Loaded, d: Decl, li: number, o: Options, U: Universe,
     if (tooLarge > 0) base.tooLarge = tooLarge;
     base.instances = sat.length;
     if (p.premises.length) base.premise = { satisfied: sat.length, total: insts.length };
-    if (sat.length === 0 && p.kind === "refutation") return { ...base, status: "pass", instances: insts.length };
     if (sat.length === 0) {
       if (tooLarge > 0 && tooLarge === insts.length) return { ...base, status: "skip", reason: "every instance was too large to evaluate (lower --max-nat)" };
+      if (p.kind === "refutation") return { ...base, status: "pass", instances: insts.length };
       return { ...base, status: "skip", reason: `premises satisfied in 0/${insts.length} instances — law untested (vacuous in this space)` };
     }
     if (p.exs.length > 0) {

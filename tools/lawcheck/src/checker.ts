@@ -166,7 +166,13 @@ export async function evaluate(E: Engine, items: Item[], stopAtFail = false): Pr
     let o: Outcome;
     if (it.hole && loc.pointed === "?g") o = { r: "goal", goal: expected };
     else if (loc.pointed !== "{==}") o = { r: "illtyped", detail: E.display(loc.text) };
-    else if (/non-inferrable term/.test(loc.observed ?? "")) o = { r: "undecidable", detail: `goal ${expected} is not an equation` };
+    else if (/non-inferrable term/.test(loc.observed ?? "")) {
+      // A Type-valued predicate claim normalizes to Unit (inhabited, so it holds) or Empty
+      // (refuted); any other normal form is not a proposition lawcheck can decide (PLAN F22).
+      if (loc.expected === "Unit") o = { r: "pass" };
+      else if (loc.expected === "Empty") o = { r: "fail", expected: "Empty", observed: "Unit" };
+      else o = { r: "undecidable", detail: `goal ${expected} is not an equation` };
+    }
     else if (loc.expected === null || loc.observed === null) o = { r: "illtyped", detail: E.display(loc.text) };
     else o = { r: "fail", expected, observed };
     res.set(it.id, o);

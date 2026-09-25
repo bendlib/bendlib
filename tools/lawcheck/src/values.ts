@@ -110,11 +110,13 @@ export class Universe {
 
   random(ty: Ty, size: number, r: Rng, budget = size): Val {
     switch (builtin(ty)) {
-      case "nat": return { v: "nat", n: int(r, 0, Math.min(this.maxNat, Math.max(6, 3 * size))) };
+      // Half the draws stay small so shrinking is cheap and small counterexamples surface; the
+      // other half reaches the full `--max-nat` bound (README, PLAN F31).
+      case "nat": return { v: "nat", n: int(r, 0, r() < 0.5 ? Math.min(this.maxNat, 3 * size) : this.maxNat) };
       case "u32": return { v: "u32", n: r() < 0.5 ? pick(r, [0, 1, 2, 3, 255, 256, 65535, 2147483648, U32_MAX]) : Math.floor(r() * 2 ** 32) };
       case "char": return { v: "char", c: pick(r, ["a", "b", "c", "d", "e"]) };
       case "str": return { v: "str", s: range(int(r, 0, size)).map(() => pick(r, ["a", "b", "c"])).join("") };
-      case "list": return { v: "list", items: range(int(r, 0, size + 2)).map(() => this.random((ty as any).args[1], size, r, budget - 1)) };
+      case "list": return { v: "list", items: range(int(r, 0, Math.max(size + 2, 8))).map(() => this.random((ty as any).args[1], size, r, budget - 1)) };
       case "pair": return { v: "pair", a: this.random((ty as any).args[0], size, r, budget), b: this.random((ty as any).args[1], size, r, budget) };
     }
     const { adt, ctors } = this.adt(ty);
