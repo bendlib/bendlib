@@ -55,6 +55,11 @@ jobs:
       - run: bun tools/mathlib/check.ts packages/bend-mathlib
       - run: bun tools/mathlib/lint.ts packages/bend-mathlib --erasure
       - run: bun tools/mathlib/twins.ts packages/bend-mathlib --check
+      - name: check the kernel package (bend --check-only)
+        run: bun tools/mathlib/check.ts packages/bendlib-kernel-list
+      - name: lint the kernel package
+        run: bun tools/mathlib/lint.ts packages/bendlib-kernel-list --kernel --erasure
+      - run: bun tools/mathlib/twins.ts packages/bendlib-kernel-list --check
       - run: bun tools/mathlib/lock.ts packages/bend-mathlib --check
       - name: lock trust anchor (published entries vs the newest bend-mathlib tag)
         run: |
