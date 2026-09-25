@@ -332,19 +332,37 @@ function* product(doms: Val[][], order: number[]): Generator<Val[]> {
   }
 }
 
+const CATALOG_CAP = 64;
+
+// Full catalog product up to CATALOG_CAP; above it a seeded sample that still uses every entry of
+// every binder at least once (a lexicographic prefix silently misses later entries).
+function catalogCombos(perFun: string[][], r: Rng): string[][] {
+  const total = perFun.reduce((n, xs) => n * xs.length, 1);
+  if (total <= CATALOG_CAP) {
+    let combos: string[][] = [[]];
+    for (const xs of perFun) combos = combos.flatMap((acc) => xs.map((x) => [...acc, x]));
+    return combos;
+  }
+  const seed = perFun.map((xs) => xs[0]);
+  const out: string[][] = [];
+  const seen = new Set<string>();
+  const push = (combo: string[]) => {
+    const k = combo.join("\u0000");
+    if (seen.has(k) || out.length >= CATALOG_CAP) return;
+    seen.add(k);
+    out.push(combo);
+  };
+  perFun.forEach((xs, j) => { for (const x of xs) push(seed.map((s, k) => (k === j ? x : s))); });
+  for (let t = 0; out.length < CATALOG_CAP && t < CATALOG_CAP * 20; t++) push(perFun.map((xs) => xs[Math.floor(r() * xs.length)]));
+  return out;
+}
+
 function instances(p: Plan, U: Universe, o: Options, r: Rng): Inst[] {
   const choices = p.typeParams.length ? TYPE_CHOICES : [""];
   const ctxs: { choice: string; funs: string[] }[] = [];
   for (const choice of choices) {
     const perFun = p.funs.map((f) => CATALOG[substSig(f, choice, p.typeParams)]);
-    const combos: string[][] = [];
-    const build = (i: number, acc: string[]) => {
-      if (combos.length >= 8) return;
-      if (i === perFun.length) { combos.push(acc); return; }
-      for (const cand of perFun[i]) { build(i + 1, [...acc, cand]); if (combos.length >= 8) return; }
-    };
-    build(0, []);
-    for (const funs of combos) ctxs.push({ choice, funs });
+    for (const funs of catalogCombos(perFun, r)) ctxs.push({ choice, funs });
   }
   const all: Inst[] = [];
   ctxs.forEach((ctx, ci) => {

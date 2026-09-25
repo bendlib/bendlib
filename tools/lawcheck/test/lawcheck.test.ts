@@ -120,6 +120,21 @@ describe("claim kinds and skips", () => {
     expect(f.value).not.toBe("(lc_x => lc_x)");
   }, T);
 
+  test("two template function binders search the full catalog product (no false pass)", async () => {
+    const { code, report } = await json(path.join(FX, "cat2.bend"), "--jobs", "4");
+    expect(code).toBe(1);
+    const two = law(report, "two_funs_bad");
+    expect(two.status).toBe("fail");
+    const f = two.counterexample.bindings.find((b: any) => b.name === "f");
+    expect(f).toBeDefined();
+    // The old lexicographic 8-combination cap only ever tried the first two `Nat -> Nat` entries
+    // (identity and constant zero), so a counterexample needing a growing `f` was never found.
+    expect(f.value).not.toBe("(lc_x => lc_x)");
+    expect(f.value).not.toBe("(lc_x => 0n)");
+    expect(two.counterexample.bindings.find((b: any) => b.name === "g")).toBeDefined();
+    expect(law(report, "one_fun_bad").status).toBe("fail");
+  }, T);
+
   test("predicates, refutations, premises, type parameters, unsupported binders", async () => {
     const { code, report } = await json(path.join(FX, "kinds.bend"));
     expect(code).toBe(1);
