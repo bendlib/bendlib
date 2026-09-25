@@ -72,7 +72,7 @@ export type Report = { tool: "lawcheck"; version: string; bend: string; file: st
 
 export type MutantResult = {
   id: string; def: string; op: string; line: number; before: string; after: string;
-  status: "killed" | "survived" | "invalid" | "error"; law?: string; detail?: string;
+  status: "killed" | "survived" | "unknown" | "invalid"; law?: string; detail?: string;
 };
 
 export type MutateReport = {
@@ -927,6 +927,23 @@ function stripFills(text: string, fills: string[]): string {
   return lines.join("\n");
 }
 
+// `text` without `fillNames`, local imports absolute from `dir` except the `--impl` one, which
+// `rootFor` still needs to find and replace.
+function implRootText(text: string, dir: string, fillNames: string[], implBase: string): string {
+  const lines = stripFills(text, fillNames).split("\n");
+  const locals = lines
+    .map((l, i) => ({ i, m: /^import\s+(\.{1,2}\/\S+\.bend)(\s+as\s+\S+)?\s*$/.exec(l.trim()) }))
+    .filter((x) => x.m !== null);
+  const byName = locals.filter((x) => path.basename(x.m![1]) === implBase);
+  const keep = byName.length === 1 ? byName[0] : byName.length === 0 && locals.length === 1 ? locals[0] : null;
+  for (const x of locals) {
+    if (x === keep) continue;
+    const abs = path.resolve(dir, x.m![1]);
+    lines[x.i] = `import ${fs.existsSync(abs) ? fs.realpathSync(abs) : abs}${x.m![2] ?? ""}`;
+  }
+  return lines.join("\n");
+}
+
 /** A def header (may span lines) as text. */
 function headerText(lines: string[], start: number): string {
   let depth = 0;
@@ -1011,21 +1028,35 @@ export async function mutate(file: string, o: MutateOptions): Promise<MutateRepo
     defs = one;
   }
   if (defs.length === 0) throw new UsageError(`no mutable defs in ${path.relative(process.cwd(), target)}`);
-  const fillNames = mode === "in-file" ? own.filter((d) => d.kind === "law" && d.proved).map((d) => d.name) : [];
   const targetText = fs.readFileSync(target, "utf8");
   const safeBase = path.basename(target).replace(/[^\w.-]/g, "_");
+
+  // In impl mode the root is the laws file; its proof defs must be stripped too, or a mutant's
+  // behaviour change only breaks a proof and is misclassified as `invalid` (README).
+  const rootText = mode === "impl" ? fs.readFileSync(abs, "utf8") : targetText;
+  const fillDecls = mode === "impl" ? decls(await load(abs), { scope: "own" }) : own;
+  const fillNames = fillDecls.filter((d) => d.kind === "law" && d.proved).map((d) => d.name);
 
   const baseDir = path.join(tmp, "base");
   fs.mkdirSync(baseDir, { recursive: true });
   let baseReport: Report;
+  let rootPath: string;
   if (mode === "impl") {
-    baseReport = await lawcheck(abs, { ...opts, impl: target, tmpDir: baseDir });
+    rootPath = path.join(baseDir, `root_${path.basename(abs).replace(/[^\w.-]/g, "_")}`);
+    fs.writeFileSync(rootPath, implRootText(rootText, path.dirname(abs), fillNames, path.basename(target)));
+    baseReport = await lawcheck(rootPath, { ...opts, impl: target, tmpDir: baseDir });
   } else {
-    const basePath = path.join(baseDir, safeBase);
-    fs.writeFileSync(basePath, stripFills(targetText, fillNames));
-    baseReport = await lawcheck(basePath, { ...opts, impl: undefined, tmpDir: baseDir });
+    rootPath = path.join(baseDir, safeBase);
+    fs.writeFileSync(rootPath, stripFills(targetText, fillNames));
+    baseReport = await lawcheck(rootPath, { ...opts, impl: undefined, tmpDir: baseDir });
   }
   if (baseReport.laws.some((l) => l.status === "fail")) throw new UsageError("the laws already fail on the unmutated code; fix those first");
+  const evaluated = new Set(baseReport.laws.filter((l) => l.status === "pass").map((l) => l.name));
+  if (evaluated.size === 0) {
+    const idle = baseReport.laws.filter((l) => l.status !== "pass");
+    const reasons = [...new Set(idle.map((l) => l.reason ?? l.status))].join("; ");
+    throw new UsageError(`no law was evaluated on the unmutated code (${idle.length} skipped: ${reasons || "none"})`);
+  }
 
   const report: MutateReport = {
     tool: "lawcheck-mutate", version: VERSION, bend: L.source.version, file: abs,
@@ -1043,11 +1074,15 @@ export async function mutate(file: string, o: MutateOptions): Promise<MutateRepo
       const runOpts: Options = { ...opts, shrink: false, firstFail: true, tmpDir: dir, impl: mode === "impl" ? mutantPath : undefined };
       const res: MutantResult = { id: m.id, def: d.name, op: m.op, line: m.line, before: m.before, after: m.after, status: "survived" };
       try {
-        const rep = mode === "impl" ? await lawcheck(abs, runOpts) : await lawcheck(mutantPath, runOpts);
+        const rep = mode === "impl" ? await lawcheck(rootPath, runOpts) : await lawcheck(mutantPath, runOpts);
         const fail = rep.laws.find((l) => l.status === "fail");
-        const err = rep.laws.find((l) => l.status === "error");
         if (fail) { res.status = "killed"; res.law = fail.name; }
-        else if (err) { res.status = "error"; res.detail = (err.reason ?? "").split("\n")[0]; }
+        else {
+          const undecided = rep.laws.find((l) => evaluated.has(l.name) && l.status !== "pass");
+          const missed = [...evaluated].find((n) => !rep.laws.some((l) => l.name === n));
+          if (undecided !== undefined) { res.status = "unknown"; res.detail = (undecided.reason ?? undecided.status).split("\n")[0]; }
+          else if (missed !== undefined) { res.status = "unknown"; res.detail = `law ${missed} not evaluated`; }
+        }
       } catch (e) {
         if (e instanceof ModuleError || e instanceof BendReadError) { res.status = "invalid"; res.detail = e.message.split("\n")[0]; }
         else throw e;

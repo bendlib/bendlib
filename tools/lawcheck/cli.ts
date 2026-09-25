@@ -144,16 +144,24 @@ function humanMutate(r: MutateReport): string {
   const w = Math.max(...r.defs.map((d) => d.name.length), 4);
   const impl = r.impl === null ? "in-file" : `impl ${path.basename(r.impl)}`;
   const out = [`lawcheck mutate ${r.version} · ${path.relative(process.cwd(), r.file)} (${impl}) · bend ${r.bend} · ≤${r.maxInstances} instances/law`];
-  let survivors = 0;
+  let survivors = 0, unknown = 0, valid = 0;
   for (const d of r.defs) {
     const killed = d.mutants.filter((m) => m.status === "killed").length;
     const survived = d.mutants.filter((m) => m.status === "survived").length;
+    const unknowns = d.mutants.filter((m) => m.status === "unknown").length;
     const invalid = d.mutants.filter((m) => m.status === "invalid").length;
+    const ok = killed + survived + unknowns;
     survivors += survived;
-    out.push(`${d.name.padEnd(w)}  ${killed}/${killed + survived} valid mutants killed · ${survived} survived · ${invalid} invalid`);
+    unknown += unknowns;
+    valid += ok;
+    if (ok === 0) out.push(`${d.name.padEnd(w)}  no valid mutants: not tested${invalid ? ` · ${invalid} invalid` : ""}`);
+    else out.push(`${d.name.padEnd(w)}  ${killed}/${ok} valid mutants killed · ${survived} survived${unknowns ? ` · ${unknowns} unknown` : ""} · ${invalid} invalid`);
     for (const m of d.mutants) if (m.status === "survived") out.push(`${" ".repeat(w + 2)}survived  ${m.op}  line ${m.line}  ${m.before} → ${m.after}`);
+    for (const m of d.mutants) if (m.status === "unknown") out.push(`${" ".repeat(w + 2)}unknown   ${m.op}  line ${m.line}  ${m.before} → ${m.after}${m.detail ? `  (${m.detail})` : ""}`);
   }
-  out.push(survivors === 0 ? "no survivors: every valid mutant broke a law." : `${survivors} survivor(s): your laws do not pin these changes. A survivor can also be an equivalent mutant (same behaviour); check it by hand.`);
+  if (survivors === 0 && unknown === 0) out.push(valid === 0 ? "no valid mutants: nothing was tested." : "no survivors: every valid mutant broke a law.");
+  else if (survivors === 0) out.push(`${unknown} unknown mutant(s): a law that passed on the unmutated code was not evaluated on them (not survivors).`);
+  else out.push(`${survivors} survivor(s): your laws do not pin these changes. A survivor can also be an equivalent mutant (same behaviour); check it by hand.`);
   return out.join("\n");
 }
 
@@ -188,7 +196,10 @@ async function runMutate(argv: string[]) {
   }
   console.log(o.json ? JSON.stringify(report, null, 2) : humanMutate(report));
   const ms = report.defs.flatMap((d) => d.mutants);
-  process.exit(ms.some((m) => m.status === "error") ? 2 : ms.some((m) => m.status === "survived") ? 1 : 0);
+  const valid = ms.filter((m) => m.status !== "invalid");
+  // Nothing valid to test, or a mutant the laws could not decide, is "no answer": exit 2, so a CI
+  // gate cannot pass on nothing (README).
+  process.exit(valid.length === 0 || valid.some((m) => m.status === "unknown") ? 2 : valid.some((m) => m.status === "survived") ? 1 : 0);
 }
 
 const argv = process.argv.slice(2);

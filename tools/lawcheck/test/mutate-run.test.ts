@@ -44,4 +44,19 @@ describe("mutate runner", () => {
     expect(swaps[0].def).toBe("first_of");
     expect(swaps[0].status).toBe("survived");
   }, T);
+
+  test("proofs in the laws file are stripped in impl mode, so mutants are classified by the laws", async () => {
+    const rep = await mutate(path.join(FX, "mut_proved", "laws.bend"), {
+      impl: path.join(FX, "mut_proved", "lib.bend"), jobs: 4, maxInstances: 20, seed: 1, size: 3,
+    });
+    const ms = rep.defs.flatMap((d: any) => d.mutants);
+    expect(ms.filter((m: any) => m.status === "killed").length).toBeGreaterThanOrEqual(4);
+    expect(ms.some((m: any) => m.status === "survived")).toBe(false);
+    expect(ms.some((m: any) => m.status === "invalid")).toBe(true);
+  }, T);
+
+  test("no law evaluated on the base is a usage error, never all-survivors", async () => {
+    await expect(mutate(path.join(FX, "mut_allskip.bend"), { jobs: 4, maxInstances: 5 })).rejects.toThrow(/no law was evaluated on the unmutated code/);
+    await expect(mutate(path.join(FX, "mut_nolaws.bend"), { jobs: 4, maxInstances: 5 })).rejects.toThrow(/no law was evaluated on the unmutated code/);
+  }, T);
 });

@@ -46,7 +46,7 @@ Claim kinds:
 
 ## Mutation mode
 
-`lawcheck mutate LAWS.bend` checks the laws against every small mutant of the target's defs. A mutant is **killed** when some law finds a counterexample on it, **survived** when every law passes (the laws do not pin that change), and **invalid** when it does not type-check (discarded, never a kill). A survivor can also be an equivalent mutant (same behaviour) — check it by hand.
+`lawcheck mutate LAWS.bend` checks the laws against every small mutant of the target's defs. A mutant is **killed** when some law finds a counterexample on it, **survived** when every law that passed on the unmutated code still passes (the laws do not pin that change), **unknown** when one of those laws is no longer evaluated on the mutant (skipped or errored, so it is neither killed nor a survivor), and **invalid** when it does not type-check (discarded, never a kill). A survivor can also be an equivalent mutant (same behaviour) — check it by hand. In `--impl` mode the proof defs of the root's proved laws are stripped before every run, so a mutant that changes behaviour is classified by running the laws, not by breaking a proof. A def none of whose mutants is valid is reported `no valid mutants: not tested`.
 
 Operators: `arm-swap`/`arm-copy` (swap or copy `match` arm bodies), `literal` (`0n↔1n`, `True{}↔False{}`), `drop-succ` (`1n+E → E`), `drop-cons` (`A <> B → B`), `arg-swap` (swap adjacent call arguments), `projection` (replace the body with a parameter or a constant), `base-swap` (`Nat.is_le↔Nat.is_lt`, `&&↔||`, `Nat.add→Nat.sub`, …).
 
@@ -67,7 +67,7 @@ app   3/3 valid mutants killed · 0 survived · 7 invalid
 3 survivor(s): your laws do not pin these changes. A survivor can also be an equivalent mutant (same behaviour); check it by hand.
 ```
 
-Exit codes: 0 no survivors · 1 at least one survivor · 2 usage, load, tool error, or an `error` mutant. A target with no mutable defs is a usage error (`no mutable defs`), never `no survivors`. A survivor shows a weakness of the laws for these operators; zero survivors does not prove the laws pin the def.
+Exit codes: 0 no survivors and every valid mutant decided · 1 at least one survivor · 2 usage, load, tool error, no law was evaluated on the unmutated code, no valid mutants, or an `unknown` mutant. A target with no mutable defs is a usage error (`no mutable defs`), never `no survivors`. Plain `lawcheck` on a file with no laws still exits 0. A survivor shows a weakness of the laws for these operators; zero survivors does not prove the laws pin the def.
 
 ## Native comparison (`--native`)
 

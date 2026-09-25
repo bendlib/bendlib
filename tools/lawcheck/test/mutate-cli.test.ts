@@ -43,6 +43,25 @@ describe("mutate CLI", () => {
     expect(r.stdout).toContain("no survivors: every valid mutant broke a law.");
   }, T);
 
+  test("proofs in the laws file do not turn every behaviour-changing mutant invalid", async () => {
+    const r = await run("mutate", path.join(FX, "mut_proved", "laws.bend"), "--impl", path.join(FX, "mut_proved", "lib.bend"), "--max-instances", "20", "--jobs", "4");
+    expect(r.code).toBe(0);
+    expect(r.stderr).toBe("");
+    expect(r.stdout).toMatch(/^dbl +\d+\/\d+ valid mutants killed · 0 survived · \d+ invalid$/m);
+    const killed = Number(/^dbl +(\d+)\/\d+ valid mutants killed/m.exec(r.stdout)![1]);
+    expect(killed).toBeGreaterThanOrEqual(4);
+  }, T);
+
+  test("nothing evaluated on the base is exit 2, never all-survivors", async () => {
+    for (const fixture of ["mut_allskip.bend", "mut_nolaws.bend"]) {
+      const r = await run("mutate", path.join(FX, fixture), "--jobs", "4", "--max-instances", "5");
+      expect(r.code).toBe(2);
+      expect(r.stdout).toBe("");
+      expect(r.stderr).toContain("no law was evaluated on the unmutated code");
+      expect(r.stderr).not.toContain("survived");
+    }
+  }, T);
+
   test("a missing file is a usage error, exit 2", async () => {
     const r = await run("mutate", "nope.bend");
     expect(r.code).toBe(2);
