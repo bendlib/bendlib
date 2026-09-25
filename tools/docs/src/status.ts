@@ -135,8 +135,9 @@ export function checkCommand(file: string, o: CheckOptions, sandbox: boolean): s
   const inner = ["bash", "-c", `ulimit -v ${cap}; exec "$0" "$1" --check-only`, BEND, file];
   if (!sandbox) return inner;
   // `--dev /dev` is required: the Bun-compiled bend aborts when / is a read-only bind without a fresh /dev.
+  // The lib binds read-only AFTER `--tmpfs /tmp`: a lib under /tmp stays visible, and untrusted code cannot rewrite cached sources.
   return [bwrapPath(), "--unshare-all", "--die-with-parent", "--ro-bind", "/", "/", "--tmpfs", "/tmp", "--dev", "/dev",
-    "--bind", o.bendLib, o.bendLib, "--chdir", o.cwd, ...inner];
+    "--ro-bind", o.bendLib, o.bendLib, "--chdir", o.cwd, ...inner];
 }
 
 export async function checkFile(file: string, o: CheckOptions): Promise<FileStatus> {

@@ -84,15 +84,19 @@ describe("crossCheck", () => {
 
 describe("checkCommand", () => {
   const o = { bendLib: "/lib", timeoutSec: 20, memMb: 4096, cwd: "/pkg" };
-  test("sandboxed: bwrap with a read-only root and writable BEND_LIB, inner check unchanged", () => {
+  test("sandboxed: bwrap with a read-only root and read-only BEND_LIB, inner check unchanged", () => {
     const argv = checkCommand("/lib/h/f.bend", o, true);
     expect(argv[0]).toBe("bwrap");
     expect(argv).toContain("--unshare-all");
     expect(argv).toContain("--die-with-parent");
     const ro = argv.indexOf("--ro-bind");
     expect(argv.slice(ro, ro + 3)).toEqual(["--ro-bind", "/", "/"]);
-    const b = argv.indexOf("--bind");
-    expect(argv.slice(b, b + 3)).toEqual(["--bind", "/lib", "/lib"]);
+    const tmp = argv.indexOf("--tmpfs");
+    expect(argv.slice(tmp, tmp + 2)).toEqual(["--tmpfs", "/tmp"]);
+    // The lib is bound read-only after --tmpfs /tmp: visible when the lib lives under /tmp, never writable.
+    const lib = argv.indexOf("--ro-bind", tmp + 1);
+    expect(argv.slice(lib, lib + 3)).toEqual(["--ro-bind", "/lib", "/lib"]);
+    expect(argv).not.toContain("--bind");
     const c = argv.indexOf("--chdir");
     expect(argv.slice(c, c + 2)).toEqual(["--chdir", "/pkg"]);
     expect(argv.slice(argv.indexOf("bash"))).toEqual(checkCommand("/lib/h/f.bend", o, false));
