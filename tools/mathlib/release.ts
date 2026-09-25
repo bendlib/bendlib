@@ -8,19 +8,25 @@
 // exit: 0 ok · 1 a gate or verification failed · 2 usage
 
 import { appendFileSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { join, relative, basename, resolve } from "node:path";
 import { BEND, PkgError, ROOT, packageModules } from "./lib.ts";
 import { hubHash, packageFiles } from "./hash.ts";
 
 const USAGE = "usage: release.ts <pkgdir> <name(12-64 chars)> <a.b.c.d> [--publish]";
 const usage = (msg: string): never => { console.error(`release: ${msg}\n${USAGE}`); process.exit(2); };
-const env = { ...process.env, BEND_NO_TELEMETRY: "1" };
 const sh = (cmd: string[], extra: Record<string, string> = {}) => {
-  const p = Bun.spawnSync(cmd, { cwd: ROOT, env: { ...env, ...extra } });
+  const p = Bun.spawnSync(cmd, { cwd: ROOT, env: { ...process.env, BEND_NO_TELEMETRY: "1", ...extra } });
   return { code: p.exitCode, out: (new TextDecoder().decode(p.stdout) + new TextDecoder().decode(p.stderr)).trim() };
 };
 const fail = (msg: string): never => { console.error(`release: ${msg}`); process.exit(1); };
+
+// bend reads BEND_HUB and $HOME/.bend/bender.json; read them per call so a test can point both away.
+const hubUrl = () => process.env.BEND_HUB ?? "https://hub.bend-lang.com";
+const bendBin = () => process.env.BEND_CLI ?? BEND;
+const benderFile = () => join(process.env.HOME ?? homedir(), ".bend", "bender.json");
+// The ledger is repo-root state; the override lets the publish-path test run off-tree.
+const releasesFile = () => process.env.BENDLIB_RELEASES ?? join(ROOT, "RELEASES.md");
 
 // The first line is the hub description and part of the permanent hash, so it must name the
 // version being released; a stale `name@<v>` there would freeze the wrong description forever.
@@ -39,6 +45,48 @@ export function regenerateIndex(pkg: string, name: string, version: string) {
   return sh([process.execPath, "tools/mathlib/index.ts", pkg, name, version]);
 }
 
+/** bend's stored key; without one, `bend link` starts an interactive login and hangs under spawnSync. */
+export function loginError(): string | null {
+  try {
+    const key = (JSON.parse(readFileSync(benderFile(), "utf8")) as { key?: unknown }).key;
+    if (typeof key === "string" && key !== "") return null;
+  } catch {}
+  return "not logged in (no key in ~/.bend/bender.json): run `bend login`";
+}
+
+/** Publish, verify from an empty cache, link the name, freeze the lock, regenerate README, record it. */
+export async function publish(pkg: string, name: string, version: string, expected: string): Promise<string> {
+  const pub = sh([bendBin(), join(pkg, "all.bend"), "--publish"]);
+  const got = pub.out.match(/^(0x[0-9a-f]{32})$/m)?.[1];
+  if (!got) throw new Error(`publish did not print a hash:\n${pub.out}`);
+  if (got !== expected) throw new Error(`hub hash ${got} differs from the locally computed ${expected}`);
+  console.log(`published ${got}`);
+
+  const lib = mkdtempSync(join(tmpdir(), "bendlib-verify-"));
+  const probe = join(lib, "probe.bend");
+  writeFileSync(probe, `import Base\nimport ${got}/all.bend as P\n`);
+  const v = sh([bendBin(), probe, "--check-only"], { BEND_LIB: join(lib, "lib") });
+  if (v.out !== "All terms check.") throw new Error(`fresh-cache verification of ${got} failed:\n${v.out}`);
+  console.log("verified from an empty cache");
+
+  const link = sh([bendBin(), "link", `${name}@${version}`, got]);
+  if (link.code !== 0) throw new Error(`bend link failed:\n${link.out}`);
+  const named = (await (await fetch(`${hubUrl()}/name/${name}@${version}`)).text()).trim();
+  if (named !== got) throw new Error(`hub resolves ${name}@${version} to ${named}, expected ${got}`);
+  console.log(`linked ${name}@${version} -> ${got}`);
+
+  const freeze = sh([process.execPath, "tools/mathlib/lock.ts", pkg, "--freeze", version]);
+  if (freeze.code !== 0) throw new Error(`lock freeze failed:\n${freeze.out}`);
+  // freeze rewrites the lock's since cells, so the README is only correct after this step.
+  const idx = regenerateIndex(pkg, name, version);
+  if (idx.code !== 0) throw new Error(`index regeneration for ${version} failed:\n${idx.out}`);
+  const compiler = sh([bendBin(), "version"]).out;
+  const ledger = releasesFile();
+  if (!existsSync(ledger)) writeFileSync(ledger, "# Releases\n\n| package | version | hash | compiler | date |\n|---|---|---|---|---|\n");
+  appendFileSync(ledger, `| ${name} | ${version} | \`${got}\` | ${compiler} | ${new Date().toISOString().slice(0, 10)} |\n`);
+  return got;
+}
+
 async function main(): Promise<void> {
   const [pkgArg, name, version] = process.argv.slice(2).filter((a) => !a.startsWith("--"));
   const doPublish = process.argv.includes("--publish");
@@ -52,6 +100,10 @@ async function main(): Promise<void> {
   }
   const header = headerVersionError(pkg, name, version);
   if (header) fail(header);
+  if (doPublish) {
+    const login = loginError();
+    if (login) fail(login);
+  }
 
   const gates: [string, string[]][] = [
     ["check", [process.execPath, "tools/mathlib/check.ts", pkg]],
@@ -74,43 +126,19 @@ async function main(): Promise<void> {
   try { files = packageFiles(entry); } catch (e) { if (e instanceof PkgError) usage(e.message); throw e; }
   const expected = hubHash(files);
   console.log(`expected hash ${expected} (${Object.keys(files).length} files)`);
-  const taken = await fetch(`https://hub.bend-lang.com/name/${name}@${version}`);
+  const taken = await fetch(`${hubUrl()}/name/${name}@${version}`);
   if (taken.ok) fail(`${name}@${version} already exists on the hub`);
 
   if (!doPublish) {
     console.log(`dry run. commands:\n  bend ${relative(ROOT, entry)} --publish\n  bend link ${name}@${version} ${expected}`);
     return;
   }
-
-  const pub = sh([BEND, entry, "--publish"]);
-  const got = pub.out.match(/^(0x[0-9a-f]{32})$/m)?.[1];
-  if (!got) fail(`publish did not print a hash:\n${pub.out}`);
-  if (got !== expected) fail(`hub hash ${got} differs from the locally computed ${expected}`);
-  console.log(`published ${got}`);
-
-  const lib = mkdtempSync(join(tmpdir(), "bendlib-verify-"));
-  const probe = join(lib, "probe.bend");
-  writeFileSync(probe, `import Base\nimport ${got}/all.bend as P\n`);
-  const v = sh([BEND, probe, "--check-only"], { BEND_LIB: join(lib, "lib") });
-  if (v.out !== "All terms check.") fail(`fresh-cache verification of ${got} failed:\n${v.out}`);
-  console.log("verified from an empty cache");
-
-  const link = sh([BEND, "link", `${name}@${version}`, got]);
-  if (link.code !== 0) fail(`bend link failed:\n${link.out}`);
-  const named = (await (await fetch(`https://hub.bend-lang.com/name/${name}@${version}`)).text()).trim();
-  if (named !== got) fail(`hub resolves ${name}@${version} to ${named}, expected ${got}`);
-  console.log(`linked ${name}@${version} -> ${got}`);
-
-  const freeze = sh([process.execPath, "tools/mathlib/lock.ts", pkg, "--freeze", version]);
-  if (freeze.code !== 0) fail(`lock freeze failed:\n${freeze.out}`);
-  // freeze rewrites the lock's since column, so the README is only correct after this step.
-  const idx = regenerateIndex(pkg, name, version);
-  if (idx.code !== 0) fail(`index regeneration for ${version} failed:\n${idx.out}`);
-  const compiler = sh([BEND, "version"]).out;
-  const rel = join(ROOT, "RELEASES.md");
-  if (!existsSync(rel)) writeFileSync(rel, "# Releases\n\n| package | version | hash | compiler | date |\n|---|---|---|---|---|\n");
-  appendFileSync(rel, `| ${name} | ${version} | \`${got}\` | ${compiler} | ${new Date().toISOString().slice(0, 10)} |\n`);
-  console.log(`regenerated ${relative(ROOT, join(pkg, "README.md"))}; recorded in RELEASES.md; tag with: git tag ${name}-v${version}`);
+  try {
+    const got = await publish(pkg, name, version, expected);
+    console.log(`regenerated ${relative(ROOT, join(pkg, "README.md"))}; recorded in ${relative(ROOT, releasesFile())}; tag with: git tag ${name}-v${version} (${got})`);
+  } catch (e) {
+    fail(e instanceof Error ? e.message : String(e));
+  }
 }
 
 if (import.meta.main) await main();

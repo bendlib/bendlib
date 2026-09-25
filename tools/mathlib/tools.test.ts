@@ -1,13 +1,13 @@
 // Tests for the bend-mathlib tools against committed fixtures (real compiler runs).
 import { expect, test } from "bun:test";
 import { createHash } from "node:crypto";
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { hubHash, packageFiles } from "./hash.ts";
 import { baseNames, BEND, parseModule, packageModules } from "./lib.ts";
-import { headerVersionError, regenerateIndex } from "./release.ts";
+import { headerVersionError, loginError, publish, regenerateIndex } from "./release.ts";
 
 const dir = import.meta.dir;
 const run = (script: string, ...args: string[]) => {
@@ -235,6 +235,213 @@ test("release: lock --freeze leaves README stale until regenerateIndex runs (the
   expect(regenerateIndex(tmp, "fixture-package", "0.2.0.0").code).toBe(0);
   expect(readFileSync(join(tmp, "README.md"), "utf8")).toContain("fixture-package@0.2.0.0");
   expect(run("index.ts", tmp, "fixture-package", "0.2.0.0", "--check").code).toBe(0);
+});
+
+// A local BendHub in its own process (Bun.spawnSync in release.ts would deadlock a server in the
+// test's event loop). GET /__state reports what the hub received.
+const MOCK_HUB_SRC = `
+import { createHash } from "node:crypto";
+const packages = new Map();
+const names = new Map();
+const publishes = [];
+const server = Bun.serve({
+  port: 0,
+  async fetch(req) {
+    const p = new URL(req.url).pathname;
+    if (req.method === "POST" && p === "/") {
+      const body = await req.json().catch(() => null);
+      const files = body && body.files;
+      if (!files) return new Response("bad request", { status: 400 });
+      const manifest = Object.keys(files).sort().map((x) => createHash("sha256").update(files[x]).digest("hex") + " " + x + "\\n").join("");
+      const hash = "0x" + createHash("sha256").update(manifest).digest("hex").slice(0, 32);
+      packages.set(hash, { manifest, files });
+      publishes.push(hash);
+      return new Response(process.env.MOCK_TAMPER === "1" ? "0x" + "1".repeat(32) + "\\n" : hash + "\\n");
+    }
+    if (req.method === "GET" && p === "/__state") return Response.json({ publishes, names: Object.fromEntries(names) });
+    if (req.method === "GET" && p === "/publish-check") return Response.json({ name: "free", version_ok: true, reason: "" });
+    if (req.method === "POST" && p === "/register") return Response.json({ ok: true });
+    if (req.method === "POST" && p === "/link") {
+      const body = await req.json();
+      names.set(body.name + "@" + body.version, body.hash);
+      return Response.json({ ok: true });
+    }
+    if (req.method === "GET" && p.startsWith("/name/")) {
+      const hash = names.get(p.slice(6));
+      return hash === undefined ? new Response("", { status: 404 }) : new Response(hash + "\\n");
+    }
+    const seg = p.split("/");
+    if (req.method === "GET" && seg.length >= 3 && /^0x[0-9a-f]{32}$/.test(seg[1])) {
+      const pkg = packages.get(seg[1]);
+      if (!pkg) return new Response("", { status: 404 });
+      if (seg[2] === "manifest") return new Response(pkg.manifest);
+      const file = pkg.files[seg.slice(2).join("/")];
+      return file === undefined ? new Response("", { status: 404 }) : new Response(file);
+    }
+    return new Response("not found", { status: 404 });
+  },
+});
+console.log(String(server.port));
+`;
+
+async function startMockHub(extraEnv: Record<string, string> = {}) {
+  const file = join(mkdtempSync(join(tmpdir(), "bend-mock-hub-")), "hub.ts");
+  writeFileSync(file, MOCK_HUB_SRC);
+  const proc = Bun.spawn([process.execPath, file], { stdout: "pipe", stderr: "inherit", env: { ...process.env, ...extraEnv } });
+  const first = await proc.stdout.getReader().read();
+  const port = new TextDecoder().decode(first.value ?? new Uint8Array()).trim();
+  expect(port).toMatch(/^\d+$/);
+  const url = `http://127.0.0.1:${port}`;
+  const state = async () => (await (await fetch(`${url}/__state`)).json()) as { publishes: string[]; names: Record<string, string> };
+  return { url, state, stop: () => proc.kill() };
+}
+
+function makeReleasePkg(name: string, version: string): string {
+  const pkg = join(mkdtempSync(join(tmpdir(), "bend-release-pkg-")), "pkg");
+  mkdirSync(pkg);
+  cpSync(join(dir, "fixtures/good/list.bend"), join(pkg, "list.bend"));
+  writeFileSync(join(pkg, "all.bend"),
+    `# ${name}: fixture lemmas; import one module, e.g. ${name}@${version}/list.bend.\nimport Base\nimport ./list.bend as L\n`);
+  expect(run("lock.ts", pkg, "--update").code).toBe(0);
+  return pkg;
+}
+
+// A bend stand-in for the untestable part: --publish mines a proof of work (minutes here). It
+// speaks the same CLI and hub protocol as main.ts; other calls delegate to the real bend.
+function makePublishStub(): string {
+  const stub = join(mkdtempSync(join(tmpdir(), "bend-publish-stub-")), "bend");
+  writeFileSync(stub, `#!${process.execPath}
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { packageFiles } from "${join(dir, "hash.ts")}";
+
+const REAL = process.env.BEND_REAL ?? "";
+const HUB = process.env.BEND_HUB ?? "";
+const args = process.argv.slice(2);
+const key = () => {
+  try { return String((JSON.parse(readFileSync(join(process.env.HOME ?? "", ".bend", "bender.json"), "utf8"))).key ?? ""); } catch { return ""; }
+};
+const post = (route, body) => fetch(HUB + route, { method: "POST",
+  headers: { authorization: "Bearer " + key(), "content-type": "application/json" }, body: JSON.stringify(body) });
+
+if (args.includes("--publish")) {
+  const res = await fetch(HUB, { method: "POST", body: JSON.stringify({ files: packageFiles(args[0]), nonce: 0 }) });
+  console.log((await res.text()).trim());
+  process.exit(res.ok ? 0 : 1);
+}
+if (args[0] === "link") {
+  const [name, version] = args[1].split("@");
+  const check = await (await fetch(HUB + "/publish-check?name=" + name + "&version=" + version,
+    { headers: { authorization: "Bearer " + key() } })).json();
+  if (check.name === "free") await post("/register", { name });
+  await post("/link", { name, version, hash: args[2] });
+  console.log("linked " + args[1] + " to " + args[2]);
+  process.exit(0);
+}
+const p = Bun.spawnSync([REAL, ...args], { env: process.env });
+process.stdout.write(p.stdout);
+process.stderr.write(p.stderr);
+process.exit(p.exitCode);
+`, { mode: 0o755 });
+  return stub;
+}
+
+test("release: loginError is null with a key and typed without one (planted pair)", () => {
+  const saved = process.env.HOME;
+  try {
+    const bad = mkdtempSync(join(tmpdir(), "bend-login-bad-"));
+    process.env.HOME = bad;
+    expect(loginError()).toContain("run `bend login`");
+    const good = mkdtempSync(join(tmpdir(), "bend-login-good-"));
+    mkdirSync(join(good, ".bend"));
+    writeFileSync(join(good, ".bend", "bender.json"), JSON.stringify({ key: "test-key", login: "tester" }) + "\n");
+    process.env.HOME = good;
+    expect(loginError()).toBeNull();
+  } finally {
+    if (saved === undefined) delete process.env.HOME; else process.env.HOME = saved;
+  }
+});
+
+test("release publish: a local mock hub exercises publish, verify, link, freeze and README", async () => {
+  const hub = await startMockHub();
+  const home = mkdtempSync(join(tmpdir(), "bend-release-home-"));
+  mkdirSync(join(home, ".bend"));
+  writeFileSync(join(home, ".bend", "bender.json"), JSON.stringify({ key: "test-key", login: "tester" }) + "\n");
+  const releases = join(mkdtempSync(join(tmpdir(), "bend-ledger-")), "RELEASES.md");
+  const pkg = makeReleasePkg("fixture-package", "0.2.0.0");
+  const stub = makePublishStub();
+  const saved = { HOME: process.env.HOME, BEND_HUB: process.env.BEND_HUB, BENDLIB_RELEASES: process.env.BENDLIB_RELEASES, BEND_CLI: process.env.BEND_CLI, BEND_REAL: process.env.BEND_REAL };
+  process.env.HOME = home;
+  process.env.BEND_HUB = hub.url;
+  process.env.BENDLIB_RELEASES = releases;
+  process.env.BEND_CLI = stub;
+  process.env.BEND_REAL = BEND;
+  try {
+    const expected = hubHash(packageFiles(join(pkg, "all.bend")));
+    const got = await publish(pkg, "fixture-package", "0.2.0.0", expected);
+    expect(got).toBe(expected);
+    expect((await hub.state()).publishes).toEqual([expected]);
+    const lock: Record<string, { since: string | null }> = JSON.parse(readFileSync(join(pkg, "PUBLIC_API.lock"), "utf8"));
+    expect(Object.values(lock).every((e) => e.since === "0.2.0.0")).toBe(true);
+    expect(readFileSync(join(pkg, "README.md"), "utf8")).toContain("fixture-package@0.2.0.0");
+    expect(readFileSync(releases, "utf8")).toContain(`| fixture-package | 0.2.0.0 | \`${got}\` |`);
+  } finally {
+    if (saved.HOME === undefined) delete process.env.HOME; else process.env.HOME = saved.HOME;
+    if (saved.BEND_HUB === undefined) delete process.env.BEND_HUB; else process.env.BEND_HUB = saved.BEND_HUB;
+    if (saved.BENDLIB_RELEASES === undefined) delete process.env.BENDLIB_RELEASES; else process.env.BENDLIB_RELEASES = saved.BENDLIB_RELEASES;
+    if (saved.BEND_CLI === undefined) delete process.env.BEND_CLI; else process.env.BEND_CLI = saved.BEND_CLI;
+    if (saved.BEND_REAL === undefined) delete process.env.BEND_REAL; else process.env.BEND_REAL = saved.BEND_REAL;
+    hub.stop();
+  }
+}, 180000);
+
+test("release publish: a hub that echoes a different hash is refused before link/freeze (planted negative)", async () => {
+  const hub = await startMockHub({ MOCK_TAMPER: "1" });
+  const home = mkdtempSync(join(tmpdir(), "bend-release-tamper-home-"));
+  mkdirSync(join(home, ".bend"));
+  writeFileSync(join(home, ".bend", "bender.json"), JSON.stringify({ key: "test-key", login: "tester" }) + "\n");
+  const releases = join(mkdtempSync(join(tmpdir(), "bend-ledger-tamper-")), "RELEASES.md");
+  const pkg = makeReleasePkg("fixture-package", "0.2.0.0");
+  const stub = makePublishStub();
+  const saved = { HOME: process.env.HOME, BEND_HUB: process.env.BEND_HUB, BENDLIB_RELEASES: process.env.BENDLIB_RELEASES, BEND_CLI: process.env.BEND_CLI, BEND_REAL: process.env.BEND_REAL };
+  process.env.HOME = home;
+  process.env.BEND_HUB = hub.url;
+  process.env.BENDLIB_RELEASES = releases;
+  process.env.BEND_CLI = stub;
+  process.env.BEND_REAL = BEND;
+  try {
+    const expected = hubHash(packageFiles(join(pkg, "all.bend")));
+    await expect(publish(pkg, "fixture-package", "0.2.0.0", expected)).rejects.toThrow(/differs from the locally computed/);
+    const state = await hub.state();
+    expect(state.publishes).toHaveLength(1);
+    expect(state.names["fixture-package@0.2.0.0"]).toBeUndefined();
+    expect(readFileSync(join(pkg, "PUBLIC_API.lock"), "utf8")).not.toContain("0.2.0.0");
+    expect(existsSync(join(pkg, "README.md"))).toBe(false);
+  } finally {
+    if (saved.HOME === undefined) delete process.env.HOME; else process.env.HOME = saved.HOME;
+    if (saved.BEND_HUB === undefined) delete process.env.BEND_HUB; else process.env.BEND_HUB = saved.BEND_HUB;
+    if (saved.BENDLIB_RELEASES === undefined) delete process.env.BENDLIB_RELEASES; else process.env.BENDLIB_RELEASES = saved.BENDLIB_RELEASES;
+    if (saved.BEND_CLI === undefined) delete process.env.BEND_CLI; else process.env.BEND_CLI = saved.BEND_CLI;
+    if (saved.BEND_REAL === undefined) delete process.env.BEND_REAL; else process.env.BEND_REAL = saved.BEND_REAL;
+    hub.stop();
+  }
+}, 60000);
+
+test("release --publish: no stored key fails typed before publish touches the hub (planted negative)", async () => {
+  const hub = await startMockHub();
+  const home = mkdtempSync(join(tmpdir(), "bend-release-nologin-"));
+  const releases = join(mkdtempSync(join(tmpdir(), "bend-ledger-neg-")), "RELEASES.md");
+  const pkg = makeReleasePkg("fixture-package", "0.2.0.0");
+  try {
+    const r = runWith({ HOME: home, BEND_CLI: BEND, BEND_HUB: hub.url, BENDLIB_RELEASES: releases }, "release.ts", pkg, "fixture-package", "0.2.0.0", "--publish");
+    expect(r.code).toBe(1);
+    expect(r.out).toContain("run `bend login`");
+    expect((await hub.state()).publishes).toHaveLength(0);
+    expect(existsSync(join(pkg, "README.md"))).toBe(false);
+    expect(readFileSync(join(pkg, "PUBLIC_API.lock"), "utf8")).not.toContain("0.2.0.0");
+  } finally {
+    hub.stop();
+  }
 });
 
 test("a missing or non-directory package path is a typed usage error, exit 2, no stack", () => {
