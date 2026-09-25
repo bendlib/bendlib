@@ -6,6 +6,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { rewrite, splitEquation } from "../src/terms.ts";
 import { parseTy, showTy } from "../src/types.ts";
+import { predictTooLarge } from "../src/lawcheck.ts";
 
 const CLI = path.join(import.meta.dir, "..", "cli.ts");
 const FX = path.join(import.meta.dir, "fixtures");
@@ -305,6 +306,14 @@ describe("too-large instances and --max-nat", () => {
     expect(l.status).toBe("pass");
     expect(l.tooLarge ?? 0).toBe(0);
   }, T);
+
+  test("predictTooLarge drops only Nat equations that the checker cannot normalize", () => {
+    expect(predictTooLarge("{Nat.pow(30n, 5n) == Nat.mul(30n, Nat.pow(30n, 4n)) : Nat}")).toBe(true);
+    expect(predictTooLarge("{Nat.pow(2n, 3n) == 8n : Nat}")).toBe(false);
+    // A huge Nat subterm under a non-Nat claim is left to the checker (soundness guard).
+    expect(predictTooLarge("{Nat.is_le(Nat.pow(30n, 5n), 0n) == True{} : Bool}")).toBe(false);
+    expect(predictTooLarge("{Nat.add(two(), 0n) == 0n : Nat}")).toBe(false);
+  });
 });
 
 describe("imports and --impl", () => {

@@ -390,6 +390,65 @@ function splitTuple(s: string): string[] | null {
 /** Components safe to compare by printed form: a Bool, a number/char/string literal. */
 const trustComp = (s: string) => /^(True\{\}|False\{\}|-?\d+n|-?\d+|'[^']*'|"(?:[^"\\]|\\.)*")$/.test(s);
 
+// A unary `Nat` past this many constructors needs >200k nested calls, beyond V8's ~1 MB stack, so
+// the checker can only drop it as too large — predicting it just saves the run (PLAN F31).
+const OVERFLOW_NAT = 200000n;
+const capNat = (v: bigint) => (v > OVERFLOW_NAT ? OVERFLOW_NAT + 1n : v);
+
+function splitTopArgs(s: string): string[] {
+  const out: string[] = [];
+  let depth = 0, cur = "";
+  for (const ch of s) {
+    if ("([{<".includes(ch)) depth++;
+    else if (")]}>".includes(ch)) depth--;
+    if (ch === "," && depth === 0) { out.push(cur); cur = ""; }
+    else cur += ch;
+  }
+  out.push(cur);
+  return out;
+}
+
+/** A capped evaluation of a rendered `Nat` expression, or null when it is not one. */
+function evalNat(s: string): bigint | null {
+  let t = s.trim();
+  for (;;) {
+    if (!(t.startsWith("(") && t.endsWith(")"))) break;
+    let depth = 0, whole = true;
+    for (let i = 0; i < t.length; i++) {
+      if (t[i] === "(") depth++;
+      else if (t[i] === ")" && --depth === 0 && i !== t.length - 1) { whole = false; break; }
+    }
+    if (!whole) break;
+    t = t.slice(1, -1).trim();
+  }
+  const lit = /^(\d+)n$/.exec(t);
+  if (lit !== null) return BigInt(lit[1]);
+  const suc = /^(\d+)n\+(.+)$/s.exec(t);
+  if (suc !== null) { const r = evalNat(suc[2]); return r === null ? null : capNat(BigInt(suc[1]) + r); }
+  const app = /^Nat\.(add|mul|pow)\(([\s\S]*)\)$/.exec(t);
+  if (app === null) return null;
+  const args = splitTopArgs(app[2]);
+  if (args.length !== 2) return null;
+  const a = evalNat(args[0]), b = evalNat(args[1]);
+  if (a === null || b === null) return null;
+  if (app[1] === "add") return capNat(a + b);
+  if (app[1] === "mul") return a === 0n || b === 0n ? 0n : capNat(a * b);
+  if (b === 0n) return 1n;
+  if (a <= 1n) return a;
+  if (b > 1000n) return OVERFLOW_NAT + 1n;
+  let v = 1n;
+  for (let i = 0n; i < b; i++) { v *= a; if (v > OVERFLOW_NAT) return OVERFLOW_NAT + 1n; }
+  return v;
+}
+
+/** True only for a `Nat`-typed equation whose side evaluates past the checker's stack bound. */
+export function predictTooLarge(claim: string): boolean {
+  const eq = splitEquation(claim);
+  if (eq === null || eq.type !== "Nat") return false;
+  const a = evalNat(eq.lhs), b = evalNat(eq.rhs);
+  return (a !== null && a > OVERFLOW_NAT) || (b !== null && b > OVERFLOW_NAT);
+}
+
 function generable(U: Universe, ty: Ty): boolean {
   try {
     U.check(ty);
@@ -995,14 +1054,22 @@ async function checkLaw(L: Loaded, d: Decl, li: number, o: Options, U: Universe,
     if (p.kind === "refutation") {
       failing = sat.map((inst) => ({ inst }));
     } else {
-      const batched = E.unsafe.length === 0 ? await claimBatches(sat) : null;
+      const claims = sat.map((inst) => texts(inst).claim);
+      const live: Inst[] = [];
+      let predicted = 0;
+      for (let i = 0; i < sat.length; i++) {
+        if (predictTooLarge(claims[i])) predicted++;
+        else live.push(sat[i]);
+      }
+      if (predicted > 0) { tooLarge += predicted; base.tooLarge = tooLarge; }
+      const batched = E.unsafe.length === 0 ? await claimBatches(live) : null;
       let items: Item[];
       let res: Map<string, Outcome>;
       if (batched !== null) {
         items = batched.items;
         res = batched.res;
       } else {
-        items = sat.map((inst) => ({ id: id(), claim: texts(inst).claim }));
+        items = live.map((inst) => ({ id: id(), claim: texts(inst).claim }));
         // The first batch stops on the first undecidable instance, so a law the checker cannot
         // decide is skipped at once instead of once per instance (PLAN F22).
         const head = items.slice(0, 32), tail = items.slice(32);
@@ -1014,8 +1081,8 @@ async function checkLaw(L: Loaded, d: Decl, li: number, o: Options, U: Universe,
       passed = outs.filter((o) => o.r === "pass" || o.r === "open").length;
       const claimTooLarge = outs.filter((o) => o.r === "toolarge").length;
       if (claimTooLarge > 0) { tooLarge += claimTooLarge; base.tooLarge = tooLarge; }
-      failing = sat.map((inst, i) => ({ inst, out: res.get(items[i].id)! })).filter((x) => x.out.r === "fail");
-      if (o.native) base.native = await nativeCheck(sat, items, res);
+      failing = live.map((inst, i) => ({ inst, out: res.get(items[i].id)! })).filter((x) => x.out.r === "fail");
+      if (o.native) base.native = await nativeCheck(live, items, res);
     }
     base.failures = failing.length;
     if (failing.length === 0) {
