@@ -7,6 +7,7 @@ import { join } from "node:path";
 
 import { hubHash, packageFiles } from "./hash.ts";
 import { baseNames, BEND, parseModule, packageModules } from "./lib.ts";
+import { headerVersionError, regenerateIndex } from "./release.ts";
 
 const dir = import.meta.dir;
 const run = (script: string, ...args: string[]) => {
@@ -180,6 +181,60 @@ test("release: a climbing package is a typed usage error, exit 2, no stack", () 
   expect(r.out).toContain("is outside the entry directory");
   expect(r.out).toContain("usage: release.ts <pkgdir>");
   expect(r.out).not.toMatch(STACK);
+});
+
+test("release: headerVersionError flags a stale all.bend header, accepts the target (planted pair)", () => {
+  const tmp = mkdtempSync(join(tmpdir(), "bend-release-header-"));
+  const entry = join(tmp, "all.bend");
+  writeFileSync(entry, "# fixture-package: import fixture-package@0.1.0.0/bools.bend.\nimport Base\n");
+  const err = headerVersionError(tmp, "fixture-package", "0.2.0.0");
+  expect(err).toContain("names fixture-package@0.1.0.0");
+  expect(err).toContain("release target is fixture-package@0.2.0.0");
+  writeFileSync(entry, "# fixture-package: import fixture-package@0.2.0.0/bools.bend.\nimport Base\n");
+  expect(headerVersionError(tmp, "fixture-package", "0.2.0.0")).toBeNull();
+});
+
+test("release: headerVersionError reads only the first line and only this package's version (planted negative)", () => {
+  const tmp = mkdtempSync(join(tmpdir(), "bend-release-header-neg-"));
+  writeFileSync(join(tmp, "all.bend"), "# fixture-package: a stub.\n# import fixture-package@0.1.0.0/bools.bend in the second line.\nimport Base\n");
+  expect(headerVersionError(tmp, "fixture-package", "0.2.0.0")).toBeNull();
+  writeFileSync(join(tmp, "all.bend"), "# fixture-package: depends on other-package@0.1.0.0.\nimport Base\n");
+  expect(headerVersionError(tmp, "fixture-package", "0.2.0.0")).toBeNull();
+  writeFileSync(join(tmp, "all.bend"), "# my-fixture-package: import my-fixture-package@0.1.0.0/bools.bend.\nimport Base\n");
+  expect(headerVersionError(tmp, "fixture-package", "0.2.0.0")).toBeNull();
+});
+
+test("release: the dry run fails on a stale header before any gate or hash (planted negative)", () => {
+  const tmp = mkdtempSync(join(tmpdir(), "bend-release-gate-"));
+  mkdirSync(join(tmp, "pkg"));
+  writeFileSync(join(tmp, "pkg", "all.bend"), "# fixture-package: import fixture-package@0.1.0.0/bools.bend.\nimport Base\n");
+  const r = run("release.ts", join(tmp, "pkg"), "fixture-package", "0.2.0.0");
+  expect(r.code).toBe(1);
+  expect(r.out).toContain("names fixture-package@0.1.0.0");
+  expect(r.out).not.toContain("FAIL check");
+  expect(r.out).not.toContain("expected hash");
+});
+
+test("release: a correct header passes the gate and the run reaches the check gate", () => {
+  const tmp = mkdtempSync(join(tmpdir(), "bend-release-gate-ok-"));
+  mkdirSync(join(tmp, "pkg"));
+  writeFileSync(join(tmp, "pkg", "all.bend"), "# fixture-package: import fixture-package@0.2.0.0/bools.bend.\nimport Base\n");
+  const r = runWith({ BEND_CLI: "/bin/false" }, "release.ts", join(tmp, "pkg"), "fixture-package", "0.2.0.0");
+  expect(r.code).toBe(1);
+  expect(r.out).not.toContain("release target is");
+  expect(r.out).toContain("FAIL check");
+});
+
+test("release: lock --freeze leaves README stale until regenerateIndex runs (the post-freeze path)", () => {
+  const tmp = mkdtempSync(join(tmpdir(), "bend-index-regen-"));
+  cpSync(join(dir, "fixtures/index"), tmp, { recursive: true });
+  expect(run("index.ts", tmp, "fixture-package", "0.1.0.0").code).toBe(0);
+  expect(run("index.ts", tmp, "fixture-package", "0.2.0.0", "--check").code).toBe(1);
+  expect(run("lock.ts", tmp, "--freeze", "0.2.0.0").code).toBe(0);
+  expect(run("index.ts", tmp, "fixture-package", "0.2.0.0", "--check").code).toBe(1);
+  expect(regenerateIndex(tmp, "fixture-package", "0.2.0.0").code).toBe(0);
+  expect(readFileSync(join(tmp, "README.md"), "utf8")).toContain("fixture-package@0.2.0.0");
+  expect(run("index.ts", tmp, "fixture-package", "0.2.0.0", "--check").code).toBe(0);
 });
 
 test("a missing or non-directory package path is a typed usage error, exit 2, no stack", () => {
