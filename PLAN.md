@@ -61,10 +61,10 @@ structures (`bendlib-heap`, `bendlib-rbmap` over frozen kernels, §3.4), lawful 
 | F28 | `map_map` with a composed closed template `~(x => g(f(x)))` checks; `Equal.sym(T, l, r, e)` twins check at generic quantity, and the reversed (`{r == l}`) form is the one that **simplifies** under `%` | `review2/t3_map_map`, `t6_twins` | Twins are the common rewrite direction (§3.1.6) |
 | F29 | Bare `(a <= b)` without `: Nat` is a hard error since 2.0.16; `bend link <name>@<ver> 0x<hash>` names an already-published hash; `BEND_HUB` env overrides the hub URL; `names/` cache entries are never re-validated | `review2/t2a`; CLI help; binary strings | Docs show `(a <= b : Nat)`; release = anonymous publish → verify → `bend link`; dev caches start empty |
 | F30 | `bun build --compile tools/lawcheck/cli.ts` gives a standalone binary that runs lawcheck, also from an empty `BENDLIB_CACHE` (it fetches and imports `bend.ts` at run time) | 2026-09-24, linux-x64, `correct.bend`/`buggy.bend` fixtures | lawcheck binary release is packaging work only |
-| F31 | lawcheck's random `Nat` values (up to 30) make `Nat.pow` laws overflow the checker ("the machine stack overflowed"); the whole law then reports `!` instead of dropping that one instance | `research/candidates/mathlib-0.2/nat.bend`, laws `pow_succ`, `pow_add` | Per-instance "too large" handling and a `--max-nat` bound (bead) — fixed 2026-09-24 (bead `bend-23x.1`): overflowing instances are dropped per item (`toolarge`) and `--max-nat` bounds random Nats; `research/candidates/mathlib-0.2/nat.bend` now reports 0 `!` |
-| F32 | Every bend-mathlib 0.1 law is lawcheck-clean: 107 ✓, 12 skipped (template or function binders), 0 ✗, about 30 s for the four modules on 32 cores | `bun tools/lawcheck/cli.ts packages/bend-mathlib/<m>.bend` | lawcheck can gate mathlib CI |
+| F31 | lawcheck's random `Nat` values (up to 30) make `Nat.pow` laws overflow the checker ("the machine stack overflowed"); the whole law then reports `!` instead of dropping that one instance | `research/candidates/mathlib-0.2/nat.bend`, laws `pow_succ`, `pow_add` | Overflowing instances are dropped per item (`toolarge`) and `--max-nat` bounds random Nats (bead `bend-23x.1`). |
+| F32 | Every bend-mathlib 0.1 law is lawcheck-clean: 107 ✓, 12 skipped (template or function binders), 0 ✗; ≈25 s for the five modules here (nat.bend alone ≈9 s) | `bun tools/lawcheck/cli.ts packages/bend-mathlib/<m>.bend` | lawcheck can gate mathlib CI |
 | F33 | Open bend issue #1001: one `@unsafe` law fill in an imported file makes `bend PROOF.bend` print a clean `All terms check.` | github.com/bendlang/bend/issues/1001 | A clean verdict alone is not a trustworthy status: docs cross-check the source for `@unsafe`; mathlib's `check.ts` already scans source |
-| F34 | 80 candidate 0.2 statements (Nat `sub`/`min`/`max`/`pow`/reflection/order, List `take`/`drop`/`length`, Bool) type-check and have no counterexample (78 ✓, 2 `!` from F31, 1 skipped); 7 template statements type-check (lawcheck skips them) | `research/candidates/mathlib-0.2/*.bend` | 0.2 lemma beads copy statements verbatim from there. Updated 2026-09-24: the two overflow `!` are gone (F31 fixed, bead `bend-23x.1`); `for m in research/candidates/mathlib-0.2/*.bend; do bun tools/lawcheck/cli.ts "$m" --max-instances 100; done` now reports 87 laws, 0 ✗, 0 `!` (1 ~) |
+| F34 | 80 candidate 0.2 statements (Nat `sub`/`min`/`max`/`pow`/reflection/order, List `take`/`drop`/`length`, Bool) type-check and have no counterexample (78 ✓, 2 `!` from F31, 1 skipped); 7 template statements type-check (lawcheck skips them) | `research/candidates/mathlib-0.2/*.bend` | 0.2 lemma beads copy statements verbatim from there; the candidate files report 87 laws, 0 ✗, 0 `!` (1 ~). |
 
 ---
 
@@ -78,18 +78,15 @@ structures (`bendlib-heap`, `bendlib-rbmap` over frozen kernels, §3.4), lawful 
   Why: `bend.ts` changes several times a day; parsing with a mismatched version silently misreads
   code. A tool that parses exactly like the user's compiler cannot drift.
   Fallback: `--bend-src <dir>` to point at a local checkout (for compiler developers / offline).
-- **API (small, stable):**
-  - `load(file, {bendLib?}) → Book` (runs `book_load` with an isolated `seen` map; honours `BEND_LIB`).
-  - `decls(book, {own: true}) → Decl[]` where `Decl = {name, ns, kind: type|ctor|def|law|template|effect|unsafe, span, doc, signature, statement?, binders?}`.
-    `doc` = contiguous `#` comment lines directly above the declaration (from the span's source text).
-  - `show(term) → string` pretty-printer. Types are HOAS closures in `bend.ts`; printing needs
-    `term_lower`/the checker's own show path — first task is to find the exact call sequence that
-    reproduces `bend`'s error-message rendering (e.g. `List<&2, Nat>`), which is proven readable.
-  - `lawShape(decl) → {binders: [{name, quant, erased, type, where?}], exs?, claim: {kind: eq|pred|pi, lhs?, rhs?, type?}}`.
-  - `splice(file, span, text) → string` for source rewriting (mutation, instance generation).
+- **API (small, stable):** `load`, `decls`, `show`, `blankImports` (`tools/reader/index.ts`).
+  - `load(file, {bendLib?}) → Loaded` (runs `book_load` with an isolated `seen` map; honours `BEND_LIB`).
+  - `decls(loaded, {scope?}) → Decl[]`, `scope: "own" | "all-non-base" | "all"`; `Decl` = `{name, namespace, kind: type|ctor|def|law|template|effect|unsafe, origin, file, line, column, doc, signature, statement?, binders?, proved?, …}`.
+    `doc` = contiguous `#` comment lines directly above the declaration.
+  - `show(bend, term, binders?) → string` — bend.ts's own `term_show`, so output matches the checker.
+  - `blankImports(text) → string` — blanks import lines (same offsets) so a file parses standalone.
 - **Isolation:** never touch the user's `~/.bend/lib` unless asked; tools pass a private `BEND_LIB`.
-- **Tests:** golden decl dumps for the experiment files and 5 real hub packages; re-run on each new
-  compiler release (the tool's own compatibility check).
+- **Tests:** golden decl dumps for 4 cases (`tools/reader/test/golden/`), one against a real hub
+  package; re-run on each new compiler release (the tool's own compatibility check).
 
 Risk: `bend.ts` is internal; exports can change. Mitigation: all access goes through this one
 package; a version bump that breaks it breaks one adapter, not every tool.
@@ -242,8 +239,7 @@ quantities are independent: `rbtree<ak, av, -K: Kind(ak), -V: Kind(av)> is Kind(
   5. Tool appends `{name, version, hash, compiler}` to `RELEASES.md`; README shows the named import and
      the hash import (content survives even if a name is lost); git tag.
 - Versioning: dependents pin exact versions; nothing resolves ranges, so a fix release repairs nobody
-  automatically — the README carries a `bend-mathlib version × bend version` compatibility table
-  maintained by the nightly job.
+  automatically — a version matrix mapping mathlib versions to Bend versions is planned but not built.
 
 ### 3.6 mathlib CI (the only gates)
 1. Pinned compiler from `toolchain.json` (download release archive, verify sha256).
@@ -349,8 +345,8 @@ it never proves anything.
    hostile input. Re-verify all packages when a new compiler version appears (status is per compiler
    version).
 5. Render static HTML (bun script, no framework) + a JSON search index; client-side search.
-6. Deploy to GitHub Pages (or Cloudflare Pages); rebuild on a schedule (hourly) from GitHub Actions or
-   the owner's machine.
+6. Deploy to GitHub Pages (or Cloudflare Pages); rebuild on a schedule (GitHub runs it every few
+   hours) from GitHub Actions or the owner's machine.
 7. `bend-docs build <dir>`: the same renderer for local packages, so authors preview their docs
    (and mathlib's own docs come from it).
 
@@ -394,81 +390,15 @@ modules from JS). Dogfooding where laws add value; TypeScript for plumbing.
 
 ## 7. Build order
 
-### 7.1 Done (2026-09-24)
+### 7.1 Shipped
+Pinned toolchain and CI; `@bendlib/reader` (§2); bend-mathlib on the hub (RELEASES.md) with
+check/lint/twins/lock/index/release tools; lawcheck 0.2 (engine C, shrinking, premises, datatypes,
+template catalog, `mutate`, `--json`, `--native`, tag-triggered binaries); Bend Docs at
+https://bendlib.github.io/bendlib/. Not built: `devlib` (§3.5).
 
-Steps 1–3 of the first build order shipped in one day: pinned toolchain and CI; `@bendlib/reader`
-(the §2 keystone, renamed); bend-mathlib 0.1.0.0 and 0.1.0.1 on the hub (72 lemmas, 47 `_sym` twins,
-4 predicates) with lint, erasure, twins, lock, index and release tools; lawcheck v0.1 (engine C,
-shrinking, premises, user datatypes, `--json`, `--impl`) — it now ships as **0.2.0** with mutation
-mode, `where`/`exs` and a template catalog (`tools/lawcheck/src/lawcheck.ts` `VERSION = "0.2.0"`);
-Bend Docs v0.1 live at
-https://bendlib.github.io/bendlib/ (every hub package, checked status, reverse deps, law-shape search,
-hourly rebuild); launch demo, hub post and X thread. Not built: `devlib` (no second package needs it
-yet; `tools/mathlib/devlib.ts` absent) and template generators. Landed since this snapshot (status
-refreshed 2026-09-24):
-mutation mode with its CLI entry (bead `bend-23x.5`; `tools/lawcheck/src/mutate.ts`, `tools/lawcheck/cli.ts`),
-a sandbox for docs checking (`tools/docs/src/status.ts` `sandboxAvailable`/`checkCommand`, bwrap) and a
-source view (`tools/docs/src/render.ts` `srcPage`/`renderSource`), API diff
-between versions (`tools/docs/src/model.ts` `apiDiff`), agent-facing `llms.txt`/`lemmas.txt`
-(`tools/docs/build.ts`), and a local preview of a local entry file (`tools/docs/build.ts --local
-entry.bend`).
-
-### 7.2 Next phase: mathlib → lawcheck → docs
-
-Priority order is the owner's: mathlib first, then lawcheck, then docs. The work is in beads
-(`br ready`); each bead is self-contained with commands and expected output. This section says
-what the work is and why it is ordered this way.
-
-**Why this order is the most accretive.** Every Bend proof bottoms out in basic facts; each lemma
-we add is one fewer re-proof in every project, and the hub has no other shared lemma base. Lemma
-work is also where an agent swarm is safest: the checker is the judge, so a wrong proof cannot
-land (statements are pre-screened by lawcheck, F34). lawcheck's mutation mode answers Bend's main
-criticism (laws too weak to pin the code) and is the best launch story after mathlib. Docs work
-compounds on both (mathlib is its showcase package) but is already live, so it goes last.
-
-**Track M: bend-mathlib 0.2** (no kernel needed)
-1. `index.ts` marks lemmas by the version that published them (from `PUBLIC_API.lock` `since`), so
-   the README can list unreleased lemmas honestly. Blocks every lemma bead.
-2. Lemma batches, statements copied from `research/candidates/mathlib-0.2/`: Bool (15, the
-   calibration batch: easy proofs), Nat `sub` (9), `min`/`max` (15, two beads), `pow`/`double` (6),
-   `Nat.is_*` reflection (8), order (8), List `take`/`drop` (10), List basics (9), List templates (7,
-   two beads). Each batch passes the same gates as 0.1 (check, lint `--erasure`, twins, lock, index).
-3. lawcheck becomes a mathlib CI gate (after the F31 fix).
-4. Release 0.2.0.0 (owner: publishing is permanent and tied to the owner's login).
-5. Frozen definitions (§3.3), research first, owner decides: `mem`/`sorted_by` Base-only
-   predicates; `perm` count-based vs inductive (D3). Then the kernel package, published once by the
-   owner, and the perm lemmas that import it by hash.
-
-**Track L: lawcheck 0.2** — done (status refreshed 2026-09-24)
-1. **Done.** Fixes: too-large instances (F31; PLAN F31) and the reader bug with several constructors
-   on one line (`tools/reader/test/reader.test.ts`, `fixtures/ctors_one_line.bend`).
-2. **Done.** `lawcheck mutate` (PLAN §4.3), built in three beads: pure mutation operators
-   (`src/mutate.ts`, unit-tested without bend), a runner that re-uses the `--impl` machinery per
-   mutant (killed / survived / invalid), and the CLI with human and `--json` output (the `mutate`
-   entry in `tools/lawcheck/cli.ts`). A planted
-   "weak laws" fixture must show survivors; a strong one must show none.
-3. **Done.** Template binders from a catalog of closed functions (unskips `foldr_append`, `map_append`, …)
-   (`tools/lawcheck/src/lawcheck.ts` `CATALOG`).
-4. **Done.** Binary release (F30): a tag-triggered workflow builds four targets
-   (`.github/workflows/lawcheck-release.yml`); the owner pushes the tag.
-5. **Done.** Nightly: reader and lawcheck tests on the newest compiler (`.github/workflows/ci.yml`
-   `latest-compiler`, `if: github.event_name == 'schedule'`).
-
-**Track D: docs** — items 1–3 done, plus source view and sandboxed checking (status refreshed 2026-09-24)
-1. **Done.** Module header comments on module pages (`tools/docs/src/model.ts` `moduleHeader`); a
-   "Document your package" page (`tools/docs/src/render.ts` `renderAuthors`); `llms.txt` and
-   `lemmas.txt` for AI agents (`tools/docs/build.ts`).
-2. **Done.** Status honesty: a file whose source holds `@unsafe` is never shown as `checks` (F33;
-   `tools/docs/src/status.ts` `crossCheck`).
-3. **Done.** API diff between consecutive versions of a named package (`tools/docs/src/model.ts`
-   `apiDiff`); `bend-docs build <dir>` local preview (`tools/docs/build.ts --local`).
-4. **Todo (owner).** The domain (owner buys; D2). Source view and sandboxed checking landed
-   (`tools/docs/src/render.ts` `srcPage`/`renderSource`; `tools/docs/src/status.ts`
-   `sandboxAvailable`/`checkCommand`).
-
-**Owner-only beads** (label `owner`): releases and hub publishing, `bend link`, frozen-definition
-decisions, git tags that trigger releases, contacting people, buying the domain. Agents never do
-these; they prepare the dry run and stop.
+### 7.2 Next — the work items are beads (`br ready`); this says why the order
+Lemma work first (each lemma removes a re-proof everywhere; the checker judges it), then lawcheck
+(mutation mode answers the weak-laws criticism), then docs (compounds on both).
 
 ## 8. Risks that change the design
 
@@ -484,7 +414,7 @@ these; they prepare the dry run and stop.
 | Checker loops/blows memory on hostile packages (docs) | Sandbox, timeouts, memory caps; per-package failure is a status |
 | Single publisher (bus factor) | Keep hub login recoverable (GitHub 2FA recovery codes); document the release steps in the repo; README always carries hash imports too |
 | Base absorbs the basics (a Base `Nat.add_comm` needs no import) | Naming prevents errors, not irrelevance: value moves to perm/sorted/algebra/kernels and the tools; upstreaming basics ourselves is a credit win |
-| Base definitions churn (argument order, fuel) | Published statements are Base terms and immutable; nightly detects, new versions + a compatibility table repair; kernel encodings are immune |
+| Base definitions churn (argument order, fuel) | Published statements are Base terms and immutable; nightly detects, new versions repair (a version matrix is planned); kernel encodings are immune |
 | Checker conversion rules change | `research/experiments/run.sh` asserts the observed outcome of every assertable F-fact (56 checks; `--self-test` proves it can fail on a perturbation), run by the scheduled `F-fact regression` step added to the `latest-compiler` job (`ci.yml`, `schedule`, `continue-on-error`). Facts without a definable assertion are explicit non-goals recorded in the script. A conversion-rule change is now caught the day the newest compiler ships. |
 
 ---

@@ -2,7 +2,7 @@ name: docs
 on:
   push:
     branches: [main]
-    paths: ["tools/docs/**", "tools/reader/**", "toolchain.json", ".github/workflows/docs.yml"]
+    paths: ["tools/docs/**", "tools/reader/**", "tools/mathlib/**", "toolchain.json", ".github/workflows/docs.yml"]
   schedule:
     - cron: "23 * * * *"
   workflow_dispatch:

@@ -5,10 +5,10 @@ import instead of re-proving, and tools that keep laws honest.
 
 | Part | What | Status |
 |---|---|---|
-| [`bend-mathlib`](packages/bend-mathlib) | 276 published lemmas (117 `_sym` twins) about `Nat`, `Bool`, `List`, equality — generic, proved, zero `@unsafe` | **0.2.0.0 on BendHub** |
+| [`bend-mathlib`](packages/bend-mathlib) | 159 published lemmas (+117 generated `_sym` twins) about `Nat`, `Bool`, `List`, equality — generic, proved, zero `@unsafe` | **0.2.0.0 on BendHub** |
 | [`@bendlib/reader`](tools/reader) | Reads Bend source with the official parser of your installed compiler version | working |
 | [`lawcheck`](tools/lawcheck) | Finds counterexamples to laws before you try to prove them, and shrinks them; mutation mode shows how well the laws pin each def | v0.2 working |
-| [Bend Docs](https://bendlib.github.io/bendlib/) | API docs, checker status and law-shape search for every BendHub package | **live**, rebuilt hourly |
+| [Bend Docs](https://bendlib.github.io/bendlib/) | API docs, checker status and law-shape search for every BendHub package | **live**, rebuilt on a schedule (the footer shows the build time) |
 
 ## Use it
 
