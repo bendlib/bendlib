@@ -7,6 +7,14 @@
       "linux-arm64":  { "file": "bend-2.0.27-linux-arm64.tar.gz",  "sha256": "2535c11bf554639cd90e634248915c597a06f40753ce28dea5fc71f7a6cf9703" },
       "darwin-arm64": { "file": "bend-2.0.27-darwin-arm64.tar.gz", "sha256": "de1f0a8b8db18c336edfb9385234b34f7da60fa4c79a4261e3be4a9674a2ffd7" },
       "darwin-x64":   { "file": "bend-2.0.27-darwin-x64.tar.gz",   "sha256": "fcde1f2a17939b1cbef1369a32c13ffdb7cef53a8355e9cf3887b119c79fa17a" }
+    },
+    "source": {
+      "commit": "63bee70b55a71024d6bdcb49a745111bc54b114e",
+      "files": {
+        "bend2/bend.ts":  "05a10a9c8f8b19daa69f5d2ea9813e077c86819c288b026fb90f414f6471ad82",
+        "bend2/main.ts":  "0984154bb5f8bfb0718e4ad60d58f5098af0f01812dc8ef75b6e793e800552f8",
+        "bend2/base.bend": "90a4a9a4ec3997d7d4927d7dac04f9ddd3b884e6521ac9d691bfe6765ba0d4d7"
+      }
     }
   }
 }

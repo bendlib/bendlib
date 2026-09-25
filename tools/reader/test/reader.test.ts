@@ -56,6 +56,39 @@ describe("source", () => {
     }
   });
 
+  test("a poisoned cache with a rewritten manifest is refused by the pin", async () => {
+    const s = await bendSource();
+    if (s.origin === "local") return;
+    const vdir = path.dirname(s.dir);
+    const cache = fs.mkdtempSync(path.join(os.tmpdir(), "bendlib-reader-poison-"));
+    const copy = path.join(cache, "bend", s.version);
+    fs.cpSync(vdir, copy, { recursive: true });
+    const bend = path.join(copy, "src", "bend2", "bend.ts");
+    fs.appendFileSync(bend, "\n// poisoned\n");
+    const man = JSON.parse(fs.readFileSync(path.join(copy, "manifest.json"), "utf8"));
+    man.files["bend2/bend.ts"] = new Bun.CryptoHasher("sha256").update(fs.readFileSync(bend)).digest("hex");
+    fs.writeFileSync(path.join(copy, "manifest.json"), JSON.stringify(man, null, 2) + "\n");
+    const old = process.env.BENDLIB_CACHE;
+    process.env.BENDLIB_CACHE = cache;
+    try {
+      await expect(bendSource()).rejects.toThrow(/pinned/);
+    } finally {
+      if (old === undefined) delete process.env.BENDLIB_CACHE; else process.env.BENDLIB_CACHE = old;
+    }
+  });
+
+  test("a fetched base.bend that differs from the installed one is refused", async () => {
+    const s = await bendSource();
+    if (s.origin === "local") return;
+    const fake = fs.mkdtempSync(path.join(os.tmpdir(), "bendlib-reader-bin-"));
+    const bin = path.join(fake, "bin", "bend");
+    fs.mkdirSync(path.dirname(bin), { recursive: true });
+    fs.writeFileSync(bin, `#!/bin/sh\necho "bend ${s.version}"\n`, { mode: 0o755 });
+    fs.mkdirSync(path.join(fake, "bend2"), { recursive: true });
+    fs.writeFileSync(path.join(fake, "bend2", "base.bend"), "not the installed base.bend\n");
+    await expect(bendSource({ bin })).rejects.toThrow(/pinned/);
+  });
+
   test("a local checkout at another version is refused", async () => {
     const s = await bendSource();
     await expect(bendSource({ src: s.dir, version: "2.0.1" })).rejects.toBeInstanceOf(SourceError);

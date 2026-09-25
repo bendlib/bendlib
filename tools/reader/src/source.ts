@@ -5,10 +5,13 @@
 // `bend version` reports. The source comes from the GitHub tag archive
 // refs/tags/v<version>, cached under ~/.cache/bendlib/bend/<version>/,
 // or from a local checkout given by BENDLIB_BEND_SRC / {src}.
+// For the pinned compiler, the file sha256s in toolchain.json are enforced on
+// fetch and on every cache hit, and base.bend must match the installed one.
 
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import toolchain from "../../../toolchain.json";
 
 export const REPO = "bendlang/bend";
 
@@ -38,8 +41,32 @@ export function cacheRoot(): string {
   return process.env.BENDLIB_CACHE ?? path.join(os.homedir(), ".cache", "bendlib");
 }
 
-/** `bend version` of BEND_BIN, else ~/.bend/bin/bend, else `bend` on PATH, e.g. "2.0.27". */
-export function installedVersion(bin?: string): string {
+const TOOLCHAIN = toolchain as {
+  bend: { version: string; source?: { commit?: string; files?: Record<string, string> } };
+};
+
+let warnedUntested = false;
+
+// A newer compiler is fine to read, but its output is unverified until the pin moves.
+function warnUntested(version: string): void {
+  if (warnedUntested || version === TOOLCHAIN.bend.version) return;
+  warnedUntested = true;
+  console.error(`reader: bend ${version} is untested with @bendlib/reader (tested: ${TOOLCHAIN.bend.version})`);
+}
+
+// A manifest is attacker-writable, so the pinned hashes in toolchain.json are the source of truth.
+function verifyPinned(dir: string, version: string, label: string): void {
+  if (version !== TOOLCHAIN.bend.version) return;
+  for (const [f, h] of Object.entries(TOOLCHAIN.bend.source?.files ?? {})) {
+    const p = path.join(dir, f);
+    const g = fs.existsSync(p) ? sha256(fs.readFileSync(p)) : "<missing>";
+    if (g !== h) {
+      throw new SourceError(`${label} ${p} has sha256 ${g}, does not match the pinned sha256 ${h}`);
+    }
+  }
+}
+
+function resolveBend(bin?: string): { path: string; version: string } {
   const cands = [bin, process.env.BEND_BIN, path.join(os.homedir(), ".bend", "bin", "bend"), "bend"]
     .filter((x): x is string => typeof x === "string" && x !== "");
   const errs: string[] = [];
@@ -53,7 +80,7 @@ export function installedVersion(bin?: string): string {
       const out = r.stdout.toString().trim();
       const m = out.match(/^bend (\d+\.\d+\.\d+)$/);
       if (r.exitCode === 0 && m) {
-        return m[1];
+        return { path: b.includes("/") ? path.resolve(b) : (Bun.which(b) ?? b), version: m[1] };
       }
       errs.push(b + ": unexpected output " + JSON.stringify(out + r.stderr.toString()));
     } catch (e) {
@@ -61,6 +88,11 @@ export function installedVersion(bin?: string): string {
     }
   }
   throw new SourceError("cannot determine the installed bend version (`bend version`):\n  " + errs.join("\n  "));
+}
+
+/** `bend version` of BEND_BIN, else ~/.bend/bin/bend, else `bend` on PATH, e.g. "2.0.27". */
+export function installedVersion(bin?: string): string {
+  return resolveBend(bin).version;
 }
 
 /** The `const VERSION` a bend checkout's bend2/main.ts declares. */
@@ -76,7 +108,7 @@ export function declaredVersion(dir: string): string {
   return m[1];
 }
 
-// GitHub publishes no checksum for tag archives: hashes are recorded on first fetch (trust on first use).
+// Files recorded in each manifest; for the pinned compiler verifyPinned enforces toolchain.json on top.
 const PINNED = ["bend2/bend.ts", "bend2/main.ts", "bend2/base.bend"];
 
 type Manifest = {
@@ -109,6 +141,7 @@ function verifyCache(vdir: string, version: string): BendSource {
       throw new SourceError(`cached ${dir}/${f} has sha256 ${g}, recorded ${h} at extraction; remove ${vdir} to refetch`);
     }
   }
+  verifyPinned(dir, version, "cached");
   const dv = declaredVersion(dir);
   if (dv !== version) {
     throw new SourceError(`cached source declares VERSION ${dv}, expected ${version}`);
@@ -136,6 +169,9 @@ async function fetchTag(vdir: string, version: string): Promise<BendSource> {
       commit = j.object?.type === "commit" ? j.object.sha : undefined;
     }
   } catch { /* recorded as absent */ }
+  if (version === TOOLCHAIN.bend.version && TOOLCHAIN.bend.source?.commit !== undefined && commit !== undefined && commit !== TOOLCHAIN.bend.source.commit) {
+    throw new SourceError(`tag ${tag} names commit ${commit}, pinned commit is ${TOOLCHAIN.bend.source.commit}`);
+  }
 
   fs.mkdirSync(path.dirname(vdir), { recursive: true });
   const tmp = fs.mkdtempSync(path.join(path.dirname(vdir), `.${version}.tmp-`));
@@ -155,6 +191,7 @@ async function fetchTag(vdir: string, version: string): Promise<BendSource> {
   for (const f of PINNED) {
     files[f] = sha256(fs.readFileSync(path.join(tmp, "src", f)));
   }
+  verifyPinned(path.join(tmp, "src"), version, "fetched");
   const man: Manifest = { version, tag, url, archive: archiveName, archiveSha256, commit, fetchedAt: new Date().toISOString(), files };
   fs.writeFileSync(path.join(tmp, "manifest.json"), JSON.stringify(man, null, 2) + "\n");
   fs.writeFileSync(path.join(tmp, "archive.sha256"), `${archiveSha256}  ${archiveName}\n`);
@@ -173,10 +210,26 @@ export type SourceOptions = {
   bin?: string;     // bend binary used for `bend version`
 };
 
+// The release ships base.bend next to the binary; the fetched copy must be byte-identical.
+function verifyAgainstInstalled(dir: string, bin?: string): void {
+  let installed: string;
+  try {
+    installed = path.join(path.dirname(resolveBend(bin).path), "..", "bend2", "base.bend");
+  } catch {
+    return; // no binary to compare against
+  }
+  const fetched = path.join(dir, "bend2", "base.bend");
+  if (!fs.existsSync(installed) || !fs.existsSync(fetched)) return;
+  if (!fs.readFileSync(fetched).equals(fs.readFileSync(installed))) {
+    throw new SourceError(`${fetched} differs from the installed compiler's ${installed} (not the pinned release)`);
+  }
+}
+
 /** The bend source at the installed compiler's version: local checkout (must declare that VERSION), verified cache, or tag fetch. */
 export async function bendSource(opts: SourceOptions | string = {}): Promise<BendSource> {
   const o: SourceOptions = typeof opts === "string" ? { version: opts } : opts;
   const version = o.version ?? installedVersion(o.bin);
+  warnUntested(version);
   const local = o.src ?? process.env.BENDLIB_BEND_SRC;
   if (local !== undefined && local !== "") {
     const dir = path.resolve(local);
@@ -187,10 +240,11 @@ export async function bendSource(opts: SourceOptions | string = {}): Promise<Ben
     return { version, dir, bendTs: path.join(dir, "bend2", "bend.ts"), origin: "local" };
   }
   const vdir = path.join(cacheRoot(), "bend", version);
-  if (fs.existsSync(path.join(vdir, "manifest.json"))) {
-    return verifyCache(vdir, version);
-  }
-  return fetchTag(vdir, version);
+  const s = fs.existsSync(path.join(vdir, "manifest.json"))
+    ? verifyCache(vdir, version)
+    : await fetchTag(vdir, version);
+  verifyAgainstInstalled(s.dir, o.bin);
+  return s;
 }
 
 // bend.ts reads BEND_LIB/BEND_HUB once, at module evaluation, so each distinct

@@ -15,7 +15,7 @@
 | **`lawcheck`** (TypeScript/Bun CLI) | Finds counterexamples to laws before anyone tries to prove them, shrinks them, and measures law strength by mutating the implementation | Loose/wrong laws are Bend's main criticism (the "can't win" law satisfied by breaking movement; issue #880); a false law wastes an AI's proof budget |
 | **Bend docs** (static site + generator) | docs.rs for BendHub: rendered API docs of every hub package, checked status on the current compiler, reverse deps, lemma search by statement shape | The hub shows hashes and file lists only; people and agents can't browse APIs or find lemmas |
 
-They share one keystone: **`@bendlib/frontend`**, a TypeScript library that loads Bend source with the
+They share one keystone: **`@bendlib/reader`**, a TypeScript library that loads Bend source with the
 *official* parser/elaborator (`bend2/bend.ts`) matching the user's installed compiler version. lawcheck
 and the docs generator both sit on it; mathlib is the first customer of both (lawcheck screens lemma
 candidates; docs render the lemma index).
@@ -54,7 +54,7 @@ structures (`bendlib-heap`, `bendlib-rbmap` over frozen kernels, §3.4), lawful 
 | F21 | A local `BEND_LIB` with `names/<name>@<ver>` → `0x<32 hex>` and `0x<hash>` → symlink to a working copy resolves `import <name>@<ver>/f.bend` locally and live | `devmode/` | Dev imports use the final import lines verbatim (§3.5) |
 | F22 | A closed law instance proved by `{==}` passes iff both sides normalize equal; a false one fails with `expected/observed` and `Location: <law>` — 48 instances checked in 0.15 s | `lc` experiment (see §4.3) | lawcheck's universal evaluation engine = the checker itself |
 | F23 | `bend2/bend.ts` imports under Bun and exposes `book_nil`, `book_load`, `term_show`, the `Book` (`tlds`, `ctrs`, spans); it loads hub packages and lists typed declarations | `docs_probe.ts` | Tools reuse the official parser instead of writing one |
-| F24 | The installed binary ships only `base.bend` + effects, not `bend.ts`; GitHub releases exist per version (v2.0.8+) | `~/.bend/bend2/`, releases | frontend fetches `bend.ts` for the user's exact version (§2) |
+| F24 | The installed binary ships only `base.bend` + effects, not `bend.ts`; GitHub releases exist per version (v2.0.8+) | `~/.bend/bend2/`, releases | reader fetches `bend.ts` for the user's exact version (§2) |
 | F25 | A `-> Type` predicate cannot be a `+` (reusable) hypothesis (`expected Data, observed Type`); the same body declared `-> Data` can; a plain equality hypothesis cannot be used twice | `review2/t2c` ✗, `t2d` ✓, `t2f` ✗, `t8` ✓ | Predicates return `Data`; `A & B` / `Or` sugar is `Sigma/Either<&1,&1,…>` = `Type` — Data predicates spell `Sigma<&2,&2,…>` / `Either<&2,&2,…>` |
 | F26 | A statement-only binder must be erased (`for -y`) or a runtime caller loses its affine variable (`y consumed more than once`); a binder the proof matches on cannot be erased | `review2/t1a` ✓, `t1b` ✗, `t1c` ✗ | Erasure is a lint-enforced invariant, not a style choice |
 | F27 | A count-based `perm` hypothesis (a function type) is single-use, even when erased | `review2/t5a` ✓, `t5b` ✗, `t5c` ✗ | `perm` design must weigh an inductive `Perm is Data` (reusable) — decided in the kernel design note |
@@ -68,7 +68,7 @@ structures (`bendlib-heap`, `bendlib-rbmap` over frozen kernels, §3.4), lawful 
 
 ---
 
-## 2. Keystone: `@bendlib/reader` (TypeScript, Bun; planned as `frontend`, built in `tools/reader`)
+## 2. Keystone: `@bendlib/reader` (TypeScript, Bun; built in `tools/reader`)
 
 **Job:** give any tool a faithful, version-matched view of Bend source.
 
@@ -273,7 +273,7 @@ ins: 9/12 mutants killed · survivors: [swap arms of `match xs`] [replace `x` wi
 `--json` for agents; exit 0 all pass / 1 counterexample or weak laws / 2 usage.
 
 ### 4.2 Pipeline
-1. **Load** the file with `@bendlib/frontend`; collect `law` declarations (open or proved) and their
+1. **Load** the file with `@bendlib/reader`; collect `law` declarations (open or proved) and their
    `lawShape` (binders, `where` premises, claim).
 2. **Instantiate types.** Type parameters: `-A: Kind(a)` → default `U32` then `Nat`; `a: Quant` → `&2`
    (and `&1` when the claim allows). Template hypotheses (`for ~f`, `for ~le_trans`) → v1 skips the law
@@ -305,7 +305,7 @@ ins: 9/12 mutants killed · survivors: [swap arms of `match xs`] [replace `x` wi
    (valuable to upstream).
 
 ### 4.3 Mutation mode (law strength)
-- Mutants of the implementation defs via source splicing (`frontend.splice` on spans): swap match arms,
+- Mutants of the implementation defs via source splicing (`reader.splice` on spans): swap match arms,
   replace a case body with another case's body, swap same-typed arguments, `0n↔1n`, drop a cons,
   replace a subterm with a same-typed parameter; **projection sweep**: replace the whole body with each
   parameter / a constant (the `gavel` lesson: a law pins a function only if no argument-ignoring body
@@ -342,7 +342,7 @@ it never proves anything.
 1. Fetch `hub/index.json` and `hub/names.json`.
 2. For each **new hash** (content never changes → cache forever): fetch manifest and files into a
    private `BEND_LIB`.
-3. Extract with `@bendlib/frontend` (current compiler version): declarations, docs, imports
+3. Extract with `@bendlib/reader` (current compiler version): declarations, docs, imports
    (hash → package edges). Parse failures are recorded as a status, not a crash.
 4. Verify: `bend <entry> --check-only` per package in a sandbox (bubblewrap/firejail; network off; 60 s
    timeout, memory cap) — checking never runs `main`, but the checker can loop or blow memory on
@@ -369,7 +369,7 @@ bendlib/                     GitHub: bendlib/bendlib (monorepo)
 ├── tools/
 │   ├── comments.ts          comment lint
 │   ├── install-bend.ts      installs the pinned compiler
-│   ├── reader/              @bendlib/reader (TS; planned as `frontend`, §2)
+│   ├── reader/              @bendlib/reader (TS, §2)
 │   ├── lawcheck/            lawcheck CLI (TS)
 │   ├── docs/                docs generator + site templates (TS)
 │   └── mathlib/             check.ts lint.ts twins.ts lock.ts index.ts hash.ts release.ts
@@ -474,7 +474,7 @@ these; they prepare the dry run and stop.
 
 | Risk | Design response |
 |---|---|
-| `bend.ts` internals change daily | Single adapter (`@bendlib/frontend`), version-matched fetch, golden tests per release |
+| `bend.ts` internals change daily | Single adapter (`@bendlib/reader`), version-matched fetch, golden tests per release |
 | Base adds a name we use | Lowercase dot-free names (F6) + nightly collision check; ask HOC to treat lowercase dot-free as a community convention |
 | A frozen predicate is wrong | §3.3 selection before publish; append-only fixes with new names + bridge theorems |
 | Version skew across dependents | Encoding rule: Base-only predicates in mathlib (F4); nominal definitions only in byte-sealed kernels imported by hash (§3.1.1b) |
