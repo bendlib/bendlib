@@ -1306,6 +1306,270 @@ def lt_zero(n):
     case 1n+p:
       h => internal_false_ne_true(h)
 
+# A strict inequality rules out the reverse weak one: a < b implies b <= a is false.
+law not_le_of_lt:
+  for a: Nat
+  for b: Nat
+  for h: lt(a, b)
+  {Nat.is_le(b, a) == False{} : Bool}
+
+def not_le_of_lt(a, b, h):
+  match a b:
+    case 0n 0n:
+      Empty.absurd({Nat.is_le(0n, 0n) == False{} : Bool}, internal_false_ne_true(h))
+    case 0n 1n+q:
+      {==}
+    case 1n+p 0n:
+      Empty.absurd({Nat.is_le(0n, 1n+p) == False{} : Bool}, internal_false_ne_true(h))
+    case 1n+p 1n+q:
+      not_le_of_lt(p, q, h)
+
+# A weak inequality rules out the reverse strict one: a <= b implies b < a is false.
+law not_lt_of_le:
+  for a: Nat
+  for b: Nat
+  for h: le(a, b)
+  {Nat.is_lt(b, a) == False{} : Bool}
+
+def not_lt_of_le(a, b, h):
+  match a b:
+    case 0n 0n:
+      {==}
+    case 0n 1n+q:
+      {==}
+    case 1n+p 0n:
+      Empty.absurd({Nat.is_lt(0n, 1n+p) == False{} : Bool}, internal_false_ne_true(h))
+    case 1n+p 1n+q:
+      not_lt_of_le(p, q, h)
+
+# A failed weak test gives the reverse strict order: a <= b false implies b < a.
+law lt_of_not_le:
+  for a: Nat
+  for b: Nat
+  for h: {Nat.is_le(a, b) == False{} : Bool}
+  lt(b, a)
+
+def lt_of_not_le(a, b, h):
+  match a b:
+    case 0n 0n:
+      Empty.absurd(lt(0n, 0n), internal_false_ne_true(Equal.sym(Bool, True{}, False{}, h)))
+    case 0n 1n+q:
+      Empty.absurd(lt(1n+q, 0n), internal_false_ne_true(Equal.sym(Bool, True{}, False{}, h)))
+    case 1n+p 0n:
+      {==}
+    case 1n+p 1n+q:
+      lt_of_not_le(p, q, h)
+
+# A failed strict test gives the reverse weak order: a < b false implies b <= a.
+law le_of_not_lt:
+  for a: Nat
+  for b: Nat
+  for h: {Nat.is_lt(a, b) == False{} : Bool}
+  le(b, a)
+
+def le_of_not_lt(a, b, h):
+  match a b:
+    case 0n 0n:
+      {==}
+    case 0n 1n+q:
+      Empty.absurd(le(1n+q, 0n), internal_false_ne_true(Equal.sym(Bool, True{}, False{}, h)))
+    case 1n+p 0n:
+      {==}
+    case 1n+p 1n+q:
+      le_of_not_lt(p, q, h)
+
+# A number below both bounds is below their minimum: a < b and a < c imply a < min b c.
+law lt_min:
+  for a: Nat
+  for b: Nat
+  for c: Nat
+  for hb: lt(a, b)
+  for hc: lt(a, c)
+  lt(a, Nat.min(b, c))
+
+def lt_min(a, b, c, hb, hc):
+  match a b c:
+    case _ 0n _:
+      Empty.absurd(lt(a, Nat.min(0n, c)), lt_zero(a)(hb))
+    case _ 1n+q 0n:
+      Empty.absurd(lt(a, Nat.min(1n+q, 0n)), lt_zero(a)(hc))
+    case 0n 1n+q 1n+r:
+      {==}
+    case 1n+p 1n+q 1n+r:
+      lt_min(p, q, r, hb, hc)
+
+def internal_or_true_sym(x: Bool) -> {True{} == Bool.or(x, True{}) : Bool}:
+  match x:
+    case False{}:
+      {==}
+    case True{}:
+      {==}
+
+def internal_or_false_sym(x: Bool) -> {x == Bool.or(x, False{}) : Bool}:
+  match x:
+    case False{}:
+      {==}
+    case True{}:
+      {==}
+
+# The minimum is at most c exactly when one argument is: min a b <= c tests as a <= c or b <= c.
+law min_le_iff:
+  for a: Nat
+  for b: Nat
+  for c: Nat
+  {Nat.is_le(Nat.min(a, b), c) == Bool.or(Nat.is_le(a, c), Nat.is_le(b, c)) : Bool}
+
+def min_le_iff(a, b, c):
+  match a b c:
+    case 0n 0n 0n:
+      {==}
+    case 0n 0n 1n+r:
+      {==}
+    case 0n 1n+q 0n:
+      {==}
+    case 0n 1n+q 1n+r:
+      {==}
+    case 1n+p 0n 0n:
+      {==}
+    case 1n+p 0n 1n+r:
+      internal_or_true_sym(Nat.is_le(p, r))
+    case 1n+p 1n+q 0n:
+      {==}
+    case 1n+p 1n+q 1n+r:
+      min_le_iff(p, q, r)
+
+# The maximum is above a exactly when one argument is: a < max b c tests as a < b or a < c.
+law lt_max_iff:
+  for a: Nat
+  for b: Nat
+  for c: Nat
+  {Nat.is_lt(a, Nat.max(b, c)) == Bool.or(Nat.is_lt(a, b), Nat.is_lt(a, c)) : Bool}
+
+def lt_max_iff(a, b, c):
+  match a b c:
+    case 0n 0n 0n:
+      {==}
+    case 0n 0n 1n+r:
+      {==}
+    case 0n 1n+q 0n:
+      {==}
+    case 0n 1n+q 1n+r:
+      {==}
+    case 1n+p 0n 0n:
+      {==}
+    case 1n+p 0n 1n+r:
+      {==}
+    case 1n+p 1n+q 0n:
+      internal_or_false_sym(Nat.is_lt(p, q))
+    case 1n+p 1n+q 1n+r:
+      lt_max_iff(p, q, r)
+
+# Subtracting a larger number gives zero: a <= b implies a - b = 0.
+law sub_eq_zero_of_le:
+  for a: Nat
+  for b: Nat
+  for h: le(a, b)
+  {Nat.sub(a, b) == 0n : Nat}
+
+def sub_eq_zero_of_le(a, b, h):
+  match a b:
+    case 0n 0n:
+      {==}
+    case 0n 1n+q:
+      {==}
+    case 1n+p 0n:
+      Empty.absurd({Nat.sub(1n+p, 0n) == 0n : Nat}, internal_false_ne_true(h))
+    case 1n+p 1n+q:
+      sub_eq_zero_of_le(p, q, h)
+
+# Above the subtrahend, a successor subtracts to a successor: b <= a implies (a + 1) - b = (a - b) + 1.
+law succ_sub:
+  for a: Nat
+  for b: Nat
+  for h: le(b, a)
+  {Nat.sub(1n+a, b) == 1n+Nat.sub(a, b) : Nat}
+
+def succ_sub(a, b, h):
+  match a b:
+    case 0n 0n:
+      {==}
+    case 1n+p 0n:
+      {==}
+    case 0n 1n+q:
+      Empty.absurd({Nat.sub(1n, 1n+q) == 1n+Nat.sub(0n, 1n+q) : Nat}, internal_false_ne_true(h))
+    case 1n+p 1n+q:
+      succ_sub(p, q, h)
+
+# Adding back what was subtracted restores the number: a <= b implies a + (b - a) = b.
+law add_sub_of_le:
+  for a: Nat
+  for b: Nat
+  for h: le(a, b)
+  {Nat.add(a, Nat.sub(b, a)) == b : Nat}
+
+def add_sub_of_le(a, b, h):
+  match a b:
+    case 0n 0n:
+      {==}
+    case 0n 1n+q:
+      {==}
+    case 1n+p 0n:
+      Empty.absurd({Nat.add(1n+p, Nat.sub(0n, 1n+p)) == 0n : Nat}, internal_false_ne_true(h))
+    case 1n++p 1n++q:
+      %Equal.sym(Nat, Nat.add(p, Nat.sub(q, p)), q, add_sub_of_le(p, q, h)) : {1n+_ == 1n+q : Nat}
+      {==}
+
+def internal_lt_sub_zero(a: Nat, p: Nat) -> {Nat.is_lt(a, Nat.sub(0n, 1n+p)) == Nat.is_lt(Nat.add(1n+p, a), 0n) : Bool}:
+  match a:
+    case 0n:
+      {==}
+    case 1n+x:
+      {==}
+
+# Comparing against a difference is comparing the sum: a < c - b tests as b + a < c.
+law lt_sub_iff_add_lt:
+  for a: Nat
+  for b: Nat
+  for c: Nat
+  {Nat.is_lt(a, Nat.sub(c, b)) == Nat.is_lt(Nat.add(b, a), c) : Bool}
+
+def lt_sub_iff_add_lt(a, b, c):
+  match b c:
+    case 0n 0n:
+      {==}
+    case 0n 1n+r:
+      {==}
+    case 1n+p 0n:
+      internal_lt_sub_zero(a, p)
+    case 1n+p 1n+r:
+      lt_sub_iff_add_lt(a, p, r)
+
+# A witnessed difference gives the order: a + k = b implies a <= b.
+law le_of_add_eq:
+  for a: Nat
+  for k: Nat
+  for -b: Nat
+  for e: {Nat.add(a, k) == b : Nat}
+  le(a, b)
+
+def le_of_add_eq(a, k, b, e):
+  %e : {Nat.is_le(a, _) == True{} : Bool}
+  le_add_right(a, k)
+
+# Multiplying on the right preserves the order: a <= b implies a * k <= b * k.
+law mul_le_mul_right:
+  for +a: Nat
+  for +b: Nat
+  for +k: Nat
+  for h: le(a, b)
+  le(Nat.mul(a, k), Nat.mul(b, k))
+
+def mul_le_mul_right(a, b, k, h):
+  %sub_add_cancel(b, a, h) : {Nat.is_le(Nat.mul(a, k), Nat.mul(_, k)) == True{} : Bool}
+  %Equal.sym(Nat, Nat.mul(Nat.add(Nat.sub(b, a), a), k), Nat.add(Nat.mul(Nat.sub(b, a), k), Nat.mul(a, k)), add_mul(Nat.sub(b, a), a, k)) : {Nat.is_le(Nat.mul(a, k), _) == True{} : Bool}
+  %add_comm(Nat.mul(a, k), Nat.mul(Nat.sub(b, a), k)) : {Nat.is_le(Nat.mul(a, k), _) == True{} : Bool}
+  le_add_right(Nat.mul(a, k), Nat.mul(Nat.sub(b, a), k))
+
 # --- generated: _sym twins (tools/mathlib/twins.ts), do not edit ---
 
 # Zero is a right identity for addition: x + 0 = x, reversed to rewrite toward the simple side.
@@ -1749,3 +2013,33 @@ law not_is_lt_sym:
 
 def not_is_lt_sym(a, b):
   Equal.sym(Bool, Bool.not(Nat.is_lt(a, b)), Nat.is_le(b, a), not_is_lt(a, b))
+
+# The minimum is at most c exactly when one argument is: min a b <= c tests as a <= c or b <= c, reversed to rewrite toward the simple side.
+law min_le_iff_sym:
+  for a: Nat
+  for b: Nat
+  for c: Nat
+  {Bool.or(Nat.is_le(a, c), Nat.is_le(b, c)) == Nat.is_le(Nat.min(a, b), c) : Bool}
+
+def min_le_iff_sym(a, b, c):
+  Equal.sym(Bool, Nat.is_le(Nat.min(a, b), c), Bool.or(Nat.is_le(a, c), Nat.is_le(b, c)), min_le_iff(a, b, c))
+
+# The maximum is above a exactly when one argument is: a < max b c tests as a < b or a < c, reversed to rewrite toward the simple side.
+law lt_max_iff_sym:
+  for a: Nat
+  for b: Nat
+  for c: Nat
+  {Bool.or(Nat.is_lt(a, b), Nat.is_lt(a, c)) == Nat.is_lt(a, Nat.max(b, c)) : Bool}
+
+def lt_max_iff_sym(a, b, c):
+  Equal.sym(Bool, Nat.is_lt(a, Nat.max(b, c)), Bool.or(Nat.is_lt(a, b), Nat.is_lt(a, c)), lt_max_iff(a, b, c))
+
+# Comparing against a difference is comparing the sum: a < c - b tests as b + a < c, reversed to rewrite toward the simple side.
+law lt_sub_iff_add_lt_sym:
+  for a: Nat
+  for b: Nat
+  for c: Nat
+  {Nat.is_lt(Nat.add(b, a), c) == Nat.is_lt(a, Nat.sub(c, b)) : Bool}
+
+def lt_sub_iff_add_lt_sym(a, b, c):
+  Equal.sym(Bool, Nat.is_lt(a, Nat.sub(c, b)), Nat.is_lt(Nat.add(b, a), c), lt_sub_iff_add_lt(a, b, c))
