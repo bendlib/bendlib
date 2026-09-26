@@ -737,6 +737,222 @@ def sub_le(n, m):
     case 1n++p 1n++q:
       le_trans(Nat.sub(p, q), p, 1n+p, sub_le(p, q), le_succ(p))
 
+def internal_div_true_ne_false(h: {True{} == False{} : Bool}) -> Empty:
+  internal_false_ne_true(Equal.sym(Bool, True{}, False{}, h))
+
+def internal_div_add_zero_r(a: Nat) -> {a == Nat.add(a, 0n) : Nat}:
+  Equal.sym(Nat, Nat.add(a, 0n), a, add_zero(a))
+
+def internal_div_le_refl(a: Nat) -> {True{} == Nat.is_le(a, a) : Bool}:
+  Equal.sym(Bool, Nat.is_le(a, a), True{}, le_refl(a))
+
+def internal_div_zero_le(x: Nat) -> {True{} == Nat.is_le(0n, x) : Bool}:
+  Equal.sym(Bool, Nat.is_le(0n, x), True{}, zero_le(x))
+
+def internal_div_block_start(-bp: Nat, +r: Nat, h: {bp == Nat.add(r, 0n) : Nat}) -> {bp == r : Nat}:
+  %add_zero(r) : {bp == _ : Nat}
+  h
+
+def internal_div_block_step(-bp: Nat, r: Nat, -mp: Nat, h: {bp == Nat.add(r, 1n+mp) : Nat}) -> {bp == 1n+Nat.add(r, mp) : Nat}:
+  %add_succ(r, mp) : {bp == _ : Nat}
+  h
+
+def internal_div_go_eq(n: Nat, m: Nat, +bp: Nat, +d: Nat, +r: Nat, +h: {bp == Nat.add(r, m) : Nat}) -> {Nat.add(Nat.mul(Nat.div.fin(Nat.divmod.go(n, m, d, r)), 1n+bp), Nat.mod.fin(Nat.divmod.go(n, m, d, r))) == Nat.add(n, Nat.add(Nat.mul(d, 1n+bp), r)) : Nat}:
+  match n m:
+    case 0n _:
+      {==}
+    case 1n++np 0n:
+      %add_succ(np, Nat.add(Nat.mul(d, 1n+bp), r)) : {Nat.add(Nat.mul(Nat.div.fin(Nat.divmod.go(np, r, 1n+d, 0n)), 1n+bp), Nat.mod.fin(Nat.divmod.go(np, r, 1n+d, 0n))) == _ : Nat}
+      %add_comm(r, Nat.mul(d, 1n+bp)) : {Nat.add(Nat.mul(Nat.div.fin(Nat.divmod.go(np, r, 1n+d, 0n)), 1n+bp), Nat.mod.fin(Nat.divmod.go(np, r, 1n+d, 0n))) == Nat.add(np, 1n+_) : Nat}
+      %internal_div_block_start(bp, r, h) : {Nat.add(Nat.mul(Nat.div.fin(Nat.divmod.go(np, r, 1n+d, 0n)), 1n+bp), Nat.mod.fin(Nat.divmod.go(np, r, 1n+d, 0n))) == Nat.add(np, 1n+Nat.add(_, Nat.mul(d, 1n+bp))) : Nat}
+      %add_zero(Nat.add(bp, Nat.mul(d, 1n+bp))) : {Nat.add(Nat.mul(Nat.div.fin(Nat.divmod.go(np, r, 1n+d, 0n)), 1n+bp), Nat.mod.fin(Nat.divmod.go(np, r, 1n+d, 0n))) == Nat.add(np, 1n+_) : Nat}
+      internal_div_go_eq(np, r, bp, 1n+d, 0n, internal_div_block_start(bp, r, h))
+    case 1n++np 1n++mp:
+      %add_succ(np, Nat.add(Nat.mul(d, 1n+bp), r)) : {Nat.add(Nat.mul(Nat.div.fin(Nat.divmod.go(np, mp, d, 1n+r)), 1n+bp), Nat.mod.fin(Nat.divmod.go(np, mp, d, 1n+r))) == _ : Nat}
+      %add_succ(Nat.mul(d, 1n+bp), r) : {Nat.add(Nat.mul(Nat.div.fin(Nat.divmod.go(np, mp, d, 1n+r)), 1n+bp), Nat.mod.fin(Nat.divmod.go(np, mp, d, 1n+r))) == Nat.add(np, _) : Nat}
+      internal_div_go_eq(np, mp, bp, d, 1n+r, internal_div_block_step(bp, r, mp, h))
+
+# The division equation, for a positive divisor 1 + b: (a / (1 + b)) * (1 + b) + a % (1 + b) = a.
+law div_mod_eq:
+  for +a: Nat
+  for +b: Nat
+  {Nat.add(Nat.mul(Nat.div(a, 1n+b), 1n+b), Nat.mod(a, 1n+b)) == a : Nat}
+
+def div_mod_eq(a, b):
+  %add_zero(a) : {Nat.add(Nat.mul(Nat.div(a, 1n+b), 1n+b), Nat.mod(a, 1n+b)) == _ : Nat}
+  internal_div_go_eq(a, b, b, 0n, 0n, {==})
+
+def internal_div_wit_succ(+ap: Nat, +bq: Nat, w: &k:Nat -> {Nat.add(ap, k) == bq : Nat}) -> &k:Nat -> {Nat.add(1n+ap, k) == 1n+bq : Nat}:
+  match w:
+    case (k, e):
+      (k, Equal.cong(Nat, Nat, x => 1n+x, Nat.add(ap, k), bq, e))
+
+def internal_div_le_wit(a: Nat, b: Nat, h: {Nat.is_le(a, b) == True{} : Bool}) -> &k:Nat -> {Nat.add(a, k) == b : Nat}:
+  match a b:
+    case 0n y:
+      (y, {==})
+    case 1n+ap 0n:
+      Empty.absurd(&k:Nat -> {Nat.add(1n+ap, k) == 0n : Nat}, internal_false_ne_true(h))
+    case 1n++ap 1n++bq:
+      internal_div_wit_succ(ap, bq, internal_div_le_wit(ap, bq, h))
+
+def internal_div_go_small(n: Nat, +k: Nat, +d: Nat, r: Nat) -> {d == Nat.div.fin(Nat.divmod.go(n, Nat.add(n, k), d, r)) : Nat}:
+  match n:
+    case 0n:
+      {==}
+    case 1n+np:
+      internal_div_go_small(np, k, d, 1n+r)
+
+def internal_div_zero_of_wit(+a: Nat, +b: Nat, w: &k:Nat -> {Nat.add(a, k) == b : Nat}) -> {Nat.div(a, 1n+b) == 0n : Nat}:
+  match w:
+    case (+k, e):
+      %e : {Nat.div(a, 1n+_) == 0n : Nat}
+      Equal.sym(Nat, 0n, Nat.div.fin(Nat.divmod.go(a, Nat.add(a, k), 0n, 0n)), internal_div_go_small(a, k, 0n, 0n))
+
+# A number at most b divides by 1 + b to zero: a <= b implies a / (1 + b) = 0.
+law div_eq_zero_of_le:
+  for +a: Nat
+  for +b: Nat
+  for h: le(a, b)
+  {Nat.div(a, 1n+b) == 0n : Nat}
+
+def div_eq_zero_of_le(a, b, h):
+  internal_div_zero_of_wit(a, b, internal_div_le_wit(a, b, h))
+
+def internal_div_le_succ_r(j: Nat, d: Nat, h: {True{} == Nat.is_le(j, d) : Bool}) -> {True{} == Nat.is_le(j, 1n+d) : Bool}:
+  match j d:
+    case 0n _:
+      {==}
+    case 1n+i 0n:
+      Empty.absurd({True{} == Nat.is_le(1n+i, 1n) : Bool}, internal_div_true_ne_false(h))
+    case 1n+i 1n+e:
+      internal_div_le_succ_r(i, e, h)
+
+def internal_div_go_d_ge(+j: Nat, n: Nat, m: Nat, +d: Nat, r: Nat, h: {True{} == Nat.is_le(j, d) : Bool}) -> {True{} == Nat.is_le(j, Nat.div.fin(Nat.divmod.go(n, m, d, r))) : Bool}:
+  match n m:
+    case 0n _:
+      h
+    case 1n+np 0n:
+      internal_div_go_d_ge(j, np, r, 1n+d, 0n, internal_div_le_succ_r(j, d, h))
+    case 1n+np 1n+mp:
+      internal_div_go_d_ge(j, np, mp, d, 1n+r, h)
+
+def internal_div_mono_go(a: Nat, m: Nat, +d: Nat, r: Nat, +k: Nat) -> {True{} == Nat.is_le(Nat.div.fin(Nat.divmod.go(a, m, d, r)), Nat.div.fin(Nat.divmod.go(Nat.add(a, k), m, d, r))) : Bool}:
+  match a m:
+    case 0n _:
+      internal_div_go_d_ge(d, k, m, d, r, internal_div_le_refl(d))
+    case 1n+ap 0n:
+      internal_div_mono_go(ap, r, 1n+d, 0n, k)
+    case 1n+ap 1n+mp:
+      internal_div_mono_go(ap, mp, d, 1n+r, k)
+
+def internal_div_mono_wit(+a: Nat, +c: Nat, b: Nat, w: &k:Nat -> {Nat.add(a, k) == c : Nat}) -> le(Nat.div(a, 1n+b), Nat.div(c, 1n+b)):
+  match w:
+    case (+k, e):
+      %e : le(Nat.div(a, 1n+b), Nat.div(_, 1n+b))
+      Equal.sym(Bool, True{}, Nat.is_le(Nat.div(a, 1n+b), Nat.div(Nat.add(a, k), 1n+b)), internal_div_mono_go(a, b, 0n, 0n, k))
+
+# Division by a positive divisor is monotone: a <= c implies a / (1 + b) <= c / (1 + b).
+law div_le_div:
+  for +a: Nat
+  for +c: Nat
+  for b: Nat
+  for h: le(a, c)
+  le(Nat.div(a, 1n+b), Nat.div(c, 1n+b))
+
+def div_le_div(a, c, b, h):
+  internal_div_mono_wit(a, c, b, internal_div_le_wit(a, c, h))
+
+def internal_div_go_shift(n: Nat, m: Nat, +d: Nat, +r: Nat) -> {1n+Nat.div.fin(Nat.divmod.go(n, m, d, r)) == Nat.div.fin(Nat.divmod.go(n, m, 1n+d, r)) : Nat}:
+  match n m:
+    case 0n _:
+      {==}
+    case 1n+np 0n:
+      internal_div_go_shift(np, r, 1n+d, 0n)
+    case 1n+np 1n+mp:
+      internal_div_go_shift(np, mp, d, 1n+r)
+
+def internal_div_go_run(m: Nat, +a: Nat, +d: Nat, +r: Nat) -> {Nat.divmod.go(a, Nat.add(m, r), 1n+d, 0n) == Nat.divmod.go(Nat.add(1n+m, a), m, d, r) : Nat & Nat}:
+  match m:
+    case 0n:
+      {==}
+    case 1n++mp:
+      %add_succ(mp, r) : {Nat.divmod.go(a, _, 1n+d, 0n) == Nat.divmod.go(1n+Nat.add(mp, a), mp, d, 1n+r) : Nat & Nat}
+      internal_div_go_run(mp, a, d, 1n+r)
+
+# Adding the divisor adds one to the quotient: ((1 + b) + a) / (1 + b) = 1 + a / (1 + b).
+law add_div_left:
+  for +a: Nat
+  for +b: Nat
+  {Nat.div(Nat.add(1n+b, a), 1n+b) == 1n+Nat.div(a, 1n+b) : Nat}
+
+def add_div_left(a, b):
+  %internal_div_go_run(b, a, 0n, 0n) : {Nat.div.fin(_) == 1n+Nat.div(a, 1n+b) : Nat}
+  %internal_div_add_zero_r(b) : {Nat.div.fin(Nat.divmod.go(a, _, 1n, 0n)) == 1n+Nat.div(a, 1n+b) : Nat}
+  Equal.sym(Nat, 1n+Nat.div(a, 1n+b), Nat.div.fin(Nat.divmod.go(a, b, 1n, 0n)), internal_div_go_shift(a, b, 0n, 0n))
+
+def internal_div_le_add_cancel(t: Nat, +x: Nat, +y: Nat) -> {Nat.is_le(x, y) == Nat.is_le(Nat.add(t, x), Nat.add(t, y)) : Bool}:
+  match t:
+    case 0n:
+      {==}
+    case 1n+tp:
+      internal_div_le_add_cancel(tp, x, y)
+
+def internal_div_gt_add(a: Nat, +y: Nat) -> {False{} == Nat.is_le(1n+Nat.add(a, y), a) : Bool}:
+  match a:
+    case 0n:
+      {==}
+    case 1n+ap:
+      internal_div_gt_add(ap, y)
+
+def internal_div_not_succ_le(a: Nat, bp: Nat, h: {False{} == Nat.is_le(1n+bp, a) : Bool}) -> {Nat.is_le(a, bp) == True{} : Bool}:
+  match a bp:
+    case 0n q:
+      Equal.sym(Bool, True{}, Nat.is_le(0n, q), internal_div_zero_le(q))
+    case 1n+ap 0n:
+      Empty.absurd({Nat.is_le(1n+ap, 0n) == True{} : Bool}, internal_div_true_ne_false(Equal.sym(Bool, False{}, True{}, Equal.trans(Bool, False{}, Nat.is_le(0n, ap), True{}, h, Equal.sym(Bool, True{}, Nat.is_le(0n, ap), internal_div_zero_le(ap))))))
+    case 1n+ap 1n+q:
+      internal_div_not_succ_le(ap, q, h)
+
+def internal_div_le_big(+np: Nat, +a: Nat, +bp: Nat, w: &k:Nat -> {Nat.add(1n+bp, k) == a : Nat}, ih: @x:Nat -> {Nat.is_le(np, Nat.div(x, 1n+bp)) == Nat.is_le(Nat.mul(np, 1n+bp), x) : Bool}) -> {Nat.is_le(1n+np, Nat.div(a, 1n+bp)) == Nat.is_le(Nat.mul(1n+np, 1n+bp), a) : Bool}:
+  match w:
+    case (+k, e):
+      %e : {Nat.is_le(1n+np, Nat.div(_, 1n+bp)) == Nat.is_le(1n+Nat.add(bp, Nat.mul(np, 1n+bp)), _) : Bool}
+      %internal_div_le_add_cancel(bp, Nat.mul(np, 1n+bp), k) : {Nat.is_le(1n+np, Nat.div(1n+Nat.add(bp, k), 1n+bp)) == _ : Bool}
+      %Equal.sym(Nat, Nat.div(Nat.add(1n+bp, k), 1n+bp), 1n+Nat.div(k, 1n+bp), add_div_left(k, bp)) : {Nat.is_le(1n+np, _) == Nat.is_le(Nat.mul(np, 1n+bp), k) : Bool}
+      ih(k)
+
+def internal_div_le_small(+np: Nat, +a: Nat, +bp: Nat, w: &k:Nat -> {Nat.add(a, k) == bp : Nat}) -> {Nat.is_le(1n+np, Nat.div(a, 1n+bp)) == Nat.is_le(Nat.mul(1n+np, 1n+bp), a) : Bool}:
+  match w:
+    case (+k, e):
+      %e : {Nat.is_le(1n+np, Nat.div(a, 1n+_)) == Nat.is_le(1n+Nat.add(_, Nat.mul(np, 1n+_)), a) : Bool}
+      %internal_div_go_small(a, k, 0n, 0n) : {Nat.is_le(1n+np, _) == Nat.is_le(1n+Nat.add(Nat.add(a, k), Nat.mul(np, 1n+Nat.add(a, k))), a) : Bool}
+      %Equal.sym(Nat, Nat.add(Nat.add(a, k), Nat.mul(np, 1n+Nat.add(a, k))), Nat.add(a, Nat.add(k, Nat.mul(np, 1n+Nat.add(a, k)))), add_assoc(a, k, Nat.mul(np, 1n+Nat.add(a, k)))) : {False{} == Nat.is_le(1n+_, a) : Bool}
+      internal_div_gt_add(a, Nat.add(k, Nat.mul(np, 1n+Nat.add(a, k))))
+
+def internal_div_le_step(+np: Nat, +a: Nat, +bp: Nat, b: Bool, eb: {b == Nat.is_le(1n+bp, a) : Bool}, ih: @x:Nat -> {Nat.is_le(np, Nat.div(x, 1n+bp)) == Nat.is_le(Nat.mul(np, 1n+bp), x) : Bool}) -> {Nat.is_le(1n+np, Nat.div(a, 1n+bp)) == Nat.is_le(Nat.mul(1n+np, 1n+bp), a) : Bool}:
+  match b:
+    case True{}:
+      internal_div_le_big(np, a, bp, internal_div_le_wit(1n+bp, a, Equal.sym(Bool, True{}, Nat.is_le(1n+bp, a), eb)), ih)
+    case False{}:
+      internal_div_le_small(np, a, bp, internal_div_le_wit(a, bp, internal_div_not_succ_le(a, bp, eb)))
+
+# A quotient is compared by multiplying back: n <= a / (1 + b) tests as n * (1 + b) <= a.
+law le_div_iff_mul_le:
+  for n: Nat
+  for +a: Nat
+  for +b: Nat
+  {Nat.is_le(n, Nat.div(a, 1n+b)) == Nat.is_le(Nat.mul(n, 1n+b), a) : Bool}
+
+def le_div_iff_mul_le(n, a, b):
+  match n:
+    case 0n:
+      %internal_div_zero_le(Nat.div(a, 1n+b)) : {_ == Nat.is_le(0n, a) : Bool}
+      %internal_div_zero_le(a) : {True{} == _ : Bool}
+      {==}
+    case 1n++np:
+      internal_div_le_step(np, a, b, Nat.is_le(1n+b, a), {==}, x => le_div_iff_mul_le(np, x, b))
+
 # Minimum is commutative.
 law min_comm:
   for a: Nat
@@ -1541,6 +1757,34 @@ law sub_sub_sym:
 
 def sub_sub_sym(n, m, k):
   Equal.sym(Nat, Nat.sub(Nat.sub(n, m), k), Nat.sub(n, Nat.add(m, k)), sub_sub(n, m, k))
+
+# The division equation, for a positive divisor 1 + b: (a / (1 + b)) * (1 + b) + a % (1 + b) = a, reversed to rewrite toward the simple side.
+law div_mod_eq_sym:
+  for +a: Nat
+  for +b: Nat
+  {a == Nat.add(Nat.mul(Nat.div(a, 1n+b), 1n+b), Nat.mod(a, 1n+b)) : Nat}
+
+def div_mod_eq_sym(a, b):
+  Equal.sym(Nat, Nat.add(Nat.mul(Nat.div(a, 1n+b), 1n+b), Nat.mod(a, 1n+b)), a, div_mod_eq(a, b))
+
+# Adding the divisor adds one to the quotient: ((1 + b) + a) / (1 + b) = 1 + a / (1 + b), reversed to rewrite toward the simple side.
+law add_div_left_sym:
+  for +a: Nat
+  for +b: Nat
+  {1n+Nat.div(a, 1n+b) == Nat.div(Nat.add(1n+b, a), 1n+b) : Nat}
+
+def add_div_left_sym(a, b):
+  Equal.sym(Nat, Nat.div(Nat.add(1n+b, a), 1n+b), 1n+Nat.div(a, 1n+b), add_div_left(a, b))
+
+# A quotient is compared by multiplying back: n <= a / (1 + b) tests as n * (1 + b) <= a, reversed to rewrite toward the simple side.
+law le_div_iff_mul_le_sym:
+  for n: Nat
+  for +a: Nat
+  for +b: Nat
+  {Nat.is_le(Nat.mul(n, 1n+b), a) == Nat.is_le(n, Nat.div(a, 1n+b)) : Bool}
+
+def le_div_iff_mul_le_sym(n, a, b):
+  Equal.sym(Bool, Nat.is_le(n, Nat.div(a, 1n+b)), Nat.is_le(Nat.mul(n, 1n+b), a), le_div_iff_mul_le(n, a, b))
 
 # Minimum is commutative, reversed to rewrite toward the simple side.
 law min_comm_sym:
