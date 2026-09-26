@@ -353,6 +353,19 @@ import bend-mathlib@0.3.0.0/nat.bend as MNat
 | `add_le_add_left(a, b, k, h)` | `∀ -a: Nat, -b: Nat, k: Nat, h: le(a, b). le(Nat.add(k, a), Nat.add(k, b))` | Adding on the left preserves the order: a <= b implies k + a <= k + b. | 0.2.0.0 |
 | `le_zero_eq(n, h)` | `∀ n: Nat, h: le(n, 0n). {n == 0n : Nat}` | The only natural at most zero is zero. | 0.2.0.0 |
 | `lt_zero(n)` | `∀ n: Nat. lt(n, 0n) -> Empty` | No natural is less than zero. | 0.2.0.0 |
+| `not_le_of_lt(a, b, h)` | `∀ a: Nat, b: Nat, h: lt(a, b). {Nat.is_le(b, a) == False{} : Bool}` | A strict inequality rules out the reverse weak one: a < b implies b <= a is false. | next |
+| `not_lt_of_le(a, b, h)` | `∀ a: Nat, b: Nat, h: le(a, b). {Nat.is_lt(b, a) == False{} : Bool}` | A weak inequality rules out the reverse strict one: a <= b implies b < a is false. | next |
+| `lt_of_not_le(a, b, h)` | `∀ a: Nat, b: Nat, h: {Nat.is_le(a, b) == False{} : Bool}. lt(b, a)` | A failed weak test gives the reverse strict order: a <= b false implies b < a. | next |
+| `le_of_not_lt(a, b, h)` | `∀ a: Nat, b: Nat, h: {Nat.is_lt(a, b) == False{} : Bool}. le(b, a)` | A failed strict test gives the reverse weak order: a < b false implies b <= a. | next |
+| `lt_min(a, b, c, hb, hc)` | `∀ a: Nat, b: Nat, c: Nat, hb: lt(a, b), hc: lt(a, c). lt(a, Nat.min(b, c))` | A number below both bounds is below their minimum: a < b and a < c imply a < min b c. | next |
+| `min_le_iff(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.is_le(Nat.min(a, b), c) == Bool.or(Nat.is_le(a, c), Nat.is_le(b, c)) : Bool}` | The minimum is at most c exactly when one argument is: min a b <= c tests as a <= c or b <= c. | next |
+| `lt_max_iff(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.is_lt(a, Nat.max(b, c)) == Bool.or(Nat.is_lt(a, b), Nat.is_lt(a, c)) : Bool}` | The maximum is above a exactly when one argument is: a < max b c tests as a < b or a < c. | next |
+| `sub_eq_zero_of_le(a, b, h)` | `∀ a: Nat, b: Nat, h: le(a, b). {Nat.sub(a, b) == 0n : Nat}` | Subtracting a larger number gives zero: a <= b implies a - b = 0. | next |
+| `succ_sub(a, b, h)` | `∀ a: Nat, b: Nat, h: le(b, a). {Nat.sub(1n+a, b) == 1n+Nat.sub(a, b) : Nat}` | Above the subtrahend, a successor subtracts to a successor: b <= a implies (a + 1) - b = (a - b) + 1. | next |
+| `add_sub_of_le(a, b, h)` | `∀ a: Nat, b: Nat, h: le(a, b). {Nat.add(a, Nat.sub(b, a)) == b : Nat}` | Adding back what was subtracted restores the number: a <= b implies a + (b - a) = b. | next |
+| `lt_sub_iff_add_lt(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.is_lt(a, Nat.sub(c, b)) == Nat.is_lt(Nat.add(b, a), c) : Bool}` | Comparing against a difference is comparing the sum: a < c - b tests as b + a < c. | next |
+| `le_of_add_eq(a, k, b, e)` | `∀ a: Nat, k: Nat, -b: Nat, e: {Nat.add(a, k) == b : Nat}. le(a, b)` | A witnessed difference gives the order: a + k = b implies a <= b. | next |
+| `mul_le_mul_right(a, b, k, h)` | `∀ +a: Nat, +b: Nat, +k: Nat, h: le(a, b). le(Nat.mul(a, k), Nat.mul(b, k))` | Multiplying on the right preserves the order: a <= b implies a * k <= b * k. | next |
 | `add_zero_sym(x)` | `∀ x: Nat. {x == Nat.add(x, 0n) : Nat}` | Zero is a right identity for addition: x + 0 = x, reversed to rewrite toward the simple side. | 0.1.0.0 |
 | `zero_add_sym(x)` | `∀ -x: Nat. {x == Nat.add(0n, x) : Nat}` | Zero is a left identity for addition: 0 + x = x, reversed to rewrite toward the simple side. | 0.1.0.0 |
 | `add_succ_sym(n, m)` | `∀ n: Nat, -m: Nat. {1n+Nat.add(n, m) == Nat.add(n, 1n+m) : Nat}` | Adding a successor on the right: n + (m + 1) = (n + m) + 1, reversed to rewrite toward the simple side. | 0.1.0.0 |
@@ -403,6 +416,9 @@ import bend-mathlib@0.3.0.0/nat.bend as MNat
 | `is_lt_eq_succ_le_sym(a, b)` | `∀ a: Nat, b: Nat. {Nat.is_le(1n+a, b) == Nat.is_lt(a, b) : Bool}` | A < b tests the same as a + 1 <= b, reversed to rewrite toward the simple side. | 0.2.0.0 |
 | `not_is_le_sym(a, b)` | `∀ a: Nat, b: Nat. {Nat.is_lt(b, a) == Bool.not(Nat.is_le(a, b)) : Bool}` | Not (a <= b) tests the same as b < a, reversed to rewrite toward the simple side. | 0.2.0.0 |
 | `not_is_lt_sym(a, b)` | `∀ a: Nat, b: Nat. {Nat.is_le(b, a) == Bool.not(Nat.is_lt(a, b)) : Bool}` | Not (a < b) tests the same as b <= a, reversed to rewrite toward the simple side. | 0.2.0.0 |
+| `min_le_iff_sym(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Bool.or(Nat.is_le(a, c), Nat.is_le(b, c)) == Nat.is_le(Nat.min(a, b), c) : Bool}` | The minimum is at most c exactly when one argument is: min a b <= c tests as a <= c or b <= c, reversed to rewrite toward the simple side. | next |
+| `lt_max_iff_sym(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Bool.or(Nat.is_lt(a, b), Nat.is_lt(a, c)) == Nat.is_lt(a, Nat.max(b, c)) : Bool}` | The maximum is above a exactly when one argument is: a < max b c tests as a < b or a < c, reversed to rewrite toward the simple side. | next |
+| `lt_sub_iff_add_lt_sym(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.is_lt(Nat.add(b, a), c) == Nat.is_lt(a, Nat.sub(c, b)) : Bool}` | Comparing against a difference is comparing the sum: a < c - b tests as b + a < c, reversed to rewrite toward the simple side. | next |
 
 ## order
 
@@ -419,4 +435,4 @@ import bend-mathlib@0.3.0.0/order.bend as MOrder
 | `le_total_of_not_le(~A, ~le, ~le_total, a, b, h)` | `∀ ~A: Data, ~le: A -> A -> Bool, ~le_total: @x: A -> @y: A -> {Bool.or(le(x, y), le(y, x)) == True{} : Bool}, +a: A, +b: A, h: {le(a, b) == False{} : Bool}. {le(b, a) == True{} : Bool}` | The other side of a total order holds when one side fails. | next |
 | `le_total_true_sym(~A, ~le, ~le_total, a, b)` | `∀ ~A: Data, ~le: A -> A -> Bool, ~le_total: @x: A -> @y: A -> {Bool.or(le(x, y), le(y, x)) == True{} : Bool}, +a: A, +b: A. {True{} == Bool.or(le(a, b), le(b, a)) : Bool}` | Totality as a Bool disjunction, reversed to rewrite toward the simple side. | next |
 
-197 lemmas + 140 generated _sym twins, 6 predicates. Generated by `tools/mathlib/index.ts`.
+210 lemmas + 143 generated _sym twins, 6 predicates. Generated by `tools/mathlib/index.ts`.
