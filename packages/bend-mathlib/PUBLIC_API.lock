@@ -301,6 +301,18 @@
       "sha256": "ebd31d77c38b7bcfac8ee3bab852e1504bdf009519726132383ca8034a2c3c87",
       "since": "0.1.0.0"
     },
+    "bool.cmp_refl": {
+      "kind": "law",
+      "text": "for b: Bool\n{Bool.cmp(b, b) == EQ{} : Cmp}",
+      "sha256": "c1ca43616a691f9b90943be806e794bac274a1dce8f2b6e82dacde7653e7c2ed",
+      "since": null
+    },
+    "bool.cmp_refl_sym": {
+      "kind": "law",
+      "text": "for b: Bool\n{EQ{} == Bool.cmp(b, b) : Cmp}",
+      "sha256": "9946d01d76499bcc362a6f3c2726655dc20712b2ac28d6ff924a32ccd86d93f8",
+      "since": null
+    },
     "bool.de_morgan_and": {
       "kind": "law",
       "text": "for a: Bool\nfor -b: Bool\n{Bool.not(Bool.and(a, b)) == Bool.or(Bool.not(a), Bool.not(b)) : Bool}",
@@ -324,6 +336,12 @@
       "text": "for a: Bool\nfor -b: Bool\n{Bool.and(Bool.not(a), Bool.not(b)) == Bool.not(Bool.or(a, b)) : Bool}",
       "sha256": "45a4a46e6e1c71b7dc1151ea742193fbd7db19a3692bdc29988880cb797dd86a",
       "since": "0.1.0.0"
+    },
+    "bool.eq_of_cmp_eq": {
+      "kind": "law",
+      "text": "for a: Bool\nfor b: Bool\nfor h: {Cmp.is_eq(Bool.cmp(a, b)) == True{} : Bool}\n{a == b : Bool}",
+      "sha256": "39a62bfd21ce19b4ec41c48e15d978fe01a3e128b3d7690a9dc5d1c680038d7d",
+      "since": null
     },
     "bool.eq_true_of_ne_false": {
       "kind": "law",
@@ -2291,6 +2309,156 @@
       "kind": "def",
       "text": "def sort_by_sorted_nat(+xs: List<&2, Nat>) -> MList.sorted_by(~Nat, ~Nat.is_le, MPerm.sort_by(~Nat, ~Nat.is_le, xs)):\nsort_by_sorted(~Nat, ~Nat.is_le, ~internal_le_trans_nat, ~internal_le_flip_nat, xs)",
       "sha256": "bb5c49e21428c793fecad9b76e8a5a2844cef476844394728ea91730aae5ce8d",
+      "since": null
+    },
+    "string.append_assoc": {
+      "kind": "law",
+      "text": "for a: String\nfor -b: String\nfor -c: String\n{String.append(String.append(a, b), c) == String.append(a, String.append(b, c)) : String}",
+      "sha256": "2db4265eead5b33f4fb01c1f13054463cb7dde527adbffee34b24aced448d7ab",
+      "since": null
+    },
+    "string.append_assoc_sym": {
+      "kind": "law",
+      "text": "for a: String\nfor -b: String\nfor -c: String\n{String.append(a, String.append(b, c)) == String.append(String.append(a, b), c) : String}",
+      "sha256": "82a541c1a1fa1854af84e1cf2a68defe0ed3bf79b524a2adc3f3c22891e6747c",
+      "since": null
+    },
+    "string.append_nil": {
+      "kind": "law",
+      "text": "for a: String\n{String.append(a, SNil{}) == a : String}",
+      "sha256": "b61b92c8807d322d8dbb1b350da0d79ffed2adfae750107d5767b02d3cf74c51",
+      "since": null
+    },
+    "string.append_nil_sym": {
+      "kind": "law",
+      "text": "for a: String\n{a == String.append(a, SNil{}) : String}",
+      "sha256": "36c8713860b55a528f11c7459850936d1277871b3d2e17ec3ecbb49d30a40af3",
+      "since": null
+    },
+    "string.char_cmp_refl": {
+      "kind": "law",
+      "text": "for c: Char\n{Char.cmp(c, c) == ((c, c), EQ{}) : (Char & Char) & Cmp}",
+      "sha256": "b4970ad42fff793eec42687fd98966c58cf988f550421f5e2323274c23aca42c",
+      "since": null
+    },
+    "string.char_cmp_refl_sym": {
+      "kind": "law",
+      "text": "for c: Char\n{((c, c), EQ{}) == Char.cmp(c, c) : (Char & Char) & Cmp}",
+      "sha256": "63e39cfe93790b7cf35c55e070c7f1ce99fc16b3788e774cf92d96ab370d9baf",
+      "since": null
+    },
+    "string.char_eq_of_is_eq": {
+      "kind": "law",
+      "text": "for a: Char\nfor b: Char\nfor h: {Char.is_eq(a, b) == True{} : Bool}\n{a == b : Char}",
+      "sha256": "26752595452e39b612eb84bcde87f584544938a8f999bfbbd2abb41944d515ca",
+      "since": null
+    },
+    "string.cmp_refl": {
+      "kind": "law",
+      "text": "for s: String\n{String.cmp(s, s) == ((s, s), EQ{}) : (String & String) & Cmp}",
+      "sha256": "b971eca69016ffc7180eda072c7401bb4226daf15be2afe085e2430ba017f30e",
+      "since": null
+    },
+    "string.cmp_refl_sym": {
+      "kind": "law",
+      "text": "for s: String\n{((s, s), EQ{}) == String.cmp(s, s) : (String & String) & Cmp}",
+      "sha256": "4b98c5858f0ae12aef48e064c4b4741b3e736548c732b3212752f19bdce15c6e",
+      "since": null
+    },
+    "string.eq_of_eq_true": {
+      "kind": "law",
+      "text": "for a: String\nfor b: String\nfor h: {String.eq(a, b) == True{} : Bool}\n{a == b : String}",
+      "sha256": "d63c11e97b98849d2abf9f29d6f32a922b1cf7667130abfd0e7b3b3c5cc108b7",
+      "since": null
+    },
+    "string.eq_refl": {
+      "kind": "law",
+      "text": "for s: String\n{String.eq(s, s) == True{} : Bool}",
+      "sha256": "fa36b4f5732fde061442884fd55630bdbfb6f5c5c1854ada2650d702a2b70790",
+      "since": null
+    },
+    "string.eq_refl_sym": {
+      "kind": "law",
+      "text": "for s: String\n{True{} == String.eq(s, s) : Bool}",
+      "sha256": "bc2f24f83ea31f0a2e63c0fbda96a8cdeffc30b994e00f00a08aa79f03822f49",
+      "since": null
+    },
+    "string.length_append": {
+      "kind": "law",
+      "text": "for a: String\nfor -b: String\n{String.length(String.append(a, b)) == Nat.add(String.length(a), String.length(b)) : Nat}",
+      "sha256": "4a8b90e3fa77ff954898f8e66d6e3592b1f0a0042c1e81ce9f705f35e4c9ef70",
+      "since": null
+    },
+    "string.length_append_sym": {
+      "kind": "law",
+      "text": "for a: String\nfor -b: String\n{Nat.add(String.length(a), String.length(b)) == String.length(String.append(a, b)) : Nat}",
+      "sha256": "0873e10cd9ddd1dd0a295847c4714e3359f7b74e7e8a77f28582a7da0f11678b",
+      "since": null
+    },
+    "string.nil_append": {
+      "kind": "law",
+      "text": "for -a: String\n{String.append(SNil{}, a) == a : String}",
+      "sha256": "fc723a2722c313e0e3a5d183e8351ab7ba04e2daf89bc992f43e711bedcb23cb",
+      "since": null
+    },
+    "string.nil_append_sym": {
+      "kind": "law",
+      "text": "for -a: String\n{a == String.append(SNil{}, a) : String}",
+      "sha256": "ed267594411d296c16467d4c488844736124e32ca8c32137453cde29173cbd0b",
+      "since": null
+    },
+    "string.reverse_append": {
+      "kind": "law",
+      "text": "for a: String\nfor b: String\n{String.reverse(String.append(a, b)) == String.append(String.reverse(b), String.reverse(a)) : String}",
+      "sha256": "6056053554e3c6bd2d6252155d59218c40383f9164dbce88ad85074b8d414c69",
+      "since": null
+    },
+    "string.reverse_append_sym": {
+      "kind": "law",
+      "text": "for a: String\nfor b: String\n{String.append(String.reverse(b), String.reverse(a)) == String.reverse(String.append(a, b)) : String}",
+      "sha256": "ab1c0173b976b4d77807b9a4b9539ab2f704b898233be006f64d98751e1b3d9e",
+      "since": null
+    },
+    "string.reverse_go_spec": {
+      "kind": "law",
+      "text": "for s: String\nfor acc: String\n{String.reverse.go(s, acc) == String.append(String.reverse(s), acc) : String}",
+      "sha256": "dbce838f7fa1d6d7596393fd5d8dbdaed54e59c7b5cf65734889f9d013faf8ed",
+      "since": null
+    },
+    "string.reverse_go_spec_sym": {
+      "kind": "law",
+      "text": "for s: String\nfor acc: String\n{String.append(String.reverse(s), acc) == String.reverse.go(s, acc) : String}",
+      "sha256": "7e9511b3884b117eb2a9ef5642b8020bfa2ab8655cc7c4e1f49dd2f651e92aa1",
+      "since": null
+    },
+    "string.reverse_reverse": {
+      "kind": "law",
+      "text": "for a: String\n{String.reverse(String.reverse(a)) == a : String}",
+      "sha256": "8aa5e2931a04c67df2d17d698a7e623419066d01164f2c9b36f3095942caca14",
+      "since": null
+    },
+    "string.reverse_reverse_sym": {
+      "kind": "law",
+      "text": "for a: String\n{a == String.reverse(String.reverse(a)) : String}",
+      "sha256": "002f6c22b045115cacde41ffd4aabcf0a61d125f6a28ea1ad6a3d35a81af58b8",
+      "since": null
+    },
+    "string.u32_cmp_refl": {
+      "kind": "law",
+      "text": "for x: U32\n{U32.cmp(x, x) == EQ{} : Cmp}",
+      "sha256": "0b869cd8308442516cb0fa92b4f413bf2e19cf65cf35caf156d231d04bb4e774",
+      "since": null
+    },
+    "string.u32_cmp_refl_sym": {
+      "kind": "law",
+      "text": "for x: U32\n{EQ{} == U32.cmp(x, x) : Cmp}",
+      "sha256": "fe5f313f83c8166a6be2ed228986ec85f9103ee9f6bbf48e4957c76f5a4bf8ce",
+      "since": null
+    },
+    "string.u32_eq_of_is_eq": {
+      "kind": "law",
+      "text": "for a: U32\nfor b: U32\nfor h: {U32.is_eq(a, b) == True{} : Bool}\n{a == b : U32}",
+      "sha256": "146885de0162b5fc3c9249e01a89d8ae31cfcd15b99b17b1082b03162fbf7f1f",
       "since": null
     }
   }
