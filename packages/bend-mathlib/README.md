@@ -5,55 +5,53 @@ Machine-checked lemmas for Bend 2, checked with `bend 2.0.32`.
 Rewriting: `%e : P` replaces the right side of `e` with its left side, so `name` expands the simple
 side into the compound one and `name_sym` simplifies the compound side.
 
-Rows marked `next` are proved in this repository but not yet published: the import lines above do not contain them yet.
-
 ## algebra
 
 ```python
-import bend-mathlib@0.3.0.0/algebra.bend as MAlgebra
+import bend-mathlib@0.4.0.0/algebra.bend as MAlgebra
 ```
 
 | lemma | statement | meaning | since |
 |---|---|---|---|
-| `op_assoc4(~A, ~op, ~assoc, a, b, c, d)` | `∀ ~A: Data, ~op: A -> A -> A, ~assoc: @x: A -> @y: A -> @z: A -> {op(op(x, y), z) == op(x, op(y, z)) : A}, +a: A, +b: A, +c: A, +d: A. {op(op(op(a, b), c), d) == op(a, op(b, op(c, d))) : A}` | Four-way reassociation from associativity alone. | next |
-| `op_left_comm(~A, ~op, ~assoc, ~comm, a, b, c)` | `∀ ~A: Data, ~op: A -> A -> A, ~assoc: @x: A -> @y: A -> @z: A -> {op(op(x, y), z) == op(x, op(y, z)) : A}, ~comm: @x: A -> @y: A -> {op(x, y) == op(y, x) : A}, +a: A, +b: A, +c: A. {op(a, op(b, c)) == op(b, op(a, c)) : A}` | Left commutation from associativity and commutativity. | next |
-| `op_right_comm(~A, ~op, ~assoc, ~comm, a, b, c)` | `∀ ~A: Data, ~op: A -> A -> A, ~assoc: @x: A -> @y: A -> @z: A -> {op(op(x, y), z) == op(x, op(y, z)) : A}, ~comm: @x: A -> @y: A -> {op(x, y) == op(y, x) : A}, +a: A, +b: A, +c: A. {op(op(a, b), c) == op(op(a, c), b) : A}` | Right commutation from associativity and commutativity. | next |
-| `op_four(~A, ~op, ~assoc, ~comm, a, b, c, d)` | `∀ ~A: Data, ~op: A -> A -> A, ~assoc: @x: A -> @y: A -> @z: A -> {op(op(x, y), z) == op(x, op(y, z)) : A}, ~comm: @x: A -> @y: A -> {op(x, y) == op(y, x) : A}, +a: A, +b: A, +c: A, +d: A. {op(op(a, b), op(c, d)) == op(op(a, c), op(b, d)) : A}` | Middle-four interchange from associativity and commutativity. | next |
-| `op_comm3(~A, ~op, ~comm, a, b, c)` | `∀ ~A: Data, ~op: A -> A -> A, ~comm: @x: A -> @y: A -> {op(x, y) == op(y, x) : A}, +a: A, +b: A, +c: A. {op(op(a, b), c) == op(c, op(b, a)) : A}` | Three-way commutation from commutativity alone. | next |
-| `nat_add_left_comm(a, b, c)` | `∀ +a: Nat, +b: Nat, +c: Nat. {Nat.add(a, Nat.add(b, c)) == Nat.add(b, Nat.add(a, c)) : Nat}` | Nat addition is left-commutative. | next |
-| `nat_add_right_comm(a, b, c)` | `∀ +a: Nat, +b: Nat, +c: Nat. {Nat.add(Nat.add(a, b), c) == Nat.add(Nat.add(a, c), b) : Nat}` | Nat addition is right-commutative. | next |
-| `nat_add_four(a, b, c, d)` | `∀ +a: Nat, +b: Nat, +c: Nat, +d: Nat. {Nat.add(Nat.add(a, b), Nat.add(c, d)) == Nat.add(Nat.add(a, c), Nat.add(b, d)) : Nat}` | Nat addition's middle-four interchange. | next |
-| `nat_mul_left_comm(a, b, c)` | `∀ +a: Nat, +b: Nat, +c: Nat. {Nat.mul(a, Nat.mul(b, c)) == Nat.mul(b, Nat.mul(a, c)) : Nat}` | Nat multiplication is left-commutative. | next |
-| `nat_mul_right_comm(a, b, c)` | `∀ +a: Nat, +b: Nat, +c: Nat. {Nat.mul(Nat.mul(a, b), c) == Nat.mul(Nat.mul(a, c), b) : Nat}` | Nat multiplication is right-commutative. | next |
-| `nat_mul_four(a, b, c, d)` | `∀ +a: Nat, +b: Nat, +c: Nat, +d: Nat. {Nat.mul(Nat.mul(a, b), Nat.mul(c, d)) == Nat.mul(Nat.mul(a, c), Nat.mul(b, d)) : Nat}` | Nat multiplication's middle-four interchange. | next |
-| `bool_and_left_comm(a, b, c)` | `∀ +a: Bool, +b: Bool, +c: Bool. {Bool.and(a, Bool.and(b, c)) == Bool.and(b, Bool.and(a, c)) : Bool}` | Bool and is left-commutative. | next |
-| `bool_and_right_comm(a, b, c)` | `∀ +a: Bool, +b: Bool, +c: Bool. {Bool.and(Bool.and(a, b), c) == Bool.and(Bool.and(a, c), b) : Bool}` | Bool and is right-commutative. | next |
-| `bool_or_left_comm(a, b, c)` | `∀ +a: Bool, +b: Bool, +c: Bool. {Bool.or(a, Bool.or(b, c)) == Bool.or(b, Bool.or(a, c)) : Bool}` | Bool or is left-commutative. | next |
-| `bool_or_right_comm(a, b, c)` | `∀ +a: Bool, +b: Bool, +c: Bool. {Bool.or(Bool.or(a, b), c) == Bool.or(Bool.or(a, c), b) : Bool}` | Bool or is right-commutative. | next |
-| `list_nat_append_assoc4(a, b, c, d)` | `∀ +a: List<&2, Nat>, +b: List<&2, Nat>, +c: List<&2, Nat>, +d: List<&2, Nat>. {List.append(&2, Nat, List.append(&2, Nat, List.append(&2, Nat, a, b), c), d) == List.append(&2, Nat, a, List.append(&2, Nat, b, List.append(&2, Nat, c, d))) : List<&2, Nat>}` | Four-way reassociation for List append over Nat. | next |
-| `foldl_op_eq_foldr_op(~B, ~op, ~assoc, ~comm, ~z, ~id, xs)` | `∀ ~B: Data, ~op: B -> B -> B, ~assoc: @x: B -> @y: B -> @z: B -> {op(op(x, y), z) == op(x, op(y, z)) : B}, ~comm: @x: B -> @y: B -> {op(x, y) == op(y, x) : B}, ~z: B, ~id: @x: B -> {op(z, x) == x : B}, +xs: List<&2, B>. {List.foldl(&2, B, B, op, xs, z) == List.foldr(&2, B, B, op, xs, z) : B}` | Folding left equals folding right for an associative, commutative operation with a left identity. | next |
-| `op_assoc4_sym(~A, ~op, ~assoc, a, b, c, d)` | `∀ ~A: Data, ~op: A -> A -> A, ~assoc: @x: A -> @y: A -> @z: A -> {op(op(x, y), z) == op(x, op(y, z)) : A}, +a: A, +b: A, +c: A, +d: A. {op(a, op(b, op(c, d))) == op(op(op(a, b), c), d) : A}` | Four-way reassociation from associativity alone, reversed to rewrite toward the simple side. | next |
-| `op_left_comm_sym(~A, ~op, ~assoc, ~comm, a, b, c)` | `∀ ~A: Data, ~op: A -> A -> A, ~assoc: @x: A -> @y: A -> @z: A -> {op(op(x, y), z) == op(x, op(y, z)) : A}, ~comm: @x: A -> @y: A -> {op(x, y) == op(y, x) : A}, +a: A, +b: A, +c: A. {op(b, op(a, c)) == op(a, op(b, c)) : A}` | Left commutation from associativity and commutativity, reversed to rewrite toward the simple side. | next |
-| `op_right_comm_sym(~A, ~op, ~assoc, ~comm, a, b, c)` | `∀ ~A: Data, ~op: A -> A -> A, ~assoc: @x: A -> @y: A -> @z: A -> {op(op(x, y), z) == op(x, op(y, z)) : A}, ~comm: @x: A -> @y: A -> {op(x, y) == op(y, x) : A}, +a: A, +b: A, +c: A. {op(op(a, c), b) == op(op(a, b), c) : A}` | Right commutation from associativity and commutativity, reversed to rewrite toward the simple side. | next |
-| `op_four_sym(~A, ~op, ~assoc, ~comm, a, b, c, d)` | `∀ ~A: Data, ~op: A -> A -> A, ~assoc: @x: A -> @y: A -> @z: A -> {op(op(x, y), z) == op(x, op(y, z)) : A}, ~comm: @x: A -> @y: A -> {op(x, y) == op(y, x) : A}, +a: A, +b: A, +c: A, +d: A. {op(op(a, c), op(b, d)) == op(op(a, b), op(c, d)) : A}` | Middle-four interchange from associativity and commutativity, reversed to rewrite toward the simple side. | next |
-| `op_comm3_sym(~A, ~op, ~comm, a, b, c)` | `∀ ~A: Data, ~op: A -> A -> A, ~comm: @x: A -> @y: A -> {op(x, y) == op(y, x) : A}, +a: A, +b: A, +c: A. {op(c, op(b, a)) == op(op(a, b), c) : A}` | Three-way commutation from commutativity alone, reversed to rewrite toward the simple side. | next |
-| `nat_add_left_comm_sym(a, b, c)` | `∀ +a: Nat, +b: Nat, +c: Nat. {Nat.add(b, Nat.add(a, c)) == Nat.add(a, Nat.add(b, c)) : Nat}` | Nat addition is left-commutative, reversed to rewrite toward the simple side. | next |
-| `nat_add_right_comm_sym(a, b, c)` | `∀ +a: Nat, +b: Nat, +c: Nat. {Nat.add(Nat.add(a, c), b) == Nat.add(Nat.add(a, b), c) : Nat}` | Nat addition is right-commutative, reversed to rewrite toward the simple side. | next |
-| `nat_add_four_sym(a, b, c, d)` | `∀ +a: Nat, +b: Nat, +c: Nat, +d: Nat. {Nat.add(Nat.add(a, c), Nat.add(b, d)) == Nat.add(Nat.add(a, b), Nat.add(c, d)) : Nat}` | Nat addition's middle-four interchange, reversed to rewrite toward the simple side. | next |
-| `nat_mul_left_comm_sym(a, b, c)` | `∀ +a: Nat, +b: Nat, +c: Nat. {Nat.mul(b, Nat.mul(a, c)) == Nat.mul(a, Nat.mul(b, c)) : Nat}` | Nat multiplication is left-commutative, reversed to rewrite toward the simple side. | next |
-| `nat_mul_right_comm_sym(a, b, c)` | `∀ +a: Nat, +b: Nat, +c: Nat. {Nat.mul(Nat.mul(a, c), b) == Nat.mul(Nat.mul(a, b), c) : Nat}` | Nat multiplication is right-commutative, reversed to rewrite toward the simple side. | next |
-| `nat_mul_four_sym(a, b, c, d)` | `∀ +a: Nat, +b: Nat, +c: Nat, +d: Nat. {Nat.mul(Nat.mul(a, c), Nat.mul(b, d)) == Nat.mul(Nat.mul(a, b), Nat.mul(c, d)) : Nat}` | Nat multiplication's middle-four interchange, reversed to rewrite toward the simple side. | next |
-| `bool_and_left_comm_sym(a, b, c)` | `∀ +a: Bool, +b: Bool, +c: Bool. {Bool.and(b, Bool.and(a, c)) == Bool.and(a, Bool.and(b, c)) : Bool}` | Bool and is left-commutative, reversed to rewrite toward the simple side. | next |
-| `bool_and_right_comm_sym(a, b, c)` | `∀ +a: Bool, +b: Bool, +c: Bool. {Bool.and(Bool.and(a, c), b) == Bool.and(Bool.and(a, b), c) : Bool}` | Bool and is right-commutative, reversed to rewrite toward the simple side. | next |
-| `bool_or_left_comm_sym(a, b, c)` | `∀ +a: Bool, +b: Bool, +c: Bool. {Bool.or(b, Bool.or(a, c)) == Bool.or(a, Bool.or(b, c)) : Bool}` | Bool or is left-commutative, reversed to rewrite toward the simple side. | next |
-| `bool_or_right_comm_sym(a, b, c)` | `∀ +a: Bool, +b: Bool, +c: Bool. {Bool.or(Bool.or(a, c), b) == Bool.or(Bool.or(a, b), c) : Bool}` | Bool or is right-commutative, reversed to rewrite toward the simple side. | next |
-| `list_nat_append_assoc4_sym(a, b, c, d)` | `∀ +a: List<&2, Nat>, +b: List<&2, Nat>, +c: List<&2, Nat>, +d: List<&2, Nat>. {List.append(&2, Nat, a, List.append(&2, Nat, b, List.append(&2, Nat, c, d))) == List.append(&2, Nat, List.append(&2, Nat, List.append(&2, Nat, a, b), c), d) : List<&2, Nat>}` | Four-way reassociation for List append over Nat, reversed to rewrite toward the simple side. | next |
-| `foldl_op_eq_foldr_op_sym(~B, ~op, ~assoc, ~comm, ~z, ~id, xs)` | `∀ ~B: Data, ~op: B -> B -> B, ~assoc: @x: B -> @y: B -> @z: B -> {op(op(x, y), z) == op(x, op(y, z)) : B}, ~comm: @x: B -> @y: B -> {op(x, y) == op(y, x) : B}, ~z: B, ~id: @x: B -> {op(z, x) == x : B}, +xs: List<&2, B>. {List.foldr(&2, B, B, op, xs, z) == List.foldl(&2, B, B, op, xs, z) : B}` | Folding left equals folding right for an associative, commutative operation with a left identity, reversed to rewrite toward the simple side. | next |
+| `op_assoc4(~A, ~op, ~assoc, a, b, c, d)` | `∀ ~A: Data, ~op: A -> A -> A, ~assoc: @x: A -> @y: A -> @z: A -> {op(op(x, y), z) == op(x, op(y, z)) : A}, +a: A, +b: A, +c: A, +d: A. {op(op(op(a, b), c), d) == op(a, op(b, op(c, d))) : A}` | Four-way reassociation from associativity alone. | 0.4.0.0 |
+| `op_left_comm(~A, ~op, ~assoc, ~comm, a, b, c)` | `∀ ~A: Data, ~op: A -> A -> A, ~assoc: @x: A -> @y: A -> @z: A -> {op(op(x, y), z) == op(x, op(y, z)) : A}, ~comm: @x: A -> @y: A -> {op(x, y) == op(y, x) : A}, +a: A, +b: A, +c: A. {op(a, op(b, c)) == op(b, op(a, c)) : A}` | Left commutation from associativity and commutativity. | 0.4.0.0 |
+| `op_right_comm(~A, ~op, ~assoc, ~comm, a, b, c)` | `∀ ~A: Data, ~op: A -> A -> A, ~assoc: @x: A -> @y: A -> @z: A -> {op(op(x, y), z) == op(x, op(y, z)) : A}, ~comm: @x: A -> @y: A -> {op(x, y) == op(y, x) : A}, +a: A, +b: A, +c: A. {op(op(a, b), c) == op(op(a, c), b) : A}` | Right commutation from associativity and commutativity. | 0.4.0.0 |
+| `op_four(~A, ~op, ~assoc, ~comm, a, b, c, d)` | `∀ ~A: Data, ~op: A -> A -> A, ~assoc: @x: A -> @y: A -> @z: A -> {op(op(x, y), z) == op(x, op(y, z)) : A}, ~comm: @x: A -> @y: A -> {op(x, y) == op(y, x) : A}, +a: A, +b: A, +c: A, +d: A. {op(op(a, b), op(c, d)) == op(op(a, c), op(b, d)) : A}` | Middle-four interchange from associativity and commutativity. | 0.4.0.0 |
+| `op_comm3(~A, ~op, ~comm, a, b, c)` | `∀ ~A: Data, ~op: A -> A -> A, ~comm: @x: A -> @y: A -> {op(x, y) == op(y, x) : A}, +a: A, +b: A, +c: A. {op(op(a, b), c) == op(c, op(b, a)) : A}` | Three-way commutation from commutativity alone. | 0.4.0.0 |
+| `nat_add_left_comm(a, b, c)` | `∀ +a: Nat, +b: Nat, +c: Nat. {Nat.add(a, Nat.add(b, c)) == Nat.add(b, Nat.add(a, c)) : Nat}` | Nat addition is left-commutative. | 0.4.0.0 |
+| `nat_add_right_comm(a, b, c)` | `∀ +a: Nat, +b: Nat, +c: Nat. {Nat.add(Nat.add(a, b), c) == Nat.add(Nat.add(a, c), b) : Nat}` | Nat addition is right-commutative. | 0.4.0.0 |
+| `nat_add_four(a, b, c, d)` | `∀ +a: Nat, +b: Nat, +c: Nat, +d: Nat. {Nat.add(Nat.add(a, b), Nat.add(c, d)) == Nat.add(Nat.add(a, c), Nat.add(b, d)) : Nat}` | Nat addition's middle-four interchange. | 0.4.0.0 |
+| `nat_mul_left_comm(a, b, c)` | `∀ +a: Nat, +b: Nat, +c: Nat. {Nat.mul(a, Nat.mul(b, c)) == Nat.mul(b, Nat.mul(a, c)) : Nat}` | Nat multiplication is left-commutative. | 0.4.0.0 |
+| `nat_mul_right_comm(a, b, c)` | `∀ +a: Nat, +b: Nat, +c: Nat. {Nat.mul(Nat.mul(a, b), c) == Nat.mul(Nat.mul(a, c), b) : Nat}` | Nat multiplication is right-commutative. | 0.4.0.0 |
+| `nat_mul_four(a, b, c, d)` | `∀ +a: Nat, +b: Nat, +c: Nat, +d: Nat. {Nat.mul(Nat.mul(a, b), Nat.mul(c, d)) == Nat.mul(Nat.mul(a, c), Nat.mul(b, d)) : Nat}` | Nat multiplication's middle-four interchange. | 0.4.0.0 |
+| `bool_and_left_comm(a, b, c)` | `∀ +a: Bool, +b: Bool, +c: Bool. {Bool.and(a, Bool.and(b, c)) == Bool.and(b, Bool.and(a, c)) : Bool}` | Bool and is left-commutative. | 0.4.0.0 |
+| `bool_and_right_comm(a, b, c)` | `∀ +a: Bool, +b: Bool, +c: Bool. {Bool.and(Bool.and(a, b), c) == Bool.and(Bool.and(a, c), b) : Bool}` | Bool and is right-commutative. | 0.4.0.0 |
+| `bool_or_left_comm(a, b, c)` | `∀ +a: Bool, +b: Bool, +c: Bool. {Bool.or(a, Bool.or(b, c)) == Bool.or(b, Bool.or(a, c)) : Bool}` | Bool or is left-commutative. | 0.4.0.0 |
+| `bool_or_right_comm(a, b, c)` | `∀ +a: Bool, +b: Bool, +c: Bool. {Bool.or(Bool.or(a, b), c) == Bool.or(Bool.or(a, c), b) : Bool}` | Bool or is right-commutative. | 0.4.0.0 |
+| `list_nat_append_assoc4(a, b, c, d)` | `∀ +a: List<&2, Nat>, +b: List<&2, Nat>, +c: List<&2, Nat>, +d: List<&2, Nat>. {List.append(&2, Nat, List.append(&2, Nat, List.append(&2, Nat, a, b), c), d) == List.append(&2, Nat, a, List.append(&2, Nat, b, List.append(&2, Nat, c, d))) : List<&2, Nat>}` | Four-way reassociation for List append over Nat. | 0.4.0.0 |
+| `foldl_op_eq_foldr_op(~B, ~op, ~assoc, ~comm, ~z, ~id, xs)` | `∀ ~B: Data, ~op: B -> B -> B, ~assoc: @x: B -> @y: B -> @z: B -> {op(op(x, y), z) == op(x, op(y, z)) : B}, ~comm: @x: B -> @y: B -> {op(x, y) == op(y, x) : B}, ~z: B, ~id: @x: B -> {op(z, x) == x : B}, +xs: List<&2, B>. {List.foldl(&2, B, B, op, xs, z) == List.foldr(&2, B, B, op, xs, z) : B}` | Folding left equals folding right for an associative, commutative operation with a left identity. | 0.4.0.0 |
+| `op_assoc4_sym(~A, ~op, ~assoc, a, b, c, d)` | `∀ ~A: Data, ~op: A -> A -> A, ~assoc: @x: A -> @y: A -> @z: A -> {op(op(x, y), z) == op(x, op(y, z)) : A}, +a: A, +b: A, +c: A, +d: A. {op(a, op(b, op(c, d))) == op(op(op(a, b), c), d) : A}` | Four-way reassociation from associativity alone, reversed to rewrite toward the simple side. | 0.4.0.0 |
+| `op_left_comm_sym(~A, ~op, ~assoc, ~comm, a, b, c)` | `∀ ~A: Data, ~op: A -> A -> A, ~assoc: @x: A -> @y: A -> @z: A -> {op(op(x, y), z) == op(x, op(y, z)) : A}, ~comm: @x: A -> @y: A -> {op(x, y) == op(y, x) : A}, +a: A, +b: A, +c: A. {op(b, op(a, c)) == op(a, op(b, c)) : A}` | Left commutation from associativity and commutativity, reversed to rewrite toward the simple side. | 0.4.0.0 |
+| `op_right_comm_sym(~A, ~op, ~assoc, ~comm, a, b, c)` | `∀ ~A: Data, ~op: A -> A -> A, ~assoc: @x: A -> @y: A -> @z: A -> {op(op(x, y), z) == op(x, op(y, z)) : A}, ~comm: @x: A -> @y: A -> {op(x, y) == op(y, x) : A}, +a: A, +b: A, +c: A. {op(op(a, c), b) == op(op(a, b), c) : A}` | Right commutation from associativity and commutativity, reversed to rewrite toward the simple side. | 0.4.0.0 |
+| `op_four_sym(~A, ~op, ~assoc, ~comm, a, b, c, d)` | `∀ ~A: Data, ~op: A -> A -> A, ~assoc: @x: A -> @y: A -> @z: A -> {op(op(x, y), z) == op(x, op(y, z)) : A}, ~comm: @x: A -> @y: A -> {op(x, y) == op(y, x) : A}, +a: A, +b: A, +c: A, +d: A. {op(op(a, c), op(b, d)) == op(op(a, b), op(c, d)) : A}` | Middle-four interchange from associativity and commutativity, reversed to rewrite toward the simple side. | 0.4.0.0 |
+| `op_comm3_sym(~A, ~op, ~comm, a, b, c)` | `∀ ~A: Data, ~op: A -> A -> A, ~comm: @x: A -> @y: A -> {op(x, y) == op(y, x) : A}, +a: A, +b: A, +c: A. {op(c, op(b, a)) == op(op(a, b), c) : A}` | Three-way commutation from commutativity alone, reversed to rewrite toward the simple side. | 0.4.0.0 |
+| `nat_add_left_comm_sym(a, b, c)` | `∀ +a: Nat, +b: Nat, +c: Nat. {Nat.add(b, Nat.add(a, c)) == Nat.add(a, Nat.add(b, c)) : Nat}` | Nat addition is left-commutative, reversed to rewrite toward the simple side. | 0.4.0.0 |
+| `nat_add_right_comm_sym(a, b, c)` | `∀ +a: Nat, +b: Nat, +c: Nat. {Nat.add(Nat.add(a, c), b) == Nat.add(Nat.add(a, b), c) : Nat}` | Nat addition is right-commutative, reversed to rewrite toward the simple side. | 0.4.0.0 |
+| `nat_add_four_sym(a, b, c, d)` | `∀ +a: Nat, +b: Nat, +c: Nat, +d: Nat. {Nat.add(Nat.add(a, c), Nat.add(b, d)) == Nat.add(Nat.add(a, b), Nat.add(c, d)) : Nat}` | Nat addition's middle-four interchange, reversed to rewrite toward the simple side. | 0.4.0.0 |
+| `nat_mul_left_comm_sym(a, b, c)` | `∀ +a: Nat, +b: Nat, +c: Nat. {Nat.mul(b, Nat.mul(a, c)) == Nat.mul(a, Nat.mul(b, c)) : Nat}` | Nat multiplication is left-commutative, reversed to rewrite toward the simple side. | 0.4.0.0 |
+| `nat_mul_right_comm_sym(a, b, c)` | `∀ +a: Nat, +b: Nat, +c: Nat. {Nat.mul(Nat.mul(a, c), b) == Nat.mul(Nat.mul(a, b), c) : Nat}` | Nat multiplication is right-commutative, reversed to rewrite toward the simple side. | 0.4.0.0 |
+| `nat_mul_four_sym(a, b, c, d)` | `∀ +a: Nat, +b: Nat, +c: Nat, +d: Nat. {Nat.mul(Nat.mul(a, c), Nat.mul(b, d)) == Nat.mul(Nat.mul(a, b), Nat.mul(c, d)) : Nat}` | Nat multiplication's middle-four interchange, reversed to rewrite toward the simple side. | 0.4.0.0 |
+| `bool_and_left_comm_sym(a, b, c)` | `∀ +a: Bool, +b: Bool, +c: Bool. {Bool.and(b, Bool.and(a, c)) == Bool.and(a, Bool.and(b, c)) : Bool}` | Bool and is left-commutative, reversed to rewrite toward the simple side. | 0.4.0.0 |
+| `bool_and_right_comm_sym(a, b, c)` | `∀ +a: Bool, +b: Bool, +c: Bool. {Bool.and(Bool.and(a, c), b) == Bool.and(Bool.and(a, b), c) : Bool}` | Bool and is right-commutative, reversed to rewrite toward the simple side. | 0.4.0.0 |
+| `bool_or_left_comm_sym(a, b, c)` | `∀ +a: Bool, +b: Bool, +c: Bool. {Bool.or(b, Bool.or(a, c)) == Bool.or(a, Bool.or(b, c)) : Bool}` | Bool or is left-commutative, reversed to rewrite toward the simple side. | 0.4.0.0 |
+| `bool_or_right_comm_sym(a, b, c)` | `∀ +a: Bool, +b: Bool, +c: Bool. {Bool.or(Bool.or(a, c), b) == Bool.or(Bool.or(a, b), c) : Bool}` | Bool or is right-commutative, reversed to rewrite toward the simple side. | 0.4.0.0 |
+| `list_nat_append_assoc4_sym(a, b, c, d)` | `∀ +a: List<&2, Nat>, +b: List<&2, Nat>, +c: List<&2, Nat>, +d: List<&2, Nat>. {List.append(&2, Nat, a, List.append(&2, Nat, b, List.append(&2, Nat, c, d))) == List.append(&2, Nat, List.append(&2, Nat, List.append(&2, Nat, a, b), c), d) : List<&2, Nat>}` | Four-way reassociation for List append over Nat, reversed to rewrite toward the simple side. | 0.4.0.0 |
+| `foldl_op_eq_foldr_op_sym(~B, ~op, ~assoc, ~comm, ~z, ~id, xs)` | `∀ ~B: Data, ~op: B -> B -> B, ~assoc: @x: B -> @y: B -> @z: B -> {op(op(x, y), z) == op(x, op(y, z)) : B}, ~comm: @x: B -> @y: B -> {op(x, y) == op(y, x) : B}, ~z: B, ~id: @x: B -> {op(z, x) == x : B}, +xs: List<&2, B>. {List.foldr(&2, B, B, op, xs, z) == List.foldl(&2, B, B, op, xs, z) : B}` | Folding left equals folding right for an associative, commutative operation with a left identity, reversed to rewrite toward the simple side. | 0.4.0.0 |
 
 ## bool
 
 ```python
-import bend-mathlib@0.3.0.0/bool.bend as MBool
+import bend-mathlib@0.4.0.0/bool.bend as MBool
 ```
 
 | lemma | statement | meaning | since |
@@ -89,8 +87,8 @@ import bend-mathlib@0.3.0.0/bool.bend as MBool
 | `xor_true(a)` | `∀ a: Bool. {Bool.xor(a, True{}) == Bool.not(a) : Bool}` | Xor with true negates: a xor true is not a. | 0.2.0.0 |
 | `not_inj(a, b, h)` | `∀ a: Bool, b: Bool, h: {Bool.not(a) == Bool.not(b) : Bool}. {a == b : Bool}` | Negation is injective: not a = not b implies a = b. | 0.2.0.0 |
 | `eq_true_of_ne_false(a, h)` | `∀ a: Bool, h: {a == False{} : Bool} -> Empty. {a == True{} : Bool}` | A boolean that is not false is true. | 0.2.0.0 |
-| `cmp_refl(b)` | `∀ b: Bool. {Bool.cmp(b, b) == EQ{} : Cmp}` | Comparing a boolean with itself gives EQ. | next |
-| `eq_of_cmp_eq(a, b, h)` | `∀ a: Bool, b: Bool, h: {Cmp.is_eq(Bool.cmp(a, b)) == True{} : Bool}. {a == b : Bool}` | Two booleans that compare EQ are equal. | next |
+| `cmp_refl(b)` | `∀ b: Bool. {Bool.cmp(b, b) == EQ{} : Cmp}` | Comparing a boolean with itself gives EQ. | 0.4.0.0 |
+| `eq_of_cmp_eq(a, b, h)` | `∀ a: Bool, b: Bool, h: {Cmp.is_eq(Bool.cmp(a, b)) == True{} : Bool}. {a == b : Bool}` | Two booleans that compare EQ are equal. | 0.4.0.0 |
 | `not_not_sym(b)` | `∀ b: Bool. {b == Bool.not(Bool.not(b)) : Bool}` | Negating a boolean twice gives it back, reversed to rewrite toward the simple side. | 0.1.0.0 |
 | `and_comm_sym(a, b)` | `∀ a: Bool, b: Bool. {Bool.and(b, a) == Bool.and(a, b) : Bool}` | Boolean and is commutative, reversed to rewrite toward the simple side. | 0.1.0.0 |
 | `or_comm_sym(a, b)` | `∀ a: Bool, b: Bool. {Bool.or(b, a) == Bool.or(a, b) : Bool}` | Boolean or is commutative, reversed to rewrite toward the simple side. | 0.1.0.0 |
@@ -119,12 +117,12 @@ import bend-mathlib@0.3.0.0/bool.bend as MBool
 | `xor_self_sym(a)` | `∀ a: Bool. {False{} == Bool.xor(a, a) : Bool}` | A boolean xor itself is false, reversed to rewrite toward the simple side. | 0.2.0.0 |
 | `xor_false_sym(a)` | `∀ a: Bool. {a == Bool.xor(a, False{}) : Bool}` | False is an identity for xor: a xor false is a, reversed to rewrite toward the simple side. | 0.2.0.0 |
 | `xor_true_sym(a)` | `∀ a: Bool. {Bool.not(a) == Bool.xor(a, True{}) : Bool}` | Xor with true negates: a xor true is not a, reversed to rewrite toward the simple side. | 0.2.0.0 |
-| `cmp_refl_sym(b)` | `∀ b: Bool. {EQ{} == Bool.cmp(b, b) : Cmp}` | Comparing a boolean with itself gives EQ, reversed to rewrite toward the simple side. | next |
+| `cmp_refl_sym(b)` | `∀ b: Bool. {EQ{} == Bool.cmp(b, b) : Cmp}` | Comparing a boolean with itself gives EQ, reversed to rewrite toward the simple side. | 0.4.0.0 |
 
 ## equal
 
 ```python
-import bend-mathlib@0.3.0.0/equal.bend as MEqual
+import bend-mathlib@0.4.0.0/equal.bend as MEqual
 ```
 
 | lemma | statement | meaning | since |
@@ -137,7 +135,7 @@ import bend-mathlib@0.3.0.0/equal.bend as MEqual
 ## list
 
 ```python
-import bend-mathlib@0.3.0.0/list.bend as MList
+import bend-mathlib@0.4.0.0/list.bend as MList
 ```
 
 | predicate | definition | since |
@@ -240,26 +238,26 @@ import bend-mathlib@0.3.0.0/list.bend as MList
 ## maybe
 
 ```python
-import bend-mathlib@0.3.0.0/maybe.bend as MMaybe
+import bend-mathlib@0.4.0.0/maybe.bend as MMaybe
 ```
 
 | lemma | statement | meaning | since |
 |---|---|---|---|
-| `maybe_pure_bind(~A, ~B, f, x)` | `∀ ~A: Data, ~B: Data, -f: A -> Maybe<&2, B>, -x: A. {Maybe.bind(&2, A, B, Maybe.pure(&2, A, x), f) == f(x) : Maybe<&2, B>}` | Left identity: binding a pure value applies the function. | next |
-| `maybe_bind_pure(~A, m)` | `∀ ~A: Data, m: Maybe<&2, A>. {Maybe.bind(&2, A, A, m, x => Maybe.pure(&2, A, x)) == m : Maybe<&2, A>}` | Right identity: binding pure is the identity. | next |
-| `maybe_bind_assoc(~A, ~B, ~C, f, g, m)` | `∀ ~A: Data, ~B: Data, ~C: Data, -f: A -> Maybe<&2, B>, -g: B -> Maybe<&2, C>, m: Maybe<&2, A>. {Maybe.bind(&2, B, C, Maybe.bind(&2, A, B, m, f), g) == Maybe.bind(&2, A, C, m, x => Maybe.bind(&2, B, C, f(x), g)) : Maybe<&2, C>}` | Bind is associative. | next |
-| `maybe_map_pure(~A, ~B, f, x)` | `∀ ~A: Data, ~B: Data, -f: A -> B, -x: A. {Maybe.map(&2, A, B, f, Maybe.pure(&2, A, x)) == Maybe.pure(&2, B, f(x)) : Maybe<&2, B>}` | Mapping a pure value is pure of the mapped value. | next |
-| `maybe_map_compose(~A, ~B, ~C, f, g, m)` | `∀ ~A: Data, ~B: Data, ~C: Data, -f: A -> B, -g: B -> C, m: Maybe<&2, A>. {Maybe.map(&2, B, C, g, Maybe.map(&2, A, B, f, m)) == Maybe.map(&2, A, C, x => g(f(x)), m) : Maybe<&2, C>}` | Mapping a composition maps the composition. | next |
-| `maybe_pure_bind_sym(~A, ~B, f, x)` | `∀ ~A: Data, ~B: Data, -f: A -> Maybe<&2, B>, -x: A. {f(x) == Maybe.bind(&2, A, B, Maybe.pure(&2, A, x), f) : Maybe<&2, B>}` | Left identity: binding a pure value applies the function, reversed to rewrite toward the simple side. | next |
-| `maybe_bind_pure_sym(~A, m)` | `∀ ~A: Data, m: Maybe<&2, A>. {m == Maybe.bind(&2, A, A, m, x => Maybe.pure(&2, A, x)) : Maybe<&2, A>}` | Right identity: binding pure is the identity, reversed to rewrite toward the simple side. | next |
-| `maybe_bind_assoc_sym(~A, ~B, ~C, f, g, m)` | `∀ ~A: Data, ~B: Data, ~C: Data, -f: A -> Maybe<&2, B>, -g: B -> Maybe<&2, C>, m: Maybe<&2, A>. {Maybe.bind(&2, A, C, m, x => Maybe.bind(&2, B, C, f(x), g)) == Maybe.bind(&2, B, C, Maybe.bind(&2, A, B, m, f), g) : Maybe<&2, C>}` | Bind is associative, reversed to rewrite toward the simple side. | next |
-| `maybe_map_pure_sym(~A, ~B, f, x)` | `∀ ~A: Data, ~B: Data, -f: A -> B, -x: A. {Maybe.pure(&2, B, f(x)) == Maybe.map(&2, A, B, f, Maybe.pure(&2, A, x)) : Maybe<&2, B>}` | Mapping a pure value is pure of the mapped value, reversed to rewrite toward the simple side. | next |
-| `maybe_map_compose_sym(~A, ~B, ~C, f, g, m)` | `∀ ~A: Data, ~B: Data, ~C: Data, -f: A -> B, -g: B -> C, m: Maybe<&2, A>. {Maybe.map(&2, A, C, x => g(f(x)), m) == Maybe.map(&2, B, C, g, Maybe.map(&2, A, B, f, m)) : Maybe<&2, C>}` | Mapping a composition maps the composition, reversed to rewrite toward the simple side. | next |
+| `maybe_pure_bind(~A, ~B, f, x)` | `∀ ~A: Data, ~B: Data, -f: A -> Maybe<&2, B>, -x: A. {Maybe.bind(&2, A, B, Maybe.pure(&2, A, x), f) == f(x) : Maybe<&2, B>}` | Left identity: binding a pure value applies the function. | 0.4.0.0 |
+| `maybe_bind_pure(~A, m)` | `∀ ~A: Data, m: Maybe<&2, A>. {Maybe.bind(&2, A, A, m, x => Maybe.pure(&2, A, x)) == m : Maybe<&2, A>}` | Right identity: binding pure is the identity. | 0.4.0.0 |
+| `maybe_bind_assoc(~A, ~B, ~C, f, g, m)` | `∀ ~A: Data, ~B: Data, ~C: Data, -f: A -> Maybe<&2, B>, -g: B -> Maybe<&2, C>, m: Maybe<&2, A>. {Maybe.bind(&2, B, C, Maybe.bind(&2, A, B, m, f), g) == Maybe.bind(&2, A, C, m, x => Maybe.bind(&2, B, C, f(x), g)) : Maybe<&2, C>}` | Bind is associative. | 0.4.0.0 |
+| `maybe_map_pure(~A, ~B, f, x)` | `∀ ~A: Data, ~B: Data, -f: A -> B, -x: A. {Maybe.map(&2, A, B, f, Maybe.pure(&2, A, x)) == Maybe.pure(&2, B, f(x)) : Maybe<&2, B>}` | Mapping a pure value is pure of the mapped value. | 0.4.0.0 |
+| `maybe_map_compose(~A, ~B, ~C, f, g, m)` | `∀ ~A: Data, ~B: Data, ~C: Data, -f: A -> B, -g: B -> C, m: Maybe<&2, A>. {Maybe.map(&2, B, C, g, Maybe.map(&2, A, B, f, m)) == Maybe.map(&2, A, C, x => g(f(x)), m) : Maybe<&2, C>}` | Mapping a composition maps the composition. | 0.4.0.0 |
+| `maybe_pure_bind_sym(~A, ~B, f, x)` | `∀ ~A: Data, ~B: Data, -f: A -> Maybe<&2, B>, -x: A. {f(x) == Maybe.bind(&2, A, B, Maybe.pure(&2, A, x), f) : Maybe<&2, B>}` | Left identity: binding a pure value applies the function, reversed to rewrite toward the simple side. | 0.4.0.0 |
+| `maybe_bind_pure_sym(~A, m)` | `∀ ~A: Data, m: Maybe<&2, A>. {m == Maybe.bind(&2, A, A, m, x => Maybe.pure(&2, A, x)) : Maybe<&2, A>}` | Right identity: binding pure is the identity, reversed to rewrite toward the simple side. | 0.4.0.0 |
+| `maybe_bind_assoc_sym(~A, ~B, ~C, f, g, m)` | `∀ ~A: Data, ~B: Data, ~C: Data, -f: A -> Maybe<&2, B>, -g: B -> Maybe<&2, C>, m: Maybe<&2, A>. {Maybe.bind(&2, A, C, m, x => Maybe.bind(&2, B, C, f(x), g)) == Maybe.bind(&2, B, C, Maybe.bind(&2, A, B, m, f), g) : Maybe<&2, C>}` | Bind is associative, reversed to rewrite toward the simple side. | 0.4.0.0 |
+| `maybe_map_pure_sym(~A, ~B, f, x)` | `∀ ~A: Data, ~B: Data, -f: A -> B, -x: A. {Maybe.pure(&2, B, f(x)) == Maybe.map(&2, A, B, f, Maybe.pure(&2, A, x)) : Maybe<&2, B>}` | Mapping a pure value is pure of the mapped value, reversed to rewrite toward the simple side. | 0.4.0.0 |
+| `maybe_map_compose_sym(~A, ~B, ~C, f, g, m)` | `∀ ~A: Data, ~B: Data, ~C: Data, -f: A -> B, -g: B -> C, m: Maybe<&2, A>. {Maybe.map(&2, A, C, x => g(f(x)), m) == Maybe.map(&2, B, C, g, Maybe.map(&2, A, B, f, m)) : Maybe<&2, C>}` | Mapping a composition maps the composition, reversed to rewrite toward the simple side. | 0.4.0.0 |
 
 ## nat
 
 ```python
-import bend-mathlib@0.3.0.0/nat.bend as MNat
+import bend-mathlib@0.4.0.0/nat.bend as MNat
 ```
 
 | predicate | definition | since |
@@ -319,11 +317,11 @@ import bend-mathlib@0.3.0.0/nat.bend as MNat
 | `sub_add_cancel(n, m, h)` | `∀ n: Nat, m: Nat, h: le(m, n). {Nat.add(Nat.sub(n, m), m) == n : Nat}` | If m <= n, subtracting and adding m back gives n: (n - m) + m = n. | 0.2.0.0 |
 | `sub_sub(n, m, k)` | `∀ n: Nat, m: Nat, k: Nat. {Nat.sub(Nat.sub(n, m), k) == Nat.sub(n, Nat.add(m, k)) : Nat}` | Subtracting twice is subtracting the sum: (n - m) - k = n - (m + k). | 0.2.0.0 |
 | `sub_le(n, m)` | `∀ n: Nat, m: Nat. le(Nat.sub(n, m), n)` | Truncated subtraction never increases: n - m <= n. | 0.2.0.0 |
-| `div_mod_eq(a, b)` | `∀ +a: Nat, +b: Nat. {Nat.add(Nat.mul(Nat.div(a, 1n+b), 1n+b), Nat.mod(a, 1n+b)) == a : Nat}` | The division equation, for a positive divisor 1 + b: (a / (1 + b)) * (1 + b) + a % (1 + b) = a. | next |
-| `div_eq_zero_of_le(a, b, h)` | `∀ +a: Nat, +b: Nat, h: le(a, b). {Nat.div(a, 1n+b) == 0n : Nat}` | A number at most b divides by 1 + b to zero: a <= b implies a / (1 + b) = 0. | next |
-| `div_le_div(a, c, b, h)` | `∀ +a: Nat, +c: Nat, b: Nat, h: le(a, c). le(Nat.div(a, 1n+b), Nat.div(c, 1n+b))` | Division by a positive divisor is monotone: a <= c implies a / (1 + b) <= c / (1 + b). | next |
-| `add_div_left(a, b)` | `∀ +a: Nat, +b: Nat. {Nat.div(Nat.add(1n+b, a), 1n+b) == 1n+Nat.div(a, 1n+b) : Nat}` | Adding the divisor adds one to the quotient: ((1 + b) + a) / (1 + b) = 1 + a / (1 + b). | next |
-| `le_div_iff_mul_le(n, a, b)` | `∀ n: Nat, +a: Nat, +b: Nat. {Nat.is_le(n, Nat.div(a, 1n+b)) == Nat.is_le(Nat.mul(n, 1n+b), a) : Bool}` | A quotient is compared by multiplying back: n <= a / (1 + b) tests as n * (1 + b) <= a. | next |
+| `div_mod_eq(a, b)` | `∀ +a: Nat, +b: Nat. {Nat.add(Nat.mul(Nat.div(a, 1n+b), 1n+b), Nat.mod(a, 1n+b)) == a : Nat}` | The division equation, for a positive divisor 1 + b: (a / (1 + b)) * (1 + b) + a % (1 + b) = a. | 0.4.0.0 |
+| `div_eq_zero_of_le(a, b, h)` | `∀ +a: Nat, +b: Nat, h: le(a, b). {Nat.div(a, 1n+b) == 0n : Nat}` | A number at most b divides by 1 + b to zero: a <= b implies a / (1 + b) = 0. | 0.4.0.0 |
+| `div_le_div(a, c, b, h)` | `∀ +a: Nat, +c: Nat, b: Nat, h: le(a, c). le(Nat.div(a, 1n+b), Nat.div(c, 1n+b))` | Division by a positive divisor is monotone: a <= c implies a / (1 + b) <= c / (1 + b). | 0.4.0.0 |
+| `add_div_left(a, b)` | `∀ +a: Nat, +b: Nat. {Nat.div(Nat.add(1n+b, a), 1n+b) == 1n+Nat.div(a, 1n+b) : Nat}` | Adding the divisor adds one to the quotient: ((1 + b) + a) / (1 + b) = 1 + a / (1 + b). | 0.4.0.0 |
+| `le_div_iff_mul_le(n, a, b)` | `∀ n: Nat, +a: Nat, +b: Nat. {Nat.is_le(n, Nat.div(a, 1n+b)) == Nat.is_le(Nat.mul(n, 1n+b), a) : Bool}` | A quotient is compared by multiplying back: n <= a / (1 + b) tests as n * (1 + b) <= a. | 0.4.0.0 |
 | `min_comm(a, b)` | `∀ a: Nat, b: Nat. {Nat.min(a, b) == Nat.min(b, a) : Nat}` | Minimum is commutative. | 0.2.0.0 |
 | `max_comm(a, b)` | `∀ a: Nat, b: Nat. {Nat.max(a, b) == Nat.max(b, a) : Nat}` | Maximum is commutative. | 0.2.0.0 |
 | `min_self(a)` | `∀ a: Nat. {Nat.min(a, a) == a : Nat}` | The minimum of a natural and itself is itself. | 0.2.0.0 |
@@ -361,19 +359,19 @@ import bend-mathlib@0.3.0.0/nat.bend as MNat
 | `add_le_add_left(a, b, k, h)` | `∀ -a: Nat, -b: Nat, k: Nat, h: le(a, b). le(Nat.add(k, a), Nat.add(k, b))` | Adding on the left preserves the order: a <= b implies k + a <= k + b. | 0.2.0.0 |
 | `le_zero_eq(n, h)` | `∀ n: Nat, h: le(n, 0n). {n == 0n : Nat}` | The only natural at most zero is zero. | 0.2.0.0 |
 | `lt_zero(n)` | `∀ n: Nat. lt(n, 0n) -> Empty` | No natural is less than zero. | 0.2.0.0 |
-| `not_le_of_lt(a, b, h)` | `∀ a: Nat, b: Nat, h: lt(a, b). {Nat.is_le(b, a) == False{} : Bool}` | A strict inequality rules out the reverse weak one: a < b implies b <= a is false. | next |
-| `not_lt_of_le(a, b, h)` | `∀ a: Nat, b: Nat, h: le(a, b). {Nat.is_lt(b, a) == False{} : Bool}` | A weak inequality rules out the reverse strict one: a <= b implies b < a is false. | next |
-| `lt_of_not_le(a, b, h)` | `∀ a: Nat, b: Nat, h: {Nat.is_le(a, b) == False{} : Bool}. lt(b, a)` | A failed weak test gives the reverse strict order: a <= b false implies b < a. | next |
-| `le_of_not_lt(a, b, h)` | `∀ a: Nat, b: Nat, h: {Nat.is_lt(a, b) == False{} : Bool}. le(b, a)` | A failed strict test gives the reverse weak order: a < b false implies b <= a. | next |
-| `lt_min(a, b, c, hb, hc)` | `∀ a: Nat, b: Nat, c: Nat, hb: lt(a, b), hc: lt(a, c). lt(a, Nat.min(b, c))` | A number below both bounds is below their minimum: a < b and a < c imply a < min b c. | next |
-| `min_le_iff(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.is_le(Nat.min(a, b), c) == Bool.or(Nat.is_le(a, c), Nat.is_le(b, c)) : Bool}` | The minimum is at most c exactly when one argument is: min a b <= c tests as a <= c or b <= c. | next |
-| `lt_max_iff(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.is_lt(a, Nat.max(b, c)) == Bool.or(Nat.is_lt(a, b), Nat.is_lt(a, c)) : Bool}` | The maximum is above a exactly when one argument is: a < max b c tests as a < b or a < c. | next |
-| `sub_eq_zero_of_le(a, b, h)` | `∀ a: Nat, b: Nat, h: le(a, b). {Nat.sub(a, b) == 0n : Nat}` | Subtracting a larger number gives zero: a <= b implies a - b = 0. | next |
-| `succ_sub(a, b, h)` | `∀ a: Nat, b: Nat, h: le(b, a). {Nat.sub(1n+a, b) == 1n+Nat.sub(a, b) : Nat}` | Above the subtrahend, a successor subtracts to a successor: b <= a implies (a + 1) - b = (a - b) + 1. | next |
-| `add_sub_of_le(a, b, h)` | `∀ a: Nat, b: Nat, h: le(a, b). {Nat.add(a, Nat.sub(b, a)) == b : Nat}` | Adding back what was subtracted restores the number: a <= b implies a + (b - a) = b. | next |
-| `lt_sub_iff_add_lt(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.is_lt(a, Nat.sub(c, b)) == Nat.is_lt(Nat.add(b, a), c) : Bool}` | Comparing against a difference is comparing the sum: a < c - b tests as b + a < c. | next |
-| `le_of_add_eq(a, k, b, e)` | `∀ a: Nat, k: Nat, -b: Nat, e: {Nat.add(a, k) == b : Nat}. le(a, b)` | A witnessed difference gives the order: a + k = b implies a <= b. | next |
-| `mul_le_mul_right(a, b, k, h)` | `∀ +a: Nat, +b: Nat, +k: Nat, h: le(a, b). le(Nat.mul(a, k), Nat.mul(b, k))` | Multiplying on the right preserves the order: a <= b implies a * k <= b * k. | next |
+| `not_le_of_lt(a, b, h)` | `∀ a: Nat, b: Nat, h: lt(a, b). {Nat.is_le(b, a) == False{} : Bool}` | A strict inequality rules out the reverse weak one: a < b implies b <= a is false. | 0.4.0.0 |
+| `not_lt_of_le(a, b, h)` | `∀ a: Nat, b: Nat, h: le(a, b). {Nat.is_lt(b, a) == False{} : Bool}` | A weak inequality rules out the reverse strict one: a <= b implies b < a is false. | 0.4.0.0 |
+| `lt_of_not_le(a, b, h)` | `∀ a: Nat, b: Nat, h: {Nat.is_le(a, b) == False{} : Bool}. lt(b, a)` | A failed weak test gives the reverse strict order: a <= b false implies b < a. | 0.4.0.0 |
+| `le_of_not_lt(a, b, h)` | `∀ a: Nat, b: Nat, h: {Nat.is_lt(a, b) == False{} : Bool}. le(b, a)` | A failed strict test gives the reverse weak order: a < b false implies b <= a. | 0.4.0.0 |
+| `lt_min(a, b, c, hb, hc)` | `∀ a: Nat, b: Nat, c: Nat, hb: lt(a, b), hc: lt(a, c). lt(a, Nat.min(b, c))` | A number below both bounds is below their minimum: a < b and a < c imply a < min b c. | 0.4.0.0 |
+| `min_le_iff(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.is_le(Nat.min(a, b), c) == Bool.or(Nat.is_le(a, c), Nat.is_le(b, c)) : Bool}` | The minimum is at most c exactly when one argument is: min a b <= c tests as a <= c or b <= c. | 0.4.0.0 |
+| `lt_max_iff(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.is_lt(a, Nat.max(b, c)) == Bool.or(Nat.is_lt(a, b), Nat.is_lt(a, c)) : Bool}` | The maximum is above a exactly when one argument is: a < max b c tests as a < b or a < c. | 0.4.0.0 |
+| `sub_eq_zero_of_le(a, b, h)` | `∀ a: Nat, b: Nat, h: le(a, b). {Nat.sub(a, b) == 0n : Nat}` | Subtracting a larger number gives zero: a <= b implies a - b = 0. | 0.4.0.0 |
+| `succ_sub(a, b, h)` | `∀ a: Nat, b: Nat, h: le(b, a). {Nat.sub(1n+a, b) == 1n+Nat.sub(a, b) : Nat}` | Above the subtrahend, a successor subtracts to a successor: b <= a implies (a + 1) - b = (a - b) + 1. | 0.4.0.0 |
+| `add_sub_of_le(a, b, h)` | `∀ a: Nat, b: Nat, h: le(a, b). {Nat.add(a, Nat.sub(b, a)) == b : Nat}` | Adding back what was subtracted restores the number: a <= b implies a + (b - a) = b. | 0.4.0.0 |
+| `lt_sub_iff_add_lt(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.is_lt(a, Nat.sub(c, b)) == Nat.is_lt(Nat.add(b, a), c) : Bool}` | Comparing against a difference is comparing the sum: a < c - b tests as b + a < c. | 0.4.0.0 |
+| `le_of_add_eq(a, k, b, e)` | `∀ a: Nat, k: Nat, -b: Nat, e: {Nat.add(a, k) == b : Nat}. le(a, b)` | A witnessed difference gives the order: a + k = b implies a <= b. | 0.4.0.0 |
+| `mul_le_mul_right(a, b, k, h)` | `∀ +a: Nat, +b: Nat, +k: Nat, h: le(a, b). le(Nat.mul(a, k), Nat.mul(b, k))` | Multiplying on the right preserves the order: a <= b implies a * k <= b * k. | 0.4.0.0 |
 | `add_zero_sym(x)` | `∀ x: Nat. {x == Nat.add(x, 0n) : Nat}` | Zero is a right identity for addition: x + 0 = x, reversed to rewrite toward the simple side. | 0.1.0.0 |
 | `zero_add_sym(x)` | `∀ -x: Nat. {x == Nat.add(0n, x) : Nat}` | Zero is a left identity for addition: 0 + x = x, reversed to rewrite toward the simple side. | 0.1.0.0 |
 | `add_succ_sym(n, m)` | `∀ n: Nat, -m: Nat. {1n+Nat.add(n, m) == Nat.add(n, 1n+m) : Nat}` | Adding a successor on the right: n + (m + 1) = (n + m) + 1, reversed to rewrite toward the simple side. | 0.1.0.0 |
@@ -400,9 +398,9 @@ import bend-mathlib@0.3.0.0/nat.bend as MNat
 | `add_sub_cancel_sym(n, m)` | `∀ n: Nat, m: Nat. {n == Nat.sub(Nat.add(n, m), m) : Nat}` | Adding then subtracting m cancels: (n + m) - m = n, reversed to rewrite toward the simple side. | 0.2.0.0 |
 | `add_sub_cancel_left_sym(n, m)` | `∀ n: Nat, m: Nat. {m == Nat.sub(Nat.add(n, m), n) : Nat}` | Adding then subtracting n cancels: (n + m) - n = m, reversed to rewrite toward the simple side. | 0.2.0.0 |
 | `sub_sub_sym(n, m, k)` | `∀ n: Nat, m: Nat, k: Nat. {Nat.sub(n, Nat.add(m, k)) == Nat.sub(Nat.sub(n, m), k) : Nat}` | Subtracting twice is subtracting the sum: (n - m) - k = n - (m + k), reversed to rewrite toward the simple side. | 0.2.0.0 |
-| `div_mod_eq_sym(a, b)` | `∀ +a: Nat, +b: Nat. {a == Nat.add(Nat.mul(Nat.div(a, 1n+b), 1n+b), Nat.mod(a, 1n+b)) : Nat}` | The division equation, for a positive divisor 1 + b: (a / (1 + b)) * (1 + b) + a % (1 + b) = a, reversed to rewrite toward the simple side. | next |
-| `add_div_left_sym(a, b)` | `∀ +a: Nat, +b: Nat. {1n+Nat.div(a, 1n+b) == Nat.div(Nat.add(1n+b, a), 1n+b) : Nat}` | Adding the divisor adds one to the quotient: ((1 + b) + a) / (1 + b) = 1 + a / (1 + b), reversed to rewrite toward the simple side. | next |
-| `le_div_iff_mul_le_sym(n, a, b)` | `∀ n: Nat, +a: Nat, +b: Nat. {Nat.is_le(Nat.mul(n, 1n+b), a) == Nat.is_le(n, Nat.div(a, 1n+b)) : Bool}` | A quotient is compared by multiplying back: n <= a / (1 + b) tests as n * (1 + b) <= a, reversed to rewrite toward the simple side. | next |
+| `div_mod_eq_sym(a, b)` | `∀ +a: Nat, +b: Nat. {a == Nat.add(Nat.mul(Nat.div(a, 1n+b), 1n+b), Nat.mod(a, 1n+b)) : Nat}` | The division equation, for a positive divisor 1 + b: (a / (1 + b)) * (1 + b) + a % (1 + b) = a, reversed to rewrite toward the simple side. | 0.4.0.0 |
+| `add_div_left_sym(a, b)` | `∀ +a: Nat, +b: Nat. {1n+Nat.div(a, 1n+b) == Nat.div(Nat.add(1n+b, a), 1n+b) : Nat}` | Adding the divisor adds one to the quotient: ((1 + b) + a) / (1 + b) = 1 + a / (1 + b), reversed to rewrite toward the simple side. | 0.4.0.0 |
+| `le_div_iff_mul_le_sym(n, a, b)` | `∀ n: Nat, +a: Nat, +b: Nat. {Nat.is_le(Nat.mul(n, 1n+b), a) == Nat.is_le(n, Nat.div(a, 1n+b)) : Bool}` | A quotient is compared by multiplying back: n <= a / (1 + b) tests as n * (1 + b) <= a, reversed to rewrite toward the simple side. | 0.4.0.0 |
 | `min_comm_sym(a, b)` | `∀ a: Nat, b: Nat. {Nat.min(b, a) == Nat.min(a, b) : Nat}` | Minimum is commutative, reversed to rewrite toward the simple side. | 0.2.0.0 |
 | `max_comm_sym(a, b)` | `∀ a: Nat, b: Nat. {Nat.max(b, a) == Nat.max(a, b) : Nat}` | Maximum is commutative, reversed to rewrite toward the simple side. | 0.2.0.0 |
 | `min_self_sym(a)` | `∀ a: Nat. {a == Nat.min(a, a) : Nat}` | The minimum of a natural and itself is itself, reversed to rewrite toward the simple side. | 0.2.0.0 |
@@ -427,57 +425,57 @@ import bend-mathlib@0.3.0.0/nat.bend as MNat
 | `is_lt_eq_succ_le_sym(a, b)` | `∀ a: Nat, b: Nat. {Nat.is_le(1n+a, b) == Nat.is_lt(a, b) : Bool}` | A < b tests the same as a + 1 <= b, reversed to rewrite toward the simple side. | 0.2.0.0 |
 | `not_is_le_sym(a, b)` | `∀ a: Nat, b: Nat. {Nat.is_lt(b, a) == Bool.not(Nat.is_le(a, b)) : Bool}` | Not (a <= b) tests the same as b < a, reversed to rewrite toward the simple side. | 0.2.0.0 |
 | `not_is_lt_sym(a, b)` | `∀ a: Nat, b: Nat. {Nat.is_le(b, a) == Bool.not(Nat.is_lt(a, b)) : Bool}` | Not (a < b) tests the same as b <= a, reversed to rewrite toward the simple side. | 0.2.0.0 |
-| `min_le_iff_sym(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Bool.or(Nat.is_le(a, c), Nat.is_le(b, c)) == Nat.is_le(Nat.min(a, b), c) : Bool}` | The minimum is at most c exactly when one argument is: min a b <= c tests as a <= c or b <= c, reversed to rewrite toward the simple side. | next |
-| `lt_max_iff_sym(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Bool.or(Nat.is_lt(a, b), Nat.is_lt(a, c)) == Nat.is_lt(a, Nat.max(b, c)) : Bool}` | The maximum is above a exactly when one argument is: a < max b c tests as a < b or a < c, reversed to rewrite toward the simple side. | next |
-| `lt_sub_iff_add_lt_sym(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.is_lt(Nat.add(b, a), c) == Nat.is_lt(a, Nat.sub(c, b)) : Bool}` | Comparing against a difference is comparing the sum: a < c - b tests as b + a < c, reversed to rewrite toward the simple side. | next |
+| `min_le_iff_sym(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Bool.or(Nat.is_le(a, c), Nat.is_le(b, c)) == Nat.is_le(Nat.min(a, b), c) : Bool}` | The minimum is at most c exactly when one argument is: min a b <= c tests as a <= c or b <= c, reversed to rewrite toward the simple side. | 0.4.0.0 |
+| `lt_max_iff_sym(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Bool.or(Nat.is_lt(a, b), Nat.is_lt(a, c)) == Nat.is_lt(a, Nat.max(b, c)) : Bool}` | The maximum is above a exactly when one argument is: a < max b c tests as a < b or a < c, reversed to rewrite toward the simple side. | 0.4.0.0 |
+| `lt_sub_iff_add_lt_sym(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.is_lt(Nat.add(b, a), c) == Nat.is_lt(a, Nat.sub(c, b)) : Bool}` | Comparing against a difference is comparing the sum: a < c - b tests as b + a < c, reversed to rewrite toward the simple side. | 0.4.0.0 |
 
 ## order
 
 ```python
-import bend-mathlib@0.3.0.0/order.bend as MOrder
+import bend-mathlib@0.4.0.0/order.bend as MOrder
 ```
 
 | lemma | statement | meaning | since |
 |---|---|---|---|
-| `le_trans3(~A, ~le, ~le_trans, a, b, c, d, ab, bc, cd)` | `∀ ~A: Data, ~le: A -> A -> Bool, ~le_trans: @x: A -> @y: A -> @z: A -> {le(x, y) == True{} : Bool} -> {le(y, z) == True{} : Bool} -> {le(x, z) == True{} : Bool}, +a: A, +b: A, +c: A, +d: A, ab: {le(a, b) == True{} : Bool}, bc: {le(b, c) == True{} : Bool}, cd: {le(c, d) == True{} : Bool}. {le(a, d) == True{} : Bool}` | A chain of three comparisons composes. | next |
-| `le_trans4(~A, ~le, ~le_trans, a, b, c, d, e, ab, bc, cd, de)` | `∀ ~A: Data, ~le: A -> A -> Bool, ~le_trans: @x: A -> @y: A -> @z: A -> {le(x, y) == True{} : Bool} -> {le(y, z) == True{} : Bool} -> {le(x, z) == True{} : Bool}, +a: A, +b: A, +c: A, +d: A, +e: A, ab: {le(a, b) == True{} : Bool}, bc: {le(b, c) == True{} : Bool}, cd: {le(c, d) == True{} : Bool}, de: {le(d, e) == True{} : Bool}. {le(a, e) == True{} : Bool}` | A chain of four comparisons composes. | next |
-| `le_antisymm_eq(~A, ~le, ~le_antisymm, a, b, ab, ba)` | `∀ ~A: Data, ~le: A -> A -> Bool, ~le_antisymm: @x: A -> @y: A -> {le(x, y) == True{} : Bool} -> {le(y, x) == True{} : Bool} -> {x == y : A}, +a: A, +b: A, ab: {le(a, b) == True{} : Bool}, ba: {le(b, a) == True{} : Bool}. {a == b : A}` | Antisymmetry gives equality. | next |
-| `le_total_true(~A, ~le, ~le_total, a, b)` | `∀ ~A: Data, ~le: A -> A -> Bool, ~le_total: @x: A -> @y: A -> {Bool.or(le(x, y), le(y, x)) == True{} : Bool}, +a: A, +b: A. {Bool.or(le(a, b), le(b, a)) == True{} : Bool}` | Totality as a Bool disjunction. | next |
-| `le_total_of_not_le(~A, ~le, ~le_total, a, b, h)` | `∀ ~A: Data, ~le: A -> A -> Bool, ~le_total: @x: A -> @y: A -> {Bool.or(le(x, y), le(y, x)) == True{} : Bool}, +a: A, +b: A, h: {le(a, b) == False{} : Bool}. {le(b, a) == True{} : Bool}` | The other side of a total order holds when one side fails. | next |
-| `le_total_true_sym(~A, ~le, ~le_total, a, b)` | `∀ ~A: Data, ~le: A -> A -> Bool, ~le_total: @x: A -> @y: A -> {Bool.or(le(x, y), le(y, x)) == True{} : Bool}, +a: A, +b: A. {True{} == Bool.or(le(a, b), le(b, a)) : Bool}` | Totality as a Bool disjunction, reversed to rewrite toward the simple side. | next |
+| `le_trans3(~A, ~le, ~le_trans, a, b, c, d, ab, bc, cd)` | `∀ ~A: Data, ~le: A -> A -> Bool, ~le_trans: @x: A -> @y: A -> @z: A -> {le(x, y) == True{} : Bool} -> {le(y, z) == True{} : Bool} -> {le(x, z) == True{} : Bool}, +a: A, +b: A, +c: A, +d: A, ab: {le(a, b) == True{} : Bool}, bc: {le(b, c) == True{} : Bool}, cd: {le(c, d) == True{} : Bool}. {le(a, d) == True{} : Bool}` | A chain of three comparisons composes. | 0.4.0.0 |
+| `le_trans4(~A, ~le, ~le_trans, a, b, c, d, e, ab, bc, cd, de)` | `∀ ~A: Data, ~le: A -> A -> Bool, ~le_trans: @x: A -> @y: A -> @z: A -> {le(x, y) == True{} : Bool} -> {le(y, z) == True{} : Bool} -> {le(x, z) == True{} : Bool}, +a: A, +b: A, +c: A, +d: A, +e: A, ab: {le(a, b) == True{} : Bool}, bc: {le(b, c) == True{} : Bool}, cd: {le(c, d) == True{} : Bool}, de: {le(d, e) == True{} : Bool}. {le(a, e) == True{} : Bool}` | A chain of four comparisons composes. | 0.4.0.0 |
+| `le_antisymm_eq(~A, ~le, ~le_antisymm, a, b, ab, ba)` | `∀ ~A: Data, ~le: A -> A -> Bool, ~le_antisymm: @x: A -> @y: A -> {le(x, y) == True{} : Bool} -> {le(y, x) == True{} : Bool} -> {x == y : A}, +a: A, +b: A, ab: {le(a, b) == True{} : Bool}, ba: {le(b, a) == True{} : Bool}. {a == b : A}` | Antisymmetry gives equality. | 0.4.0.0 |
+| `le_total_true(~A, ~le, ~le_total, a, b)` | `∀ ~A: Data, ~le: A -> A -> Bool, ~le_total: @x: A -> @y: A -> {Bool.or(le(x, y), le(y, x)) == True{} : Bool}, +a: A, +b: A. {Bool.or(le(a, b), le(b, a)) == True{} : Bool}` | Totality as a Bool disjunction. | 0.4.0.0 |
+| `le_total_of_not_le(~A, ~le, ~le_total, a, b, h)` | `∀ ~A: Data, ~le: A -> A -> Bool, ~le_total: @x: A -> @y: A -> {Bool.or(le(x, y), le(y, x)) == True{} : Bool}, +a: A, +b: A, h: {le(a, b) == False{} : Bool}. {le(b, a) == True{} : Bool}` | The other side of a total order holds when one side fails. | 0.4.0.0 |
+| `le_total_true_sym(~A, ~le, ~le_total, a, b)` | `∀ ~A: Data, ~le: A -> A -> Bool, ~le_total: @x: A -> @y: A -> {Bool.or(le(x, y), le(y, x)) == True{} : Bool}, +a: A, +b: A. {True{} == Bool.or(le(a, b), le(b, a)) : Bool}` | Totality as a Bool disjunction, reversed to rewrite toward the simple side. | 0.4.0.0 |
 
 ## string
 
 ```python
-import bend-mathlib@0.3.0.0/string.bend as MString
+import bend-mathlib@0.4.0.0/string.bend as MString
 ```
 
 | lemma | statement | meaning | since |
 |---|---|---|---|
-| `append_nil(a)` | `∀ a: String. {String.append(a, SNil{}) == a : String}` | The empty string is a right identity for append: a ++ "" = a. | next |
-| `nil_append(a)` | `∀ -a: String. {String.append(SNil{}, a) == a : String}` | The empty string is a left identity for append: "" ++ a = a. | next |
-| `append_assoc(a, b, c)` | `∀ a: String, -b: String, -c: String. {String.append(String.append(a, b), c) == String.append(a, String.append(b, c)) : String}` | Append is associative: (a ++ b) ++ c = a ++ (b ++ c). | next |
-| `length_append(a, b)` | `∀ a: String, -b: String. {String.length(String.append(a, b)) == Nat.add(String.length(a), String.length(b)) : Nat}` | The length of an append is the sum of the lengths. | next |
-| `reverse_go_spec(s, acc)` | `∀ s: String, acc: String. {String.reverse.go(s, acc) == String.append(String.reverse(s), acc) : String}` | The reverse accumulator loop appends the reversed string to the accumulator. | next |
-| `reverse_append(a, b)` | `∀ a: String, b: String. {String.reverse(String.append(a, b)) == String.append(String.reverse(b), String.reverse(a)) : String}` | Reversing an append reverses and swaps the parts: reverse (a ++ b) = reverse b ++ reverse a. | next |
-| `reverse_reverse(a)` | `∀ a: String. {String.reverse(String.reverse(a)) == a : String}` | Reversing twice gives the string back. | next |
-| `u32_cmp_refl(x)` | `∀ x: U32. {U32.cmp(x, x) == EQ{} : Cmp}` | Comparing a U32 with itself gives EQ. | next |
-| `char_cmp_refl(c)` | `∀ c: Char. {Char.cmp(c, c) == ((c, c), EQ{}) : (Char & Char) & Cmp}` | Comparing a character with itself gives EQ and hands both back. | next |
-| `cmp_refl(s)` | `∀ s: String. {String.cmp(s, s) == ((s, s), EQ{}) : (String & String) & Cmp}` | Comparing a string with itself gives EQ and hands both back. | next |
-| `eq_refl(s)` | `∀ s: String. {String.eq(s, s) == True{} : Bool}` | Every string is equal to itself under String.eq. | next |
-| `u32_eq_of_is_eq(a, b, h)` | `∀ a: U32, b: U32, h: {U32.is_eq(a, b) == True{} : Bool}. {a == b : U32}` | Two U32s that U32.is_eq calls equal are equal. | next |
-| `char_eq_of_is_eq(a, b, h)` | `∀ a: Char, b: Char, h: {Char.is_eq(a, b) == True{} : Bool}. {a == b : Char}` | Two characters that Char.is_eq calls equal are equal. | next |
-| `eq_of_eq_true(a, b, h)` | `∀ a: String, b: String, h: {String.eq(a, b) == True{} : Bool}. {a == b : String}` | Two strings that String.eq calls equal are equal. | next |
-| `append_nil_sym(a)` | `∀ a: String. {a == String.append(a, SNil{}) : String}` | The empty string is a right identity for append: a ++ "" = a, reversed to rewrite toward the simple side. | next |
-| `nil_append_sym(a)` | `∀ -a: String. {a == String.append(SNil{}, a) : String}` | The empty string is a left identity for append: "" ++ a = a, reversed to rewrite toward the simple side. | next |
-| `append_assoc_sym(a, b, c)` | `∀ a: String, -b: String, -c: String. {String.append(a, String.append(b, c)) == String.append(String.append(a, b), c) : String}` | Append is associative: (a ++ b) ++ c = a ++ (b ++ c), reversed to rewrite toward the simple side. | next |
-| `length_append_sym(a, b)` | `∀ a: String, -b: String. {Nat.add(String.length(a), String.length(b)) == String.length(String.append(a, b)) : Nat}` | The length of an append is the sum of the lengths, reversed to rewrite toward the simple side. | next |
-| `reverse_go_spec_sym(s, acc)` | `∀ s: String, acc: String. {String.append(String.reverse(s), acc) == String.reverse.go(s, acc) : String}` | The reverse accumulator loop appends the reversed string to the accumulator, reversed to rewrite toward the simple side. | next |
-| `reverse_append_sym(a, b)` | `∀ a: String, b: String. {String.append(String.reverse(b), String.reverse(a)) == String.reverse(String.append(a, b)) : String}` | Reversing an append reverses and swaps the parts: reverse (a ++ b) = reverse b ++ reverse a, reversed to rewrite toward the simple side. | next |
-| `reverse_reverse_sym(a)` | `∀ a: String. {a == String.reverse(String.reverse(a)) : String}` | Reversing twice gives the string back, reversed to rewrite toward the simple side. | next |
-| `u32_cmp_refl_sym(x)` | `∀ x: U32. {EQ{} == U32.cmp(x, x) : Cmp}` | Comparing a U32 with itself gives EQ, reversed to rewrite toward the simple side. | next |
-| `char_cmp_refl_sym(c)` | `∀ c: Char. {((c, c), EQ{}) == Char.cmp(c, c) : (Char & Char) & Cmp}` | Comparing a character with itself gives EQ and hands both back, reversed to rewrite toward the simple side. | next |
-| `cmp_refl_sym(s)` | `∀ s: String. {((s, s), EQ{}) == String.cmp(s, s) : (String & String) & Cmp}` | Comparing a string with itself gives EQ and hands both back, reversed to rewrite toward the simple side. | next |
-| `eq_refl_sym(s)` | `∀ s: String. {True{} == String.eq(s, s) : Bool}` | Every string is equal to itself under String.eq, reversed to rewrite toward the simple side. | next |
+| `append_nil(a)` | `∀ a: String. {String.append(a, SNil{}) == a : String}` | The empty string is a right identity for append: a ++ "" = a. | 0.4.0.0 |
+| `nil_append(a)` | `∀ -a: String. {String.append(SNil{}, a) == a : String}` | The empty string is a left identity for append: "" ++ a = a. | 0.4.0.0 |
+| `append_assoc(a, b, c)` | `∀ a: String, -b: String, -c: String. {String.append(String.append(a, b), c) == String.append(a, String.append(b, c)) : String}` | Append is associative: (a ++ b) ++ c = a ++ (b ++ c). | 0.4.0.0 |
+| `length_append(a, b)` | `∀ a: String, -b: String. {String.length(String.append(a, b)) == Nat.add(String.length(a), String.length(b)) : Nat}` | The length of an append is the sum of the lengths. | 0.4.0.0 |
+| `reverse_go_spec(s, acc)` | `∀ s: String, acc: String. {String.reverse.go(s, acc) == String.append(String.reverse(s), acc) : String}` | The reverse accumulator loop appends the reversed string to the accumulator. | 0.4.0.0 |
+| `reverse_append(a, b)` | `∀ a: String, b: String. {String.reverse(String.append(a, b)) == String.append(String.reverse(b), String.reverse(a)) : String}` | Reversing an append reverses and swaps the parts: reverse (a ++ b) = reverse b ++ reverse a. | 0.4.0.0 |
+| `reverse_reverse(a)` | `∀ a: String. {String.reverse(String.reverse(a)) == a : String}` | Reversing twice gives the string back. | 0.4.0.0 |
+| `u32_cmp_refl(x)` | `∀ x: U32. {U32.cmp(x, x) == EQ{} : Cmp}` | Comparing a U32 with itself gives EQ. | 0.4.0.0 |
+| `char_cmp_refl(c)` | `∀ c: Char. {Char.cmp(c, c) == ((c, c), EQ{}) : (Char & Char) & Cmp}` | Comparing a character with itself gives EQ and hands both back. | 0.4.0.0 |
+| `cmp_refl(s)` | `∀ s: String. {String.cmp(s, s) == ((s, s), EQ{}) : (String & String) & Cmp}` | Comparing a string with itself gives EQ and hands both back. | 0.4.0.0 |
+| `eq_refl(s)` | `∀ s: String. {String.eq(s, s) == True{} : Bool}` | Every string is equal to itself under String.eq. | 0.4.0.0 |
+| `u32_eq_of_is_eq(a, b, h)` | `∀ a: U32, b: U32, h: {U32.is_eq(a, b) == True{} : Bool}. {a == b : U32}` | Two U32s that U32.is_eq calls equal are equal. | 0.4.0.0 |
+| `char_eq_of_is_eq(a, b, h)` | `∀ a: Char, b: Char, h: {Char.is_eq(a, b) == True{} : Bool}. {a == b : Char}` | Two characters that Char.is_eq calls equal are equal. | 0.4.0.0 |
+| `eq_of_eq_true(a, b, h)` | `∀ a: String, b: String, h: {String.eq(a, b) == True{} : Bool}. {a == b : String}` | Two strings that String.eq calls equal are equal. | 0.4.0.0 |
+| `append_nil_sym(a)` | `∀ a: String. {a == String.append(a, SNil{}) : String}` | The empty string is a right identity for append: a ++ "" = a, reversed to rewrite toward the simple side. | 0.4.0.0 |
+| `nil_append_sym(a)` | `∀ -a: String. {a == String.append(SNil{}, a) : String}` | The empty string is a left identity for append: "" ++ a = a, reversed to rewrite toward the simple side. | 0.4.0.0 |
+| `append_assoc_sym(a, b, c)` | `∀ a: String, -b: String, -c: String. {String.append(a, String.append(b, c)) == String.append(String.append(a, b), c) : String}` | Append is associative: (a ++ b) ++ c = a ++ (b ++ c), reversed to rewrite toward the simple side. | 0.4.0.0 |
+| `length_append_sym(a, b)` | `∀ a: String, -b: String. {Nat.add(String.length(a), String.length(b)) == String.length(String.append(a, b)) : Nat}` | The length of an append is the sum of the lengths, reversed to rewrite toward the simple side. | 0.4.0.0 |
+| `reverse_go_spec_sym(s, acc)` | `∀ s: String, acc: String. {String.append(String.reverse(s), acc) == String.reverse.go(s, acc) : String}` | The reverse accumulator loop appends the reversed string to the accumulator, reversed to rewrite toward the simple side. | 0.4.0.0 |
+| `reverse_append_sym(a, b)` | `∀ a: String, b: String. {String.append(String.reverse(b), String.reverse(a)) == String.reverse(String.append(a, b)) : String}` | Reversing an append reverses and swaps the parts: reverse (a ++ b) = reverse b ++ reverse a, reversed to rewrite toward the simple side. | 0.4.0.0 |
+| `reverse_reverse_sym(a)` | `∀ a: String. {a == String.reverse(String.reverse(a)) : String}` | Reversing twice gives the string back, reversed to rewrite toward the simple side. | 0.4.0.0 |
+| `u32_cmp_refl_sym(x)` | `∀ x: U32. {EQ{} == U32.cmp(x, x) : Cmp}` | Comparing a U32 with itself gives EQ, reversed to rewrite toward the simple side. | 0.4.0.0 |
+| `char_cmp_refl_sym(c)` | `∀ c: Char. {((c, c), EQ{}) == Char.cmp(c, c) : (Char & Char) & Cmp}` | Comparing a character with itself gives EQ and hands both back, reversed to rewrite toward the simple side. | 0.4.0.0 |
+| `cmp_refl_sym(s)` | `∀ s: String. {((s, s), EQ{}) == String.cmp(s, s) : (String & String) & Cmp}` | Comparing a string with itself gives EQ and hands both back, reversed to rewrite toward the simple side. | 0.4.0.0 |
+| `eq_refl_sym(s)` | `∀ s: String. {True{} == String.eq(s, s) : Bool}` | Every string is equal to itself under String.eq, reversed to rewrite toward the simple side. | 0.4.0.0 |
 
 231 lemmas + 158 generated _sym twins, 6 predicates. Generated by `tools/mathlib/index.ts`.
