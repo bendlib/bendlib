@@ -71,13 +71,17 @@ export function validNameRecords(records: NameRecord[]): NameRecord[] {
   return kept;
 }
 
+// names.json answers with the 30 newest names unless `limit` asks for more (observed 2026-09-28)
+export const NAMES_LIMIT = 100_000;
+
 /** names.json lists only each name's latest version; the per-name record adds `versions`. */
-export async function fetchNames(jobs = 8): Promise<NameRecord[]> {
-  const list = await getJson<Omit<NameRecord, "versions">[]>(`${HUB}/names.json`);
+export async function fetchNames(jobs = 8, hub = HUB): Promise<NameRecord[]> {
+  const list = await getJson<Omit<NameRecord, "versions">[]>(`${hub}/names.json?limit=${NAMES_LIMIT}`);
+  if (list.length >= NAMES_LIMIT) throw new Error(`names.json returned ${list.length} names, the requested limit: the list may be truncated`);
   const named = list.filter((n) => NAME.test(n.name));  // never even request a hostile name
   if (named.length !== list.length) console.error(`hub: dropped ${list.length - named.length} name record(s) with an invalid name`);
   const out = await pool(named, jobs, async (n) => {
-    const full = await getJson<NameRecord>(`${HUB}/name/${encodeURIComponent(n.name)}`);
+    const full = await getJson<NameRecord>(`${hub}/name/${encodeURIComponent(n.name)}`);
     return { ...n, ...full, versions: full.versions ?? [{ version: n.latest.version, hash: n.latest.hash, ts: n.latest.ts }] };
   });
   return validNameRecords(out);

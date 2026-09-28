@@ -5,7 +5,7 @@ import { describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, sep } from "node:path";
-import { ensurePackage, fetchHub, safePath, seedNames, sha256, underRoot, validNameRecords, type NameRecord } from "../src/hub.ts";
+import { ensurePackage, fetchHub, fetchNames, NAMES_LIMIT, safePath, seedNames, sha256, underRoot, validNameRecords, type NameRecord } from "../src/hub.ts";
 import { modPage, encPath, renderModule, renderPackage } from "../src/render.ts";
 import type { Module, Package, Site } from "../src/model.ts";
 
@@ -117,6 +117,41 @@ describe("hub names are validated (PLAN F1)", () => {
   });
   test("planted negative: a record whose versions are all malformed is dropped", () => {
     expect(validNameRecords([rec("valid-package-name", [{ version: "1.0", hash: "0xzz" }])])).toEqual([]);
+  });
+});
+
+describe("the name list is fetched whole", () => {
+  const serveNames = (count: number, seen: string[]) => Bun.serve({
+    port: 0,
+    fetch(req) {
+      const u = new URL(req.url);
+      seen.push(u.pathname + u.search);
+      if (u.pathname === "/names.json") {
+        return Response.json(Array.from({ length: count }, (_, i) => ({ name: `name-number-${i}`, latest: { version: "1.0.0.0", hash: HASH, ts: 0, desc: "" } })));
+      }
+      return Response.json({ versions: [{ version: "1.0.0.0", hash: HASH, ts: 0 }] });
+    },
+  });
+  test("names.json is asked for more than the hub's default page of 30", async () => {
+    const seen: string[] = [];
+    const server = serveNames(31, seen);
+    try {
+      const names = await fetchNames(4, `http://127.0.0.1:${server.port}`);
+      expect(names.length).toBe(31);
+      expect(seen).toContain(`/names.json?limit=${NAMES_LIMIT}`);
+    } finally {
+      server.stop(true);
+    }
+  });
+  test("planted negative: a list as long as the limit is an error, never a partial site", async () => {
+    const seen: string[] = [];
+    const server = serveNames(NAMES_LIMIT, seen);
+    try {
+      await expect(fetchNames(4, `http://127.0.0.1:${server.port}`)).rejects.toThrow(/may be truncated/);
+      expect(seen).toEqual([`/names.json?limit=${NAMES_LIMIT}`]);
+    } finally {
+      server.stop(true);
+    }
   });
 });
 
