@@ -6,7 +6,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { rewrite, splitEquation } from "../src/terms.ts";
 import { parseTy, showTy } from "../src/types.ts";
-import { predictTooLarge } from "../src/lawcheck.ts";
+import { importablePath, predictTooLarge } from "../src/lawcheck.ts";
 
 const CLI = path.join(import.meta.dir, "..", "cli.ts");
 const FX = path.join(import.meta.dir, "fixtures");
@@ -571,4 +571,90 @@ describe("term rewriting", () => {
     expect(showTy(parseTy("List<&2, ../../fx/lib_ok.Stack>")!)).toBe("List<&2, ../../fx/lib_ok.Stack>");
     expect(parseTy("@_:A -> B")).toBeNull();
   });
+});
+
+describe("non-plain target paths (bend >= 2.0.28 imports only plain names)", () => {
+  test("a target under a digit-leading directory is checked via a scratch copy; output keeps the original path", async () => {
+    const base = fs.mkdtempSync(path.join(os.tmpdir(), "lawcheck-nonplain-"));
+    const dir = path.join(base, "4d2_vn8j");
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, "lib.bend"), [
+      "import Base",
+      "",
+      "def double(x: Nat) -> Nat:",
+      "  Nat.double(x)",
+      "",
+    ].join("\n"));
+    const ok = path.join(dir, "ok.bend");
+    fs.writeFileSync(ok, [
+      "import Base",
+      "",
+      "law add_zero:",
+      "  for a: Nat",
+      "  {Nat.add(a, 0n) == a : Nat}",
+      "",
+    ].join("\n"));
+    const sibling = path.join(dir, "sibling.bend");
+    fs.writeFileSync(sibling, [
+      "import Base",
+      "import ./lib.bend as L",
+      "",
+      "law double_add:",
+      "  for x: Nat",
+      "  {L.double(x) == Nat.add(x, x) : Nat}",
+      "",
+    ].join("\n"));
+    const bad = path.join(dir, "bad.bend");
+    fs.writeFileSync(bad, [
+      "import Base",
+      "import ./lib.bend as L",
+      "",
+      "law bad_double:",
+      "  for x: Nat",
+      "  {L.double(x) == x : Nat}",
+      "",
+    ].join("\n"));
+
+    // the path really is one bend cannot import, so the scratch-copy branch runs
+    expect(importablePath(ok)).toBe(false);
+
+    const a = await json(ok, "--jobs", "4");
+    expect(a.code).toBe(0);
+    expect(a.report.laws.map((l: any) => l.status)).toEqual(["pass"]);
+    expect(a.report.file).toBe(ok);
+
+    const b = await json(sibling, "--jobs", "4");
+    expect(b.code).toBe(0);
+    expect(b.report.laws.map((l: any) => l.status)).toEqual(["pass"]);
+    expect(b.report.file).toBe(sibling);
+
+    const c = await run(bad, "--jobs", "4", "--json");
+    expect(c.code).toBe(1);
+    const rep = JSON.parse(c.stdout);
+    const l = rep.laws.find((x: any) => x.name === "bad_double");
+    expect(l.status).toBe("fail");
+    expect(rep.file).toBe(bad);
+    expect(c.stdout).toContain(bad);
+    expect(c.stdout).not.toContain(path.join(rep.tmpDir, "root"));
+  }, T);
+
+  test("an import that climbs above a non-plain component keeps the located error", async () => {
+    const base = fs.mkdtempSync(path.join(os.tmpdir(), "lawcheck-nonplain-climb-"));
+    const dir = path.join(base, "4d2_vn8j", "x");
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(base, "z.bend"), ["import Base", "", "def z(x: Nat) -> Nat:", "  x", ""].join("\n"));
+    const root = path.join(dir, "climb.bend");
+    fs.writeFileSync(root, [
+      "import Base",
+      "import ../../z.bend as Z",
+      "",
+      "law zid:",
+      "  for x: Nat",
+      "  {Z.z(x) == x : Nat}",
+      "",
+    ].join("\n"));
+    const r = await run(root, "--jobs", "4");
+    expect(r.code).toBe(2);
+    expect(r.stdout).toContain("plain names");
+  }, T);
 });

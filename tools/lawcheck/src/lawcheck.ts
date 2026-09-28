@@ -540,15 +540,99 @@ function instances(p: Plan, U: Universe, o: Options, r: Rng): Inst[] {
   return all;
 }
 
-function aliasMap(L: Loaded, batchDir: string) {
+// bend >= 2.0.28 imports only paths of plain names (`[A-Za-z_][\w-]*` components; PLAN F3), so a
+// target under macOS's digit-leading `$TMPDIR` is copied into the scratch tree before the batch.
+const PLAIN_SEG = /^[A-Za-z_][A-Za-z0-9_-]*$/;
+const PLAIN_BEND = /^[A-Za-z_][A-Za-z0-9_-]*\.bend$/;
+
+/** Whether `bend` can import this absolute `.bend` path (PLAN F3). */
+export function importablePath(p: string): boolean {
+  const segs = p.split("/");
+  return segs[0] === "" && segs.length >= 2
+    && segs.slice(1, -1).every((s) => PLAIN_SEG.test(s))
+    && PLAIN_BEND.test(segs[segs.length - 1]!);
+}
+
+/** A directory whose path is all plain names; macOS's `os.tmpdir()` is not (PLAN F3). */
+export function scratchBase(): string {
+  if (os.tmpdir().split("/").slice(1).every((s) => PLAIN_SEG.test(s))) return os.tmpdir();
+  return fs.existsSync("/tmp") && "/tmp".split("/").slice(1).every((s) => PLAIN_SEG.test(s)) ? "/tmp" : os.tmpdir();
+}
+
+/** Deepest common ancestor directory of the absolute `dirs`. */
+function commonDir(dirs: string[]): string | null {
+  if (dirs.length === 0) return null;
+  const split = dirs.map((d) => d.split("/"));
+  const out: string[] = [];
+  for (let i = 0; ; i++) {
+    const seg = split[0]![i];
+    if (seg === undefined || split.some((s) => s[i] !== seg)) break;
+    out.push(seg);
+  }
+  return out.join("/") || "/";
+}
+
+/** Whether a relative layout component list is importable (last component names a `.bend`). */
+function plainRel(rel: string): boolean {
+  const segs = rel.split("/");
+  return segs.every((s, i) => (i === segs.length - 1 ? PLAIN_BEND.test(s) : PLAIN_SEG.test(s)));
+}
+
+/** The root and every file reachable from it by a relative `./`/`../` import, in load order. */
+function relativeClosure(L: Loaded): string[] {
+  const byPath = new Map(L.files.map((f) => [f.path, f] as const));
+  const out: string[] = [];
+  const seen = new Set<string>();
+  const walk = (p: string) => {
+    const f = byPath.get(p);
+    if (f === undefined || seen.has(p)) return;
+    seen.add(p);
+    out.push(p);
+    for (const spec of localImports(f.text)) {
+      const abs = path.resolve(path.dirname(p), spec);
+      walk(fs.existsSync(abs) ? fs.realpathSync(abs) : abs);
+    }
+  };
+  walk(L.file);
+  return out;
+}
+
+/** Copies `files` under `<tmp>/root` preserving layout; null when the layout cannot be made plain. */
+function plainCopies(tmp: string, files: string[]): Map<string, string> | null {
+  const real = [...new Set(files.map((f) => (fs.existsSync(f) ? fs.realpathSync(f) : f)))];
+  if (real.every(importablePath)) return null;
+  const anchor = commonDir(real.map((f) => path.dirname(f)));
+  if (anchor === null) return null;
+  const rels = real.map((f) => path.relative(anchor, f).split(path.sep).join("/"));
+  if (rels.some((r) => !plainRel(r))) return null;
+  const dir = path.join(tmp, "root");
+  const map = new Map<string, string>();
+  for (let i = 0; i < real.length; i++) {
+    const to = path.join(dir, ...rels[i]!.split("/"));
+    fs.mkdirSync(path.dirname(to), { recursive: true });
+    fs.copyFileSync(real[i]!, to);
+    map.set(real[i]!, to);
+  }
+  return map;
+}
+
+/** Maps a scratch copy path back to the user's original path in checker output. */
+function unmapCopies(s: string, copies: Map<string, string> | null): string {
+  if (copies === null) return s;
+  let out = s;
+  for (const [orig, copy] of [...copies].sort((a, b) => b[1].length - a[1].length)) out = out.split(copy).join(orig);
+  return out;
+}
+
+function aliasMap(L: Loaded, batchDir: string, pathFor: (p: string) => string = (p) => p) {
   const nsToAlias = new Map<string, { alias: string; file: string }>();
   let k = 0;
-  const imports = [`import Base`, `import ${L.file} as U`];
+  const imports = [`import Base`, `import ${pathFor(L.file)} as U`];
   for (const f of L.files) {
     if (f.namespace === "") continue;
     const alias = `LC${++k}`;
     nsToAlias.set(f.namespace, { alias, file: f.path });
-    imports.push(f.namespace.startsWith("0x") ? `import ${f.namespace}.bend as ${alias}` : `import ${f.path} as ${alias}`);
+    imports.push(f.namespace.startsWith("0x") ? `import ${f.namespace}.bend as ${alias}` : `import ${pathFor(f.path)} as ${alias}`);
   }
   const own = new Set(L.own);
   for (const d of decls(L, { scope: "own" })) own.add(d.name);
@@ -746,7 +830,7 @@ export function nativeDisagreements(c: (Outcome | undefined)[], n: (boolean | un
 }
 
 /** A copy of the root with its open-law blocks removed and local imports made absolute, for engine N. */
-function nativeRoot(L: Loaded, tmp: string): string {
+function nativeRoot(L: Loaded, tmp: string, pathFor: (p: string) => string): string {
   const open = decls(L, { scope: "own" }).filter((d) => d.kind === "law" && !d.proved).map((d) => d.line);
   const dir = path.dirname(L.file);
   const lines = fs.readFileSync(L.file, "utf8").split("\n");
@@ -754,7 +838,7 @@ function nativeRoot(L: Loaded, tmp: string): string {
     const m = /^import\s+(\.{1,2}\/\S+\.bend)(\s+as\s+\S+)?\s*$/.exec(l.trim());
     if (m === null) return;
     const abs = path.resolve(dir, m[1]);
-    lines[i] = `import ${fs.existsSync(abs) ? fs.realpathSync(abs) : abs}${m[2] ?? ""}`;
+    lines[i] = `import ${pathFor(fs.existsSync(abs) ? fs.realpathSync(abs) : abs)}${m[2] ?? ""}`;
   });
   const spans = open.map((ln) => {
     let end = ln - 1;
@@ -804,17 +888,20 @@ async function runNative(E: Engine, src: string): Promise<string[] | string> {
 export async function lawcheck(file: string, o: Options): Promise<Report> {
   const abs = path.resolve(file);
   if (!fs.existsSync(abs)) throw new UsageError(`no such file: ${file}`);
-  const tmp = o.tmpDir ?? fs.mkdtempSync(path.join(os.tmpdir(), "lawcheck-"));
+  const tmp = o.tmpDir ?? fs.mkdtempSync(path.join(scratchBase(), "lawcheck-"));
   const root = safeRoot(rootFor(abs, o.impl, tmp), tmp);
   const L = await load(root);
   validate(L);
+  const copies = importablePath(L.file) ? null : plainCopies(tmp, relativeClosure(L));
+  const pathFor = (p: string) => copies?.get(p) ?? p;
   const own = decls(L, { scope: "own" });
   const allDecls = decls(L, { scope: "all" });
   const predicates = new Map<string, PredStmt | null>();
   for (const d of allDecls) if (d.predicate) predicates.set(d.name, predicateStatement(L, d));
   const baseFiles = new Set(allDecls.filter((d) => d.origin === "base").map((d) => d.file));
   const U = universe(L, o.maxNat);
-  const { header, qualify, display, nameOut } = aliasMap(L, tmp);
+  const { header, qualify, display: nameDisplay, nameOut } = aliasMap(L, tmp, pathFor);
+  const display = (s: string) => unmapCopies(nameDisplay(s), copies);
   const termDecls = new Map<string, TermDecl>();
   for (const d of allDecls) {
     if (d.kind !== "def" && d.kind !== "template") continue;
@@ -831,18 +918,18 @@ export async function lawcheck(file: string, o: Options): Promise<Report> {
   if (o.firstFail) {
     results = [];
     for (const d of laws) {
-      const r = await checkLaw(L, d, all.indexOf(d), o, U, predicates, E, qualify, nameOut, termDecls);
+      const r = await checkLaw(L, d, all.indexOf(d), o, U, predicates, E, qualify, nameOut, termDecls, pathFor);
       results.push(r);
       if (r.status === "fail") break;
     }
   } else {
-    results = await Promise.all(laws.map((d) => checkLaw(L, d, all.indexOf(d), o, U, predicates, E, qualify, nameOut, termDecls)));
+    results = await Promise.all(laws.map((d) => checkLaw(L, d, all.indexOf(d), o, U, predicates, E, qualify, nameOut, termDecls, pathFor)));
   }
   for (const r of results) r.file = abs;
   return { schema: 1, tool: "lawcheck", version: VERSION, bend: L.source.version, file: abs, seed: o.seed, size: o.size, maxInstances: o.maxInstances, maxNat: o.maxNat ?? 30, tmpDir: tmp, checkerRuns: E.runs, laws: results };
 }
 
-async function checkLaw(L: Loaded, d: Decl, li: number, o: Options, U: Universe, predicates: Map<string, PredStmt | null>, E: Engine, qualify: (s: string) => string, nameOut: (s: string) => string, termDecls: Map<string, TermDecl>): Promise<LawResult> {
+async function checkLaw(L: Loaded, d: Decl, li: number, o: Options, U: Universe, predicates: Map<string, PredStmt | null>, E: Engine, qualify: (s: string) => string, nameOut: (s: string) => string, termDecls: Map<string, TermDecl>, pathFor: (p: string) => string): Promise<LawResult> {
   const base: LawResult = { name: d.name, file: d.file, line: d.line, proved: d.proved === true, claim: "other", status: "skip", instances: 0, failures: 0 };
   let p: Plan;
   try {
@@ -1011,8 +1098,8 @@ async function checkLaw(L: Loaded, d: Decl, li: number, o: Options, U: Universe,
     const parts = items.map((it) => splitEquation(it.claim));
     const eqs = parts.map((pp) => (pp === null ? null : nativeEq(pp.type)));
     if (eqs.some((e) => e === null)) return { checked: 0, disagreements: [], skip: "claim is not an equation over Nat, U32, Bool or a list of those" };
-    const nroot = nativeRoot(L, E.dir);
-    const header = E.header.split(`import ${L.file} as U`).join(`import ${nroot} as U`);
+    const nroot = nativeRoot(L, E.dir, pathFor);
+    const header = E.header.split(`import ${pathFor(L.file)} as U`).join(`import ${nroot} as U`);
     const helpers = [...new Set(eqs.map((e) => e!.helper).filter((h): h is string => h !== undefined))];
     const head = `${header}\n${helpers.join("")}`;
     const lineOf = (i: number) => `    IO.print(U32.show(Bool.to_u32(${eqs[i]!.eq(parts[i]!.lhs, parts[i]!.rhs)})))`;
@@ -1265,7 +1352,7 @@ export async function mutate(file: string, o: MutateOptions): Promise<MutateRepo
     law: o.law, impl: o.impl, jobs: o.jobs, timeoutMs: o.timeoutMs, tmpDir: o.tmpDir, maxNat: o.maxNat,
     shrink: o.shrink, firstFail: o.firstFail,
   };
-  const tmp = o.tmpDir ?? fs.mkdtempSync(path.join(os.tmpdir(), "lawcheck-mut-"));
+  const tmp = o.tmpDir ?? fs.mkdtempSync(path.join(scratchBase(), "lawcheck-mut-"));
   let target: string;
   let mode: "impl" | "in-file";
   if (o.impl !== undefined) {
