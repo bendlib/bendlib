@@ -5,7 +5,7 @@ import { describe, expect, test } from "bun:test";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { BendReadError, bendSource, decls, installedVersion, load, SourceError, type Decl } from "../index.ts";
+import { BendReadError, bendSource, decls, installedVersion, load, sourcePin, SourceError, type Decl } from "../index.ts";
 import { CASES, dump, freshBendLib, goldenPath, HUB_PKG, REPO } from "./golden.ts";
 
 const FIX = path.join(import.meta.dir, "fixtures");
@@ -52,6 +52,26 @@ describe("source", () => {
       expect(again.archiveSha256).toBe(s.archiveSha256);
     }
   });
+
+  test("sourcePin reproduces toolchain.json's source pin", async () => {
+    const s = await bendSource();
+    if (s.origin === "local") return;
+    const pin = await sourcePin();
+    const pinned = JSON.parse(fs.readFileSync(path.join(REPO, "toolchain.json"), "utf8")).bend.source;
+    expect(pin.version).toBe(s.version);
+    expect(pin.files).toEqual(pinned.files);
+    if (pin.commit !== undefined && pinned.commit !== undefined) expect(pin.commit).toBe(pinned.commit);
+  });
+
+  test("cli --pin prints the same source pin", async () => {
+    const s = await bendSource();
+    if (s.origin === "local") return;
+    const r = Bun.spawnSync(["bun", path.join(REPO, "tools/reader/cli.ts"), "--pin"], { stdout: "pipe", stderr: "pipe" });
+    expect(r.exitCode).toBe(0);
+    const pin = JSON.parse(r.stdout.toString());
+    const pinned = JSON.parse(fs.readFileSync(path.join(REPO, "toolchain.json"), "utf8")).bend.source;
+    expect(pin.files).toEqual(pinned.files);
+  }, 60_000);
 
   test("a tampered cached bend.ts is refused", async () => {
     const s = await bendSource();

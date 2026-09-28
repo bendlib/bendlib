@@ -264,6 +264,14 @@ export async function bendSource(opts: SourceOptions | string = {}): Promise<Ben
   return s;
 }
 
+/** The source pin for a compiler version: the tag's commit (best effort) and the sha256 of each pinned file. */
+export async function sourcePin(opts: SourceOptions | string = {}): Promise<{ version: string; commit?: string; files: Record<string, string> }> {
+  const s = await bendSource(opts);
+  const files: Record<string, string> = {};
+  for (const f of PINNED) files[f] = sha256(fs.readFileSync(path.join(s.dir, f)));
+  return { version: s.version, commit: s.commit, files };
+}
+
 // bend.ts reads BEND_LIB/BEND_HUB once, at module evaluation, so each distinct
 // pair gets its own module instance (a query-string import).
 const instances = new Map<string, Promise<any>>();

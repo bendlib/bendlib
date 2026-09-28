@@ -2,26 +2,28 @@
 // bend-reader: list the declarations of a Bend 2 file, parsed by the official
 // bend.ts of the installed compiler's version.
 // usage: bun tools/reader/cli.ts <file.bend> [--json] [--all] [--check]
-//          [--bend-src <dir>] [--bend-lib <dir>]
+//          [--bend-src <dir>] [--bend-lib <dir>] | --pin [--bend-src <dir>]
 //   --all       also list imported (non-Base) declarations
 //   --check     also type-check (bend.ts book_valid) before listing
+//   --pin       print the source pin (toolchain.json .bend.source) for the installed version
 //   --bend-src  use a local bend checkout (else BENDLIB_BEND_SRC, else the cached tag)
 //   --bend-lib  BEND_LIB for hub packages
 // exit: 0 listed, 1 load/parse/check error (located on stderr), 2 usage error
 
 import * as path from "node:path";
 import { BendReadError, decls, load, type Decl } from "./src/reader.ts";
-import { SourceError } from "./src/source.ts";
+import { SourceError, sourcePin } from "./src/source.ts";
 
-const USAGE = "usage: bun tools/reader/cli.ts <file.bend> [--json] [--all] [--check] [--bend-src <dir>] [--bend-lib <dir>]";
+const USAGE = "usage: bun tools/reader/cli.ts <file.bend> [--json] [--all] [--check] [--bend-src <dir>] [--bend-lib <dir>] | --pin [--bend-src <dir>]";
 
 function parseArgs(argv: string[]) {
-  const o = { file: "", json: false, all: false, check: false, src: undefined as string | undefined, lib: undefined as string | undefined };
+  const o = { file: "", json: false, all: false, check: false, pin: false, src: undefined as string | undefined, lib: undefined as string | undefined };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--json") o.json = true;
     else if (a === "--all") o.all = true;
     else if (a === "--check") o.check = true;
+    else if (a === "--pin") o.pin = true;
     else if (a === "--bend-src" || a === "--bend-lib") {
       const v = argv[++i];
       if (v === undefined) usage(`${a} needs a directory`);
@@ -33,7 +35,7 @@ function parseArgs(argv: string[]) {
     else if (o.file === "") o.file = a;
     else usage(`one file only (got ${o.file} and ${a})`);
   }
-  if (o.file === "") usage("no file given");
+  if (o.file === "" && !o.pin) usage("no file given");
   return o;
 }
 
@@ -55,6 +57,11 @@ function table(ds: Decl[], cwd: string): string {
 
 const o = parseArgs(process.argv.slice(2));
 try {
+  if (o.pin) {
+    const { commit, files } = await sourcePin({ src: o.src });
+    console.log(JSON.stringify({ commit, files }, null, 2));
+    process.exit(0);
+  }
   const L = await load(o.file, { src: o.src, bendLib: o.lib, check: o.check });
   const ds = decls(L, { scope: o.all ? "all-non-base" : "own" });
   if (o.json) {

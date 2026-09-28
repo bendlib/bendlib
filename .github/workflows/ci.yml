@@ -135,8 +135,12 @@ jobs:
       - name: pin toolchain.json to the installed release
         run: |
           v=$($HOME/.bend/bin/bend version | cut -d' ' -f2)
-          # the source pins name the pinned release's commit and hashes; the reader re-verifies the new tag itself
+          # Move the pin to the release under test. The reader enforces the source pin
+          # only for the pinned version, so fetch + hash that release: the pin tests
+          # then verify the newest source instead of having no pin to assert against.
           jq --arg v "$v" '.bend.version = $v | del(.bend.source)' toolchain.json > toolchain.tmp && mv toolchain.tmp toolchain.json
+          bun tools/reader/cli.ts --pin > "${RUNNER_TEMP:-/tmp}/pin.json"
+          jq --slurpfile p "${RUNNER_TEMP:-/tmp}/pin.json" '.bend.source = $p[0]' toolchain.json > toolchain.tmp && mv toolchain.tmp toolchain.json
       - name: devlib pins are current
         run: bun tools/mathlib/devlib.ts --check
       - run: bun tools/mathlib/devlib.ts run -- bun tools/mathlib/check.ts packages/bend-mathlib
