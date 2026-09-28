@@ -8,7 +8,7 @@ export type Import = {
   raw: string;           // the trimmed source line
   path: string;          // as written ("Base" for `import Base`)
   alias: string | null;
-  kind: "base" | "relative" | "hash" | "named" | "invalid";
+  kind: "base" | "relative" | "hash" | "named" | "invalid" | "refused";
   hash?: string;         // hash and named imports: the target package ("0x…"), once resolved
   named?: string;        // named imports: "<name>@<version>"
   target?: string;       // the imported file's path inside its package
@@ -50,7 +50,7 @@ function classify(line: number, raw: string, p: string, alias: string | null): I
   return { line, raw, path: p, alias, kind: "relative" };
 }
 
-// bend joins a relative import onto the file's directory inside BEND_LIB, so `../` can reach another package.
+// bend >= 2.0.28 refuses an import that climbs out of its own package, so the model marks it refused.
 /** The package a relative import lands in when it climbs out of its own package, or null when it stays inside. */
 export function relativeEscape(fromPath: string, imp: string): { hash: string; target: string } | null {
   const joined = posix.normalize(posix.join("/pkg", posix.dirname(fromPath), imp));
@@ -77,7 +77,11 @@ export function dependencyEdges(
           named = imp.named!;
           to = resolveName(named);
           if (to !== null) imp.hash = to;
-        } else if (imp.kind === "relative") to = relativeEscape(f.path, imp.path)?.hash || null;
+        } else if (imp.kind === "relative" && relativeEscape(f.path, imp.path) !== null) {
+          // bend >= 2.0.28 refuses an import that climbs out of its package, so it is never an edge.
+          imp.kind = "refused";
+          continue;
+        }
         if (to === null || to === p.hash) continue;
         const key = `${p.hash} ${to}`;
         if (!edges.has(key)) edges.set(key, { from: p.hash, to, via: `${f.path}: ${imp.raw}`, ...(named ? { named } : {}) });

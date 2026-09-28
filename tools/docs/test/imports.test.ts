@@ -51,7 +51,7 @@ describe("relativeEscape", () => {
     expect(relativeEscape("src/a/b.bend", "../../src.bend")).toBeNull();
     expect(relativeEscape("a.bend", "./lib/x.bend")).toBeNull();
   });
-  test("climbing out of the package lands in another hash directory of BEND_LIB", () => {
+  test("climbing out of the package lands in another hash directory (which bend >= 2.0.28 refuses)", () => {
     expect(relativeEscape("a.bend", "../0xe49a3e6521e1b71e55654a885f27bcc1/parse.bend"))
       .toEqual({ hash: "0xe49a3e6521e1b71e55654a885f27bcc1", target: "parse.bend" });
   });
@@ -64,18 +64,25 @@ describe("dependencyEdges", () => {
   });
   const names = (nv: string) => (nv === "bend-mathlib@0.1.0.1" ? M : null);
 
-  test("hash imports, named imports (resolved) and escaping relative imports become edges; one per package pair", () => {
+  test("hash and resolved named imports become edges; a climbing relative import is refused; one per package pair", () => {
+    const pb = pkg(B, { "lib.bend": `import ../${A}/x.bend as X\n` });
     const edges = dependencyEdges([
       pkg(A, {
         "x.bend": `import Base\nimport ${B}/lib.bend as L\nimport bend-mathlib@0.1.0.1/nat.bend as N\n`,
         "y.bend": `import ${B}/other.bend as O\nimport ./x.bend as X\n`,
       }),
-      pkg(B, { "lib.bend": `import ../${A}/x.bend as X\n` }),
+      pb,
     ], names);
     expect(edges.map((e) => [e.from, e.to, e.named ?? null])).toEqual([
-      [A, B, null], [A, M, "bend-mathlib@0.1.0.1"], [B, A, null],
+      [A, B, null], [A, M, "bend-mathlib@0.1.0.1"],
     ]);
     expect(edges[0].via).toBe(`x.bend: import ${B}/lib.bend as L`);
+    expect(pb.files[0].imports[0].kind).toBe("refused");
+  });
+  test("planted negative: a relative import that climbs out of its package gives no edge", () => {
+    const p = pkg(A, { "x.bend": `import ../${B}/lib.bend as L\n` });
+    expect(dependencyEdges([p], names)).toEqual([]);
+    expect(p.files[0].imports[0].kind).toBe("refused");
   });
   test("planted negatives: self-imports by hash and unknown names give no edge", () => {
     const edges = dependencyEdges([
