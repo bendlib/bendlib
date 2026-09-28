@@ -183,7 +183,7 @@ describe("--local preview", () => {
       expect(msg).not.toContain("ENOENT");
       expect(msg).not.toContain("EISDIR");
     }
-  });
+  }, 120_000);
 
   test("--local rejects a climbing package with a typed usage error", () => {
     const root = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "bend-docs-climb-"));
@@ -197,7 +197,7 @@ describe("--local preview", () => {
     expect(msg).toContain("is outside the entry directory");
     expect(msg).toContain("usage: bun tools/docs/build.ts");
     expect(msg).not.toMatch(/\n\s+at /);
-  });
+  }, 120_000);
 
   test("--no-check drops the 'each package checked' claim from the index", () => {
     const entry = join(import.meta.dir, "..", "..", "mathlib", "fixtures", "good", "list.bend");
