@@ -23,8 +23,8 @@ export type NameRecord = {
 };
 
 const HASH = /^0x[0-9a-f]{32}$/;
-// PLAN F1: names are `^[a-z][a-z0-9-]{11,63}$`, versions are `a.b.c.d`.
-const NAME = /^[a-z][a-z0-9-]{11,63}$/;
+// PLAN F1: names are `^[a-z][a-z0-9-]{0,63}$`, versions are `a.b.c.d`.
+const NAME = /^[a-z][a-z0-9-]{0,63}$/;
 const VERSION = /^\d+\.\d+\.\d+\.\d+$/;
 
 async function get(url: string, tries = 3): Promise<Response> {

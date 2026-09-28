@@ -6,7 +6,7 @@ import { join } from "node:path";
 
 import { buildDevlib, checkDevlib, hashPins } from "./devlib.ts";
 import { hubHash, packageFiles } from "./hash.ts";
-import { BEND } from "./lib.ts";
+import { BEND, CLEAN } from "./lib.ts";
 
 const dir = import.meta.dir;
 const run = (script: string, ...args: string[]) => {
@@ -50,7 +50,7 @@ test("devlib run resolves 0x…/list.bend for an unpublished local package (real
   const hk = mkKernel(root);
   const pk = mkConsumer(root, hk);
   const r = run("devlib.ts", "--root", root, "run", "--", BEND, join(pk, "all.bend"), "--check-only");
-  expect(r.out).toContain("All terms check.");
+  expect(r.out).toContain(CLEAN);
   expect(r.code).toBe(0);
 });
 

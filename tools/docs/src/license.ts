@@ -1,4 +1,4 @@
-// license: what a package's LICENSE files say. `bend guide` (2.0.27): --publish takes
+// license: what a package's LICENSE files say. `bend guide` (2.0.32): --publish takes
 // every file named exactly LICENSE, and a package without one is MIT-0.
 
 export type License = { id: string; from: string | null };

@@ -126,7 +126,7 @@ function readFiles(seen: Map<string, string | null>): SourceFile[] {
   return out;
 }
 
-// bend.ts spans carry the parsed text, not a path; prefer the file whose namespace
+// bend.ts spans carry the parsed text (`s.file.str`), not a path; prefer the file whose namespace
 // prefixes the declaration key, so byte-identical modules stay distinct.
 function fileOfSrc(files: SourceFile[], src: string, key?: string): SourceFile | null {
   const matches = files.filter((f) => f.parsed === src);
@@ -153,9 +153,9 @@ function toReadError(B: any, e: unknown, seen: Map<string, string | null>, root:
     }
     let file: string | null = null, line: number | null = null, column: number | null = null;
     if (err.spn !== undefined) {
-      const f = fileOfSrc(readFiles(seen), err.spn.src);
+      const f = fileOfSrc(readFiles(seen), err.spn.file.str);
       if (f !== null) file = f.path;
-      ({ line, column } = lineCol(err.spn.src, err.spn.beg));
+      ({ line, column } = lineCol(err.spn.file.str, err.spn.beg));
     }
     if (file === null && err.def !== undefined) {
       file = root; // located by definition name only
@@ -198,7 +198,7 @@ export async function load(file: string, opts: LoadOptions = {}): Promise<Loaded
     const t = book.tlds[k];
     if (t.b === true) {
       base.push(k);
-    } else if (fileOfSrc(files, t.T.s?.src ?? "\0", k)?.path === real) {
+    } else if (fileOfSrc(files, t.T.s?.file.str ?? "\0", k)?.path === real) {
       own.push(k);
     } else {
       imported.push(k);
@@ -319,7 +319,7 @@ export function decls(L: Loaded, opts: { scope?: Scope } = {}): Decl[] {
     const t = book.tlds[k];
     const origin: Origin = t.b === true ? "base" : L.own.includes(k) ? "own" : "imported";
     const s = t.T.s;
-    const f = s === undefined ? null : fileOfSrc(L.files, s.src, k);
+    const f = s === undefined ? null : fileOfSrc(L.files, s.file.str, k);
     if (f === null) {
       throw new BendReadError(`Error: reader cannot place '${k}' in any loaded file (its type carries no usable span)`, L.file, null, null, k);
     }

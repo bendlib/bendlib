@@ -6,7 +6,8 @@ export type Ty =
   | { t: "q"; q: string }
   | { t: "app"; head: string; args: Ty[]; paren: boolean };
 
-const IDENT = /^[A-Za-z_0-9\/][A-Za-z0-9_.\/$-]*/;
+// bend >= 2.0.28 names an imported file by its path relative to the root file, so a name can start with `../`.
+const IDENT = /^(?:\.\.\/)*[A-Za-z_0-9][A-Za-z0-9_.\/$-]*/;
 
 export function parseTy(src: string): Ty | null {
   let i = 0;

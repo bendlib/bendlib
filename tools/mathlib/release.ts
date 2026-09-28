@@ -10,10 +10,10 @@
 import { appendFileSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join, relative, basename, resolve } from "node:path";
-import { BEND, PkgError, ROOT, packageModules } from "./lib.ts";
+import { BEND, CLEAN, PkgError, ROOT, packageModules } from "./lib.ts";
 import { hubHash, packageFiles } from "./hash.ts";
 
-const USAGE = "usage: release.ts <pkgdir> <name(12-64 chars)> <a.b.c.d> [--publish]";
+const USAGE = "usage: release.ts <pkgdir> <name(1-64 chars)> <a.b.c.d> [--publish]";
 const usage = (msg: string): never => { console.error(`release: ${msg}\n${USAGE}`); process.exit(2); };
 const sh = (cmd: string[], extra: Record<string, string> = {}) => {
   const p = Bun.spawnSync(cmd, { cwd: ROOT, env: { ...process.env, BEND_NO_TELEMETRY: "1", ...extra } });
@@ -66,7 +66,7 @@ export async function publish(pkg: string, name: string, version: string, expect
   const probe = join(lib, "probe.bend");
   writeFileSync(probe, `import Base\nimport ${got}/all.bend as P\n`);
   const v = sh([bendBin(), probe, "--check-only"], { BEND_LIB: join(lib, "lib") });
-  if (v.out !== "All terms check.") throw new Error(`fresh-cache verification of ${got} failed:\n${v.out}`);
+  if (v.out !== CLEAN) throw new Error(`fresh-cache verification of ${got} failed:\n${v.out}`);
   console.log("verified from an empty cache");
 
   const link = sh([bendBin(), "link", `${name}@${version}`, got]);
@@ -90,8 +90,8 @@ export async function publish(pkg: string, name: string, version: string, expect
 async function main(): Promise<void> {
   const [pkgArg, name, version] = process.argv.slice(2).filter((a) => !a.startsWith("--"));
   const doPublish = process.argv.includes("--publish");
-  if (!pkgArg || !/^[a-z][a-z0-9-]{11,63}$/.test(name ?? "") || !/^\d+\.\d+\.\d+\.\d+$/.test(version ?? "")) {
-    usage("need <pkgdir> <name(12-64 chars)> <a.b.c.d>");
+  if (!pkgArg || !/^[a-z][a-z0-9-]{0,63}$/.test(name ?? "") || !/^\d+\.\d+\.\d+\.\d+$/.test(version ?? "")) {
+    usage("need <pkgdir> <name(1-64 chars)> <a.b.c.d>");
   }
   const pkg = resolve(pkgArg);
   if (!existsSync(pkg)) {

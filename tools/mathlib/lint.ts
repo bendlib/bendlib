@@ -14,7 +14,7 @@
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve, sep } from "node:path";
-import { BEND, PkgError, ROOT, baseNames, packageModules, parseModule, type Module } from "./lib.ts";
+import { BEND, CLEAN, PkgError, ROOT, baseNames, packageModules, parseModule, type Module } from "./lib.ts";
 
 const USAGE = "usage: bun tools/mathlib/lint.ts [pkgdir] [--erasure] [--allow-types] [--kernel]";
 const usage = (msg: string): never => { console.error(`lint: ${msg}\n${USAGE}`); process.exit(2); };
@@ -102,7 +102,7 @@ if (doErasure) {
         const p = Bun.spawnSync([BEND, target, "--check-only"], { cwd: dir, env: { ...process.env, BEND_NO_TELEMETRY: "1" } });
         const out = (new TextDecoder().decode(p.stdout) + new TextDecoder().decode(p.stderr)).trim();
         writeFileSync(target, m.text);
-        if (out === "All terms check.") at(m, idx + 1, `binder '${b.name}' of '${law.name}' can be erased (write 'for -${b.name}')`);
+        if (out === CLEAN) at(m, idx + 1, `binder '${b.name}' of '${law.name}' can be erased (write 'for -${b.name}')`);
       }
     }
   }

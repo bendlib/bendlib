@@ -33,7 +33,8 @@ By hash (content-pinned): `import 0x74bdc843cd4bfb31bb6f7ba1eb38d231/nat.bend as
 
 - **Never breaks dependents.** Published statements are append-only (`PUBLIC_API.lock`), and
   mathlib holds only definitions that stay compatible across its own versions.
-- **Zero `@unsafe`.** Every module must print exactly `All terms check.` on the pinned compiler.
+- **Zero `@unsafe`.** Every module must print exactly `ALL PROOFS CHECK` (and its `--verdict`
+  hint line) on the pinned compiler.
 - **Built for AI provers too.** Mathlib-standard names, one-line statements, generated
   `_sym` twins for the rewrite direction that simplifies.
 

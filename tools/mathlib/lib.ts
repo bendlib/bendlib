@@ -11,6 +11,8 @@ import { homedir } from "node:os";
 
 export const ROOT = join(import.meta.dir, "..", "..");
 export const BEND = process.env.BEND_CLI ?? join(homedir(), ".bend", "bin", "bend");
+/** The whole output of a clean `bend <file> --check-only` (PLAN F18). */
+export const CLEAN = "ALL PROOFS CHECK\nUse --verdict for mathematical validity.";
 
 export type Binder = { raw: string; name: string; mark: "" | "-" | "+" | "~"; type: string; where: boolean };
 export type Law = {

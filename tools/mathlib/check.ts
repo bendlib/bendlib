@@ -1,4 +1,4 @@
-// check: every module of a package must check with EXACTLY "All terms check."
+// check: every module of a package must check with EXACTLY the clean verdict (CLEAN)
 // on the pinned compiler, contain no unsafe code and no holes, and stay under a
 // wall-time ceiling.
 //
@@ -7,7 +7,7 @@
 
 import { readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
-import { BEND, PkgError, ROOT, packageModules, stripCommentsAndStrings } from "./lib.ts";
+import { BEND, CLEAN, PkgError, ROOT, packageModules, stripCommentsAndStrings } from "./lib.ts";
 
 const USAGE = "usage: bun tools/mathlib/check.ts [packages/bend-mathlib] [--json] [--max-seconds N]";
 const usage = (msg: string): never => { console.error(`check: ${msg}\n${USAGE}`); process.exit(2); };
@@ -40,7 +40,7 @@ for (const file of files) {
   const p = Bun.spawnSync([BEND, file, "--check-only"], { cwd: pkg, env: { ...process.env, BEND_NO_TELEMETRY: "1" } });
   const seconds = (performance.now() - t0) / 1000;
   const output = (new TextDecoder().decode(p.stdout) + new TextDecoder().decode(p.stderr)).trim();
-  if (output !== "All terms check.") problems.push("checker output is not exactly 'All terms check.'");
+  if (output !== CLEAN) problems.push(`checker output is not exactly ${JSON.stringify(CLEAN)}`);
   if (p.exitCode !== 0) problems.push(`exit code ${p.exitCode}`);
   if (seconds > maxSeconds) problems.push(`took ${seconds.toFixed(2)}s > ${maxSeconds}s ceiling`);
   rows.push({ module: relative(ROOT, file), ok: problems.length === 0, seconds, output, problems });

@@ -4,7 +4,7 @@
 import { existsSync, readFileSync, writeFileSync, mkdirSync, renameSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { homedir } from "node:os";
-import { stripCommentsAndStrings } from "../../mathlib/lib.ts";
+import { CLEAN, stripCommentsAndStrings } from "../../mathlib/lib.ts";
 
 export const BEND = process.env.BEND_CLI ?? join(homedir(), ".bend", "bin", "bend");
 
@@ -42,18 +42,18 @@ export function classify(out: string, exitCode: number | null, timedOut: boolean
   const text = out.replace(/\r/g, "").trim();
   const base = { exitCode, seconds };
   if (timedOut) return { ...base, class: "timeout", summary: `no answer within ${Math.round(seconds)} s`, detail: text.slice(0, 2000) };
-  if (exitCode === 0 && text === "All terms check.") return { ...base, class: "checks", summary: "All terms check.", detail: "" };
+  if (exitCode === 0 && text === CLEAN) return { ...base, class: "checks", summary: "ALL PROOFS CHECK", detail: "" };
   const lines = text.split("\n");
   // bwrap failing before the checker starts is a sandbox failure, not a verdict on the file.
   if (exitCode !== 0 && /^bwrap: /.test((lines[0] ?? "").trim())) {
     return { ...base, class: "sandbox", summary: "checker did not run: sandbox setup failed", detail: text };
   }
-  const rely = lines.find((l) => /^All terms check, but \d+ defs? (rely|relies) on unsafe or foreign code:?$/.test(l.trim()));
-  if (exitCode === 0 && rely !== undefined) {
+  const rely = lines.find((l) => /^Error: \d+ defs? (rely|relies) on unsafe or foreign code:?$/.test(l.trim()));
+  if (rely !== undefined) {
     const defs = unsafeDefs(lines.slice(lines.indexOf(rely) + 1));
-    return { ...base, class: "unsafe", summary: rely.trim().replace(/:$/, ""), detail: text, unsafeDefs: defs };
+    return { ...base, class: "unsafe", summary: rely.trim().replace(/^Error: /, "").replace(/:$/, ""), detail: text, unsafeDefs: defs };
   }
-  // bend 2.0.27 reports unfinished proofs as "Error: N TODOs found." and exits 1.
+  // bend reports unfinished proofs as "Error: N TODOs found." and exits 1.
   const todo = lines.find((l) => /^Error: \d+ TODOs? found\.$/.test(l.trim()));
   if (todo !== undefined && lines.every((l) => !/^Error\b/.test(l.trim()) || l === todo)) {
     return { ...base, class: "open", summary: todo.trim().replace(/^Error: /, ""), detail: text };

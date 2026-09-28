@@ -94,14 +94,14 @@ export function locate(out: string): Located | null {
   return { def: lines[li].slice(10).trim(), expected: field(block, "expected"), observed: field(block, "observed"), pointed, text: lines.slice(Math.max(0, errAt)).join("\n").trim() };
 }
 
-/** A clean batch is exactly `All terms check.`; `Error: N TODOs found.` means open proofs in an import. */
-export const cleanCheck = (out: string) => out.trim() === "All terms check.";
+/** A clean batch is exactly the two-line clean verdict; `Error: N TODOs found.` means open proofs in an import. */
+export const cleanCheck = (out: string) => out.trim() === "ALL PROOFS CHECK\nUse --verdict for mathematical validity.";
 const openCheck = (out: string) => /\d+ TODOs? found/.test(out);
 
-/** The "All terms check, but N defs rely on unsafe or foreign code:" verdict, with the relying defs. */
+/** The "Error: N defs rely on unsafe or foreign code:" verdict, with the relying defs. */
 function unsafeVerdict(out: string): { count: number; defs: string[] } | null {
   const lines = out.split("\n");
-  const i = lines.findIndex((l) => /^All terms check, but \d+ defs? (?:rely|relies) on unsafe or foreign code:?\s*$/.test(l.trim()));
+  const i = lines.findIndex((l) => /^Error: \d+ defs? (?:rely|relies) on unsafe or foreign code:?\s*$/.test(l.trim()));
   if (i < 0) return null;
   const m = /\d+/.exec(lines[i].trim());
   const defs: string[] = [];

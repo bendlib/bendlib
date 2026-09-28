@@ -14,7 +14,7 @@ export type Import = {
   target?: string;       // the imported file's path inside its package
 };
 
-const NAMED = /^([a-z][a-z0-9-]{11,63})@((?:0|[1-9][0-9]*)(?:\.(?:0|[1-9][0-9]*)){3})$/;
+const NAMED = /^([a-z][a-z0-9-]{0,63})@((?:0|[1-9][0-9]*)(?:\.(?:0|[1-9][0-9]*)){3})$/;
 
 /** Import lines of the leading header (blank and `#` lines allowed), as bend.ts reads them. */
 export function parseImports(text: string): Import[] {

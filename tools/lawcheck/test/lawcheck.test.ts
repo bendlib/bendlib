@@ -473,7 +473,8 @@ describe("errors", () => {
     expect(r.code).toBe(2);
     expect(r.stdout).toBe("");
     expect(r.stderr).toContain("lawcheck: cannot load");
-    expect(r.stderr).toContain("syntax_error.bend:5:9");
+    // bend 2.0.32 locates the orphaned `case` (column 5); 2.0.27 located the missing `:` (column 9).
+    expect(r.stderr).toContain("syntax_error.bend:5:5");
     expect(r.stderr).not.toMatch(/\n\s+at /);
   }, T);
 
@@ -557,10 +558,17 @@ describe("term rewriting", () => {
     expect(rewrite(`f("x", 'x', xs0, Nat.x)`, env, q)).toBe(`f("x", 'x', xs0, Nat.x)`);
   });
 
+  test("a name under a ../ namespace (bend >= 2.0.28) is one identifier", () => {
+    const env = new Map([["xs", "[2n]"]]);
+    const q = (id: string) => (id.startsWith("../../fx/lib_ok.") ? "L." + id.slice("../../fx/lib_ok.".length) : id);
+    expect(rewrite(`{../../fx/lib_ok.size(xs) == 1n : Nat}`, env, q)).toBe(`{L.size(([2n])) == 1n : Nat}`);
+  });
+
   test("splits a printed goal and parses printed types", () => {
     expect(splitEquation("{[3n, 5n] == [6n, 1n] : List<&2, Nat>}")).toEqual({ lhs: "[3n, 5n]", rhs: "[6n, 1n]", type: "List<&2, Nat>" });
     expect(splitEquation("{Some{(1n, 2n)} == None{} : Maybe<&2, Pair(Nat, Nat)>}")?.rhs).toBe("None{}");
     expect(showTy(parseTy("Either<a, b, List<&2, U32>, m.T>")!)).toBe("Either<a, b, List<&2, U32>, m.T>");
+    expect(showTy(parseTy("List<&2, ../../fx/lib_ok.Stack>")!)).toBe("List<&2, ../../fx/lib_ok.Stack>");
     expect(parseTy("@_:A -> B")).toBeNull();
   });
 });

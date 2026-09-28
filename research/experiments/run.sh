@@ -19,6 +19,8 @@ BEND_BIN="${BEND_BIN:-$HOME/.bend/bin/bend}"
 JOBS="${JOBS:-4}"
 EXP_ROOT="${EXP_ROOT:-$SCRIPT_DIR}"
 export BEND_NO_TELEMETRY=1
+# The clean verdict line (PLAN F18); bend 2.0.32 renamed it from `All terms check.`.
+CLEAN="ALL PROOFS CHECK"
 
 PASS=0
 FAIL=0
@@ -73,64 +75,64 @@ suite() {
 
   # F4 — def unifies across versions iff its body is a plain Base application; matched
   # defs and datatypes are nominal at variable arguments; closed instances still unify.
-  assert_bend "F4  t4a  Base-only le unifies at variables"            review2/t4a_user_le_var.bend 0 "All terms check."
-  assert_bend "F4  t4d  closed allz instance normalizes and unifies"  review2/t4d_user_allz_closed.bend 0 "All terms check."
-  assert_bend "F4  t4g  add2 (Base body) unifies at variables"        review2/t4g_user_add2_var.bend 0 "All terms check."
+  assert_bend "F4  t4a  Base-only le unifies at variables"            review2/t4a_user_le_var.bend 0 "$CLEAN"
+  assert_bend "F4  t4d  closed allz instance normalizes and unifies"  review2/t4d_user_allz_closed.bend 0 "$CLEAN"
+  assert_bend "F4  t4g  add2 (Base body) unifies at variables"        review2/t4g_user_add2_var.bend 0 "$CLEAN"
   assert_bend "F4  t4b  matched allz is nominal at variables"         review2/t4b_user_allz_var.bend 1 "Location: u2"
   assert_bend "F4  t4e  function-typed perm is nominal"               review2/t4e_user_perm_var.bend 1 "Location: u"
   assert_bend "F4  t4f  matched isz is nominal"                       review2/t4f_user_isz_var.bend 1 "Location: u"
   assert_bend "F4  user_adt datatype is nominal"                      user_adt.bend 1 "Location: use_tree"
-  assert_bend "F4  t13a Base-only mem unifies"                        review2/t13a_mem_only.bend 0 "All terms check."
-  assert_bend "F4  t13b Base-only sorted_b (List.all) unifies"        review2/t13b_user.bend 0 "All terms check."
+  assert_bend "F4  t13a Base-only mem unifies"                        review2/t13a_mem_only.bend 0 "$CLEAN"
+  assert_bend "F4  t13b Base-only sorted_b (List.all) unifies"        review2/t13b_user.bend 0 "$CLEAN"
   # F4b — two lemma packages sharing one predicate file interoperate.
-  assert_bend "F4b t11  shared-kernel predicate interoperates"        review2/t11_user_kernel.bend 0 "All terms check."
+  assert_bend "F4b t11  shared-kernel predicate interoperates"        review2/t11_user_kernel.bend 0 "$CLEAN"
   # F3 — namespace = file path; two versions are unrelated, closed instances still resolve.
-  assert_bend "F3  v1/order.bend checks standalone"                   v1/order.bend 0 "All terms check."
-  assert_bend "F3  v2/order.bend checks standalone"                   v2/order.bend 0 "All terms check."
-  assert_bend "F3  core.bend (v1 consumer) checks"                    core.bend 0 "All terms check."
-  assert_bend "F3  user_def.bend (v2 consumer, closed instance)"      user_def.bend 0 "All terms check."
+  assert_bend "F3  v1/order.bend checks standalone"                   v1/order.bend 0 "$CLEAN"
+  assert_bend "F3  v2/order.bend checks standalone"                   v2/order.bend 0 "$CLEAN"
+  assert_bend "F3  core.bend (v1 consumer) checks"                    core.bend 0 "$CLEAN"
+  assert_bend "F3  user_def.bend (v2 consumer, closed instance)"      user_def.bend 0 "$CLEAN"
 
   # F5 — a name spelled like a Base one is a hard error.
   assert_bend "F5  clash.bend duplicate Base law name"                lib/clash.bend 1 "duplicate declaration: Nat.ge_refl"
   assert_bend "F5  ctor.bend duplicate Base constructor"              ctor.bend 1 "duplicate declaration: Some"
   # F7 — user-module constructors are per-file namespaced (a.node, b.node coexist).
-  assert_bend "F7  pa/a.bend and pb/b.bend same ctor name coexist"    pa/a.bend 0 "All terms check."
-  assert_bend "F7  pb/b.bend same ctor name coexists"                 pb/b.bend 0 "All terms check."
-  assert_bend "F7  both.bend two same-named types coexist"            both.bend 0 "All terms check."
-  assert_bend "F7  t10_same_name two imports coexist"                 review2/t10_same_name.bend 0 "All terms check."
+  assert_bend "F7  pa/a.bend and pb/b.bend same ctor name coexist"    pa/a.bend 0 "$CLEAN"
+  assert_bend "F7  pb/b.bend same ctor name coexists"                 pb/b.bend 0 "$CLEAN"
+  assert_bend "F7  both.bend two same-named types coexist"            both.bend 0 "$CLEAN"
+  assert_bend "F7  t10_same_name two imports coexist"                 review2/t10_same_name.bend 0 "$CLEAN"
 
   # F8 — imported modules are fully re-checked on every check.
   assert_bend "F8  bad10.bend broken law is caught"                   bad10.bend 1 "Location: s5"
-  assert_bend "F8  usebad.bend re-checks its import"                  usebad.bend 1 "Location: bad10.s5"
+  assert_bend "F8  usebad.bend re-checks its import"                  usebad.bend 1 "Location: s5"
   # F10 — a LAWS/PROOF split forces importers to import both.
   assert_bend "F10 use_laws_only.bend fails (proof missing)"          use_laws_only.bend 1 "Location: t"
-  assert_bend "F10 use_both.bend imports both and checks"             use_both.bend 0 "All terms check."
+  assert_bend "F10 use_both.bend imports both and checks"             use_both.bend 0 "$CLEAN"
   # F11, F12, F13 — generics, templates, abstract ~-hypotheses.
-  assert_bend "F11 glist.bend generics at &1 and &2"                  glist.bend 0 "All terms check."
-  assert_bend "F12 tmpl2.bend templates check without unsafe"         tmpl2.bend 0 "All terms check."
-  assert_bend "F13 lib/algebra.bend abstract ~-hypotheses"            lib/algebra.bend 0 "All terms check."
-  assert_bend "F13 use_alg.bend instantiates the abstract layer"      use_alg.bend 0 "All terms check."
+  assert_bend "F11 glist.bend generics at &1 and &2"                  glist.bend 0 "$CLEAN"
+  assert_bend "F12 tmpl2.bend templates check without unsafe"         tmpl2.bend 0 "$CLEAN"
+  assert_bend "F13 lib/algebra.bend abstract ~-hypotheses"            lib/algebra.bend 0 "$CLEAN"
+  assert_bend "F13 use_alg.bend instantiates the abstract layer"      use_alg.bend 0 "$CLEAN"
   # F16 — alias for our module works; Base spellings win.
-  assert_bend "F16 alias_nat.bend alias checks"                       alias_nat.bend 0 "All terms check."
+  assert_bend "F16 alias_nat.bend alias checks"                       alias_nat.bend 0 "$CLEAN"
 
   # F25 — predicate returning Type cannot be a reusable + hypothesis; Data can.
   assert_bend "F25 t2c  +hyp of Type rejected"                        review2/t2c_plus_hyp_type.bend 1 "Location: use_twice"
-  assert_bend "F25 t2d  +hyp of Data accepted"                        review2/t2d_plus_hyp_data.bend 0 "All terms check."
+  assert_bend "F25 t2d  +hyp of Data accepted"                        review2/t2d_plus_hyp_data.bend 0 "$CLEAN"
   assert_bend "F25 t2f  plain equality hyp not reusable"              review2/t2f_plain_eq_twice.bend 1 "Location: use_twice_eq"
-  assert_bend "F25 t8   Data predicate is total/reusable"             review2/t8_le_data_total.bend 0 "All terms check."
+  assert_bend "F25 t8   Data predicate is total/reusable"             review2/t8_le_data_total.bend 0 "$CLEAN"
   # F26 — statement-only binder must be erased; matched binder cannot be.
-  assert_bend "F26 t1a  erased statement binder checks"               review2/t1a_erased.bend 0 "All terms check."
+  assert_bend "F26 t1a  erased statement binder checks"               review2/t1a_erased.bend 0 "$CLEAN"
   assert_bend "F26 t1b  non-erased binder loses affinity"             review2/t1b_nonerased.bend 1 "Location: use_nonerased"
   assert_bend "F26 t1c  erased binder that is matched is rejected"    review2/t1c_erased_matched.bend 1 "Location: add_zero_r"
   # F27 — count-based perm hypothesis is single-use, even erased.
-  assert_bend "F27 t5a  perm hypothesis used once checks"             review2/t5a_perm.bend 0 "All terms check."
+  assert_bend "F27 t5a  perm hypothesis used once checks"             review2/t5a_perm.bend 0 "$CLEAN"
   assert_bend "F27 t5b  perm reused (affine) is rejected"             review2/t5b_perm_reuse_affine.bend 1 "Location: twice"
   assert_bend "F27 t5c  perm reused (erased) is rejected"             review2/t5c_perm_reuse_erased.bend 1 "Location: twice"
   # F28 — composed template and Equal.sym twins check.
-  assert_bend "F28 t3   map_map composed template checks"             review2/t3_map_map.bend 0 "All terms check."
-  assert_bend "F28 t6   twins with Equal.sym check"                   review2/t6_twins.bend 0 "All terms check."
+  assert_bend "F28 t3   map_map composed template checks"             review2/t3_map_map.bend 0 "$CLEAN"
+  assert_bend "F28 t6   twins with Equal.sym check"                   review2/t6_twins.bend 0 "$CLEAN"
   # F29 — the typed `(a <= b : Nat)` form is the one that checks.
-  assert_bend "F29 t2a  typed comparison form checks"                 review2/t2a_le_bool.bend 0 "All terms check."
+  assert_bend "F29 t2a  typed comparison form checks"                 review2/t2a_le_bool.bend 0 "$CLEAN"
 
   # F22 — a false closed law fails with expected/observed and its location.
   assert_bend "F22 inst.bend false {==} fails with expected/observed" lawcheck/inst.bend 1 "Location: c6"
@@ -142,23 +144,24 @@ suite() {
   cp "$SCRIPT_DIR/devmode/devlib/names/bend-mathlib@0.2.0.0" "$tmplib/names/"
   ln -s "$SCRIPT_DIR/devmode/mono/bend-mathlib" "$tmplib/0x00000000000000000000000000000de1"
   BEND_OUT="$(BEND_LIB="$tmplib" "$BEND_BIN" "$SCRIPT_DIR/review2/t12_devmode.bend" --check-only 2>&1)"; BEND_EC=$?
-  if [ "$BEND_EC" -eq 0 ] && printf '%s' "$BEND_OUT" | grep -qF "All terms check."; then
+  if [ "$BEND_EC" -eq 0 ] && printf '%s' "$BEND_OUT" | grep -qF "$CLEAN"; then
     pass "F21 t12_devmode.bend dev import by name@version resolves"
   else
     fail "F21 t12_devmode.bend (exit $BEND_EC)"
   fi
   BEND_OUT="$(BEND_LIB="$tmplib" "$BEND_BIN" "$SCRIPT_DIR/devmode/mono/bendlib-core/q.bend" --check-only 2>&1)"; BEND_EC=$?
-  if [ "$BEND_EC" -eq 0 ] && printf '%s' "$BEND_OUT" | grep -qF "All terms check."; then
+  if [ "$BEND_EC" -eq 0 ] && printf '%s' "$BEND_OUT" | grep -qF "$CLEAN"; then
     pass "F21 q.bend dev consumer checks under BEND_LIB"
   else
     fail "F21 q.bend (exit $BEND_EC)"
   fi
 
-  # F24 — the installed binary ships base.bend + effects, not bend.ts.
-  if [ -f "$HOME/.bend/bend2/base.bend" ] && [ ! -e "$HOME/.bend/bend2/bend.ts" ]; then
-    pass "F24 installed ~/.bend/bend2 has base.bend and no bend.ts"
+  # F24 — the installed binary ships base.bend + effects, not bend.ts; bend reads bend2/ beside bin/.
+  local shipped; shipped="$(dirname "$(realpath "$BEND_BIN")")/../bend2"
+  if [ -f "$shipped/base.bend" ] && [ ! -e "$shipped/bend.ts" ]; then
+    pass "F24 installed bend2/ has base.bend and no bend.ts"
   else
-    fail "F24 installed ~/.bend/bend2 layout unexpected"
+    fail "F24 installed bend2/ layout unexpected ($shipped)"
   fi
 
   # F31 — overflowing Nat.pow instances are dropped by name, not turned into `!`.
@@ -186,7 +189,7 @@ self_test() {
   cp "$SCRIPT_DIR/review2/t1b_nonerased.bend" "$tmp/review2/t1a_erased.bend"
   printf '  -- planted negative: perturbed t1a must not satisfy its assertion\n'
   saved="$EXP_ROOT"; EXP_ROOT="$tmp"
-  if assert_bend "planted-negative perturbed file" review2/t1a_erased.bend 0 "All terms check."; then
+  if assert_bend "planted-negative perturbed file" review2/t1a_erased.bend 0 "$CLEAN"; then
     printf '  FAIL  self-test: perturbed file satisfied the assertion\n'
     rc=1
   else
@@ -194,14 +197,14 @@ self_test() {
   fi
   EXP_ROOT="$saved"
   printf '  -- planted negative: wrong expected exit on the real t1a must not satisfy\n'
-  if assert_bend "planted-negative wrong exit" review2/t1a_erased.bend 1 "All terms check."; then
+  if assert_bend "planted-negative wrong exit" review2/t1a_erased.bend 1 "$CLEAN"; then
     printf '  FAIL  self-test: wrong expectation accepted\n'
     rc=1
   else
     printf '  ok    self-test: wrong expectation detected\n'
   fi
   printf '  -- positive control: the real t1a must satisfy its assertion\n'
-  if assert_bend "control t1a" review2/t1a_erased.bend 0 "All terms check."; then
+  if assert_bend "control t1a" review2/t1a_erased.bend 0 "$CLEAN"; then
     :
   else
     printf '  FAIL  self-test: positive control failed\n'
@@ -234,12 +237,12 @@ exit 0
 # F15 `import 0x<hash>/f.bend` from the hub: needs network and a warm hub cache.
 # F17 `--check-only` exists: exercised by every assertion above (no separate fact).
 # F18 unsafe/foreign reliance is reported by name: no @unsafe fixture in research/;
-#     `tools/mathlib/check.ts` enforces the exact `All terms check.` verdict instead.
+#     `tools/mathlib/check.ts` enforces the exact clean verdict instead.
 # F19 publish refuses open laws/holes: requires `bend publish` and a hub login.
 # F20 installer sha256 / `bend version` / BEND_NO_TELEMETRY: the CI install step already pins
 #     version+sha256 in toolchain.json.
 # F23 `bend.ts` loads under Bun and lists declarations: covered by the nightly
 #     `bun test tools/reader tools/lawcheck` step in .github/workflows/ci.yml.
 # F30 `bun build --compile` lawcheck binary: a packaging build, out of scope here.
-# F33 a single @unsafe fill still prints `All terms check.` (issue #1001): reproducing a known
-#     checker bug is not a design invariant; docs' source cross-check covers it.
+# F33 issue #1001 (an @unsafe fill in an import passed as clean) is fixed since 2.0.28: the
+#     reliance now fails the verdict (F18), so there is no bug left to reproduce.

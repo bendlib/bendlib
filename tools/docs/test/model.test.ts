@@ -39,7 +39,7 @@ describe("finishPackage", () => {
   const text = (p: string) => (p === "PROOF.bend" ? PROOF : "law a:\nlaw b:\n");
 
   test("a law proved in a checking sibling is proved, and the LAWS file counts as checking", () => {
-    const p = pkg([mod("LAWS.bend", [law("a", false)], st("open", "1 TODO found.")), mod("PROOF.bend", [], st("checks", "All terms check."))]);
+    const p = pkg([mod("LAWS.bend", [law("a", false)], st("open", "1 TODO found.")), mod("PROOF.bend", [], st("checks", "ALL PROOFS CHECK"))]);
     finishPackage(p, new Map([["PROOF.bend", ["LAWS.bend#a"]]]), text);
     expect(p.modules[0].decls![0].proved).toBe(true);
     expect(p.modules[0].provedIn).toEqual({ a: "PROOF.bend" });
@@ -55,7 +55,7 @@ describe("finishPackage", () => {
     expect(p.counts.laws).toBe(1);
   });
   test("planted negative: the same law in a checking file stays proved", () => {
-    const p = pkg([mod("m.bend", [law("a", true, 1)], st("checks", "All terms check."))]);
+    const p = pkg([mod("m.bend", [law("a", true, 1)], st("checks", "ALL PROOFS CHECK"))]);
     finishPackage(p, new Map(), text);
     expect(p.modules[0].decls![0]).toMatchObject({ proved: true });
     expect(p.modules[0].decls![0].unverified).toBeUndefined();
@@ -69,7 +69,7 @@ describe("finishPackage", () => {
     expect(p.modules[0].decls![0].unverified).toBeUndefined();
   });
   test("planted negative: a law proved by a checking sibling survives its own file's timeout", () => {
-    const p = pkg([mod("LAWS.bend", [law("a", false)], st("timeout")), mod("PROOF.bend", [], st("checks", "All terms check."))]);
+    const p = pkg([mod("LAWS.bend", [law("a", false)], st("timeout")), mod("PROOF.bend", [], st("checks", "ALL PROOFS CHECK"))]);
     finishPackage(p, new Map([["PROOF.bend", ["LAWS.bend#a"]]]), text);
     expect(p.modules[0].decls![0].proved).toBe(true);
     expect(p.modules[0].decls![0].unverified).toBeUndefined();

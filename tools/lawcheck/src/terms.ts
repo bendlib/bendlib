@@ -6,7 +6,8 @@ export class Shadowed extends Error {}
 type Tok = { s: string; id: boolean };
 
 const IDENT = /^[A-Za-z_0-9$][A-Za-z0-9_.$/]*/;
-const PATH = /^\/[A-Za-z0-9_.$][A-Za-z0-9_.$\/-]*/;
+// bend >= 2.0.28 names an imported file by its path relative to the root file (`../x/m.f`).
+const PATH = /^(?:\.\.\/)+[A-Za-z0-9_.$][A-Za-z0-9_.$\/-]*/;
 
 function tokens(src: string): Tok[] {
   const out: Tok[] = [];
@@ -20,11 +21,11 @@ function tokens(src: string): Tok[] {
       i = j + 1;
       continue;
     }
-    const m = (c === "/" ? PATH : IDENT).exec(src.slice(i));
+    const m = (src.startsWith("../", i) ? PATH : IDENT).exec(src.slice(i));
     if (m !== null) {
       let w = m[0];
       while (w.endsWith(".") || w.endsWith("/")) w = w.slice(0, -1);
-      out.push({ s: w, id: /^[A-Za-z_$/]/.test(w) || w.startsWith("0x") });
+      out.push({ s: w, id: /^[A-Za-z_$]/.test(w) || w.startsWith("../") || w.startsWith("0x") });
       i += w.length;
       continue;
     }

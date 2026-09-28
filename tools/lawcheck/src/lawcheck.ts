@@ -540,7 +540,7 @@ function instances(p: Plan, U: Universe, o: Options, r: Rng): Inst[] {
   return all;
 }
 
-function aliasMap(L: Loaded) {
+function aliasMap(L: Loaded, batchDir: string) {
   const nsToAlias = new Map<string, { alias: string; file: string }>();
   let k = 0;
   const imports = [`import Base`, `import ${L.file} as U`];
@@ -563,11 +563,19 @@ function aliasMap(L: Loaded) {
     for (const ns of nss) if (id.startsWith(ns + ".") && user.has(ns)) return `${user.get(ns)}.${id.slice(ns.length + 1)}`;
     return id;
   };
-  const names = (s: string) => rewrite(s, new Map(), nameOut, false);
-  const back: [string, string][] = [[L.file.replace(/\.bend$/, "") + ".", ""]];
-  // The batch imports a hub module by its `0x…` name, so the checker prints that name, not
-  // its file path; only modules imported by absolute path need a path back-map entry (README).
-  for (const [ns, { file }] of nsToAlias) if (!ns.startsWith("0x")) back.push([file.replace(/\.bend$/, "") + ".", ns + "."]);
+  // bend >= 2.0.32 prints a name through the batch's own aliases (`U.f`, `LC1.T`); map them back.
+  const batchAlias = new Map<string, string>([["U", ""], ...[...nsToAlias].map(([ns, { alias }]): [string, string] => [alias, ns])]);
+  const unalias = (id: string): string => {
+    const dot = id.indexOf(".");
+    const ns = dot < 0 ? undefined : batchAlias.get(id.slice(0, dot));
+    return ns === undefined ? id : ns === "" ? id.slice(dot + 1) : ns + id.slice(dot);
+  };
+  const names = (s: string) => rewrite(s, new Map(), (id) => nameOut(unalias(id)), false);
+  // A name the batch has no alias for prints under its namespace relative to the batch's directory
+  // (F3); a hub module keeps its `0x…` name, so it needs no back-map entry (README).
+  const rel = (file: string) => path.relative(batchDir, file).replace(/\.bend$/, "") + ".";
+  const back: [string, string][] = [[rel(L.file), ""]];
+  for (const [ns, { file }] of nsToAlias) if (!ns.startsWith("0x")) back.push([rel(file), ns + "."]);
   back.sort((a, b) => b[0].length - a[0].length);
   const display = (s: string) => names(back.reduce((acc, [from, to]) => acc.split(from).join(to), s));
   return { header: imports.join("\n") + "\n", qualify, display, nameOut };
@@ -806,7 +814,7 @@ export async function lawcheck(file: string, o: Options): Promise<Report> {
   for (const d of allDecls) if (d.predicate) predicates.set(d.name, predicateStatement(L, d));
   const baseFiles = new Set(allDecls.filter((d) => d.origin === "base").map((d) => d.file));
   const U = universe(L, o.maxNat);
-  const { header, qualify, display, nameOut } = aliasMap(L);
+  const { header, qualify, display, nameOut } = aliasMap(L, tmp);
   const termDecls = new Map<string, TermDecl>();
   for (const d of allDecls) {
     if (d.kind !== "def" && d.kind !== "template") continue;

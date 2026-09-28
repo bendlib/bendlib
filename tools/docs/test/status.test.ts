@@ -1,5 +1,5 @@
 // Checker-output classification. The strings are verbatim outputs of
-// `bend <file> --check-only` on 2.0.27 for hub files (named in each test).
+// `bend <file> --check-only` on 2.0.32 (hub files or experiments named in each test).
 
 import { describe, expect, test } from "bun:test";
 import { chmodSync, mkdtempSync, writeFileSync } from "node:fs";
@@ -8,34 +8,52 @@ import { dirname, join } from "node:path";
 import { BEND, checkCommand, checkFile, classify, crossCheck, sandboxProbe, worst, type FileStatus } from "../src/status.ts";
 import { stale, DEFAULT_TIMEOUT } from "../build.ts";
 
+const CLEAN_OUT = "ALL PROOFS CHECK\nUse --verdict for mathematical validity.\n";
+
 describe("classify", () => {
-  test("exactly 'All terms check.' with exit 0 is checks", () => {
-    expect(classify("All terms check.\n", 0, false, 1).class).toBe("checks");
+  test("exactly the clean verdict with exit 0 is checks", () => {
+    const s = classify(CLEAN_OUT, 0, false, 1);
+    expect(s.class).toBe("checks");
+    expect(s.summary).toBe("ALL PROOFS CHECK");
   });
   test("planted negative: the same text with a non-zero exit is not checks", () => {
-    expect(classify("All terms check.\n", 1, false, 1).class).toBe("fails");
+    expect(classify(CLEAN_OUT, 1, false, 1).class).toBe("fails");
+  });
+  test("planted negative: the verdict line without its hint line is not checks", () => {
+    expect(classify("ALL PROOFS CHECK\n", 0, false, 1).class).toBe("fails");
   });
   test("the unsafe line lists its defs (0xb1a81026…/Engine.bend)", () => {
-    const s = classify("All terms check, but 3 defs rely on unsafe or foreign code:\n- breed_child\n- generate_next_pop\n- evolve\n", 0, false, 1);
+    const out = "SOME PROOFS FAIL\nError: 8 defs rely on unsafe or foreign code:\n"
+      + "- 0xb1a81026c64fbbc00a8570155d77383d/Genetics.get_subtree_step\n- 0xb1a81026c64fbbc00a8570155d77383d/Genetics.get_subtree\n"
+      + "- 0xb1a81026c64fbbc00a8570155d77383d/Genetics.replace_subtree_step\n- 0xb1a81026c64fbbc00a8570155d77383d/Genetics.replace_subtree\n"
+      + "- 0xb1a81026c64fbbc00a8570155d77383d/Genetics.crossover\n- breed_child\n- generate_next_pop\n- evolve\n";
+    const s = classify(out, 1, false, 1);
     expect(s.class).toBe("unsafe");
-    expect(s.unsafeDefs).toEqual(["breed_child", "generate_next_pop", "evolve"]);
-    expect(s.summary).toBe("All terms check, but 3 defs rely on unsafe or foreign code");
+    expect(s.unsafeDefs).toEqual([
+      "0xb1a81026c64fbbc00a8570155d77383d/Genetics.get_subtree_step", "0xb1a81026c64fbbc00a8570155d77383d/Genetics.get_subtree",
+      "0xb1a81026c64fbbc00a8570155d77383d/Genetics.replace_subtree_step", "0xb1a81026c64fbbc00a8570155d77383d/Genetics.replace_subtree",
+      "0xb1a81026c64fbbc00a8570155d77383d/Genetics.crossover", "breed_child", "generate_next_pop", "evolve",
+    ]);
+    expect(s.summary).toBe("8 defs rely on unsafe or foreign code");
   });
-  test("singular form (0x527a2a4f…/lib.bend)", () => {
-    const s = classify("All terms check, but 1 def relies on unsafe or foreign code:\n- das_dennis_m1\n", 0, false, 1);
-    expect(s.unsafeDefs).toEqual(["das_dennis_m1"]);
+  test("singular form (a file with one @unsafe def)", () => {
+    const s = classify("SOME PROOFS FAIL\nError: 1 def relies on unsafe or foreign code:\n- u\n", 1, false, 1);
+    expect(s.class).toBe("unsafe");
+    expect(s.unsafeDefs).toEqual(["u"]);
+    expect(s.summary).toBe("1 def relies on unsafe or foreign code");
   });
   test("TODOs are open laws (0xf5a52e74…/src/LAWS.bend)", () => {
-    const s = classify("Error: 5 TODOs found.\nThe code is incomplete, and not a valid proof yet.\n", 1, false, 1);
+    const s = classify("SOME PROOFS FAIL\nError: 5 TODOs found.\nThe code is incomplete, and not a valid proof yet.\n", 1, false, 1);
     expect(s.class).toBe("open");
     expect(s.summary).toBe("5 TODOs found.");
   });
-  test("an error block is fails with its message as the summary", () => {
-    const out = "Error:\n- expected : a fresh constructor name (duplicate declaration: Zero)\n- observed : '{'\nLocation:\n192 |   Minus{}\n193>|   Zero{}\n";
+  test("an error block is fails with its message as the summary (research/experiments/ctor.bend)", () => {
+    const out = "SOME PROOFS FAIL\nError:\n- expected : a fresh constructor name (duplicate declaration: Some)\n- observed : 'Some'\n"
+      + "Location:\n3 | type opt is Data:\n4>|   Some{v: Nat}\n  |   ^^^^\n5 |   nothing{}\n";
     const s = classify(out, 1, false, 1);
     expect(s.class).toBe("fails");
-    expect(s.summary).toBe("- expected : a fresh constructor name (duplicate declaration: Zero)");
-    expect(s.detail).toContain("193>|   Zero{}");
+    expect(s.summary).toBe("- expected : a fresh constructor name (duplicate declaration: Some)");
+    expect(s.detail).toContain("4>|   Some{v: Nat}");
   });
   test("a kill on timeout is timeout, whatever was printed", () => {
     expect(classify("", null, true, 20.2).class).toBe("timeout");
@@ -58,7 +76,7 @@ describe("classify", () => {
 });
 
 describe("crossCheck", () => {
-  const clean = () => classify("All terms check.\n", 0, false, 1);
+  const clean = () => classify(CLEAN_OUT, 0, false, 1);
   test("a clean verdict over @unsafe source is downgraded to unsafe (bend issue #1001)", () => {
     const s = crossCheck(clean(), "@unsafe\ndef f() -> Nat:\n  0n\n");
     expect(s.class).toBe("unsafe");
