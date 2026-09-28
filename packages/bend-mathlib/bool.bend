@@ -404,6 +404,40 @@ def eq_true_of_ne_false(a, h):
     case False{}:
       Empty.absurd({False{} == True{} : Bool}, h({==}))
 
+def internal_false_ne_true(e: {False{} == True{} : Bool}) -> Empty:
+  %e : Bool.pick(Type, _, Empty, Unit)
+  Unit{}
+
+# Comparing a boolean with itself gives EQ.
+law cmp_refl:
+  for b: Bool
+  {Bool.cmp(b, b) == EQ{} : Cmp}
+
+def cmp_refl(b):
+  match b:
+    case True{}:
+      {==}
+    case False{}:
+      {==}
+
+# Two booleans that compare EQ are equal.
+law eq_of_cmp_eq:
+  for a: Bool
+  for b: Bool
+  for h: {Cmp.is_eq(Bool.cmp(a, b)) == True{} : Bool}
+  {a == b : Bool}
+
+def eq_of_cmp_eq(a, b, h):
+  match a b:
+    case True{} True{}:
+      {==}
+    case False{} False{}:
+      {==}
+    case True{} False{}:
+      Empty.absurd({True{} == False{} : Bool}, internal_false_ne_true(h))
+    case False{} True{}:
+      Empty.absurd({False{} == True{} : Bool}, internal_false_ne_true(h))
+
 # --- generated: _sym twins (tools/mathlib/twins.ts), do not edit ---
 
 # Negating a boolean twice gives it back, reversed to rewrite toward the simple side.
@@ -646,3 +680,11 @@ law xor_true_sym:
 
 def xor_true_sym(a):
   Equal.sym(Bool, Bool.xor(a, True{}), Bool.not(a), xor_true(a))
+
+# Comparing a boolean with itself gives EQ, reversed to rewrite toward the simple side.
+law cmp_refl_sym:
+  for b: Bool
+  {EQ{} == Bool.cmp(b, b) : Cmp}
+
+def cmp_refl_sym(b):
+  Equal.sym(Cmp, Bool.cmp(b, b), EQ{}, cmp_refl(b))
