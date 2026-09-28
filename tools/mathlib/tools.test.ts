@@ -19,6 +19,8 @@ const runWith = (env: Record<string, string>, script: string, ...args: string[])
   const p = Bun.spawnSync([process.execPath, join(dir, script), ...args], { env: { ...process.env, ...env } });
   return { code: p.exitCode, out: new TextDecoder().decode(p.stdout) + new TextDecoder().decode(p.stderr) };
 };
+// a `bend` that always fails; macOS has no /bin/false (GH #16)
+const FALSE = Bun.which("false") ?? (() => { throw new Error("no `false` on PATH"); })();
 const STACK = /\n\s+at /;
 
 test("check: the good fixture is green on the pinned compiler", () => {
@@ -329,7 +331,7 @@ test("baseNames lists the compiler's Base names", async () => {
 });
 
 test("lint fails cleanly when `bend base` is broken instead of trusting an empty Base set", () => {
-  const r = runWith({ BEND_CLI: "/bin/false" }, "lint.ts", join(dir, "fixtures/good"));
+  const r = runWith({ BEND_CLI: FALSE }, "lint.ts", join(dir, "fixtures/good"));
   expect(r.code).toBe(2);
   expect(r.out).toMatch(/base' failed/);
   expect(r.out).not.toContain("0 finding(s)");
@@ -347,7 +349,7 @@ test("release fails cleanly for a missing absolute pkgdir (no mangled join, no E
 test("release resolves an absolute existing pkgdir instead of mangling it", () => {
   const tmp = mkdtempSync(join(tmpdir(), "bend-release-abs-"));
   writeFileSync(join(tmp, "m.bend"), "import Base\n");
-  const r = runWith({ BEND_CLI: "/bin/false" }, "release.ts", tmp, "some-package-name", "0.1.0.0");
+  const r = runWith({ BEND_CLI: FALSE }, "release.ts", tmp, "some-package-name", "0.1.0.0");
   expect(r.code).toBe(1);
   expect(r.out).not.toContain("does not exist");
   expect(r.out).toContain("FAIL check");
@@ -402,7 +404,7 @@ test("release: a correct header passes the gate and the run reaches the check ga
   const tmp = mkdtempSync(join(tmpdir(), "bend-release-gate-ok-"));
   mkdirSync(join(tmp, "pkg"));
   writeFileSync(join(tmp, "pkg", "all.bend"), "# fixture-package: import fixture-package@0.2.0.0/bools.bend.\nimport Base\n");
-  const r = runWith({ BEND_CLI: "/bin/false" }, "release.ts", join(tmp, "pkg"), "fixture-package", "0.2.0.0");
+  const r = runWith({ BEND_CLI: FALSE }, "release.ts", join(tmp, "pkg"), "fixture-package", "0.2.0.0");
   expect(r.code).toBe(1);
   expect(r.out).not.toContain("release target is");
   expect(r.out).toContain("FAIL check");
