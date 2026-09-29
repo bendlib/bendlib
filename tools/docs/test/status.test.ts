@@ -190,8 +190,8 @@ describe("stale", () => {
 });
 
 describe("build defaults", () => {
-  test("the default checker timeout is 60 s (PLAN §5.2)", () => {
-    expect(DEFAULT_TIMEOUT).toBe(60);
+  test("the default checker timeout is 180 s (PLAN §5.2)", () => {
+    expect(DEFAULT_TIMEOUT).toBe(180);
   });
 });
 

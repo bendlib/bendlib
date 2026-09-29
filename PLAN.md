@@ -350,8 +350,8 @@ it never proves anything.
    private `BEND_LIB`.
 3. Extract with `@bendlib/reader` (current compiler version): declarations, docs, imports
    (hash → package edges). Parse failures are recorded as a status, not a crash.
-4. Verify: `bend <entry> --check-only` per package in a sandbox (bubblewrap/firejail; network off; 60 s
-   timeout, memory cap) — checking never runs `main`, but the checker can loop or blow memory on
+4. Verify: `bend <entry> --check-only` per package in a sandbox (bubblewrap/firejail; network off; 180 s
+   timeout: a 2.3 GB check of a hub file needs over 60 s on a shared CI runner; 16 GiB address-space cap) — checking never runs `main`, but the checker can loop or blow memory on
    hostile input. Re-verify all packages when a new compiler version appears (status is per compiler
    version).
 5. Render static HTML (bun script, no framework) + a JSON search index; client-side search.
