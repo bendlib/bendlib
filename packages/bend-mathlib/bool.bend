@@ -438,6 +438,99 @@ def eq_of_cmp_eq(a, b, h):
     case False{} True{}:
       Empty.absurd({False{} == True{} : Bool}, internal_false_ne_true(h))
 
+# False and True are different booleans, the other way round.
+law false_ne_true:
+  {False{} != True{} : Bool}
+
+def false_ne_true():
+  e => internal_false_ne_true(e)
+
+# If a and b is true then a is true.
+law eq_true_of_and_left:
+  for a: Bool
+  for -b: Bool
+  for h: {Bool.and(a, b) == True{} : Bool}
+  {a == True{} : Bool}
+
+def eq_true_of_and_left(a, b, h):
+  match a:
+    case True{}:
+      {==}
+    case False{}:
+      Empty.absurd({False{} == True{} : Bool}, internal_false_ne_true(h))
+
+# If a and b is true then b is true.
+law eq_true_of_and_right:
+  for a: Bool
+  for -b: Bool
+  for h: {Bool.and(a, b) == True{} : Bool}
+  {b == True{} : Bool}
+
+def eq_true_of_and_right(a, b, h):
+  match a:
+    case True{}:
+      h
+    case False{}:
+      Empty.absurd({b == True{} : Bool}, internal_false_ne_true(h))
+
+# If a and b are both true then a and b is true.
+law and_eq_true:
+  for a: Bool
+  for -b: Bool
+  for ha: {a == True{} : Bool}
+  for hb: {b == True{} : Bool}
+  {Bool.and(a, b) == True{} : Bool}
+
+def and_eq_true(a, b, ha, hb):
+  match a:
+    case True{}:
+      hb
+    case False{}:
+      Empty.absurd({Bool.and(False{}, b) == True{} : Bool}, internal_false_ne_true(ha))
+
+# If a or b is true and b is false then a is true.
+law eq_true_of_or_eq_false_right:
+  for a: Bool
+  for -b: Bool
+  for h: {Bool.or(a, b) == True{} : Bool}
+  for hb: {b == False{} : Bool}
+  {a == True{} : Bool}
+
+def eq_true_of_or_eq_false_right(a, b, h, hb):
+  match a:
+    case True{}:
+      {==}
+    case False{}:
+      Empty.absurd({False{} == True{} : Bool}, internal_false_ne_true(Equal.trans(Bool, False{}, b, True{}, Equal.sym(Bool, b, False{}, hb), h)))
+
+# If a or b is true and a is false then b is true.
+law eq_true_of_or_eq_false_left:
+  for a: Bool
+  for -b: Bool
+  for h: {Bool.or(a, b) == True{} : Bool}
+  for ha: {a == False{} : Bool}
+  {b == True{} : Bool}
+
+def eq_true_of_or_eq_false_left(a, b, h, ha):
+  match a:
+    case True{}:
+      Empty.absurd({b == True{} : Bool}, internal_true_ne_false(ha))
+    case False{}:
+      h
+
+# If not b is true then b is false.
+law eq_false_of_not_eq_true:
+  for b: Bool
+  for h: {Bool.not(b) == True{} : Bool}
+  {b == False{} : Bool}
+
+def eq_false_of_not_eq_true(b, h):
+  match b:
+    case True{}:
+      Empty.absurd({True{} == False{} : Bool}, internal_false_ne_true(h))
+    case False{}:
+      {==}
+
 # --- generated: _sym twins (tools/mathlib/twins.ts), do not edit ---
 
 # Negating a boolean twice gives it back, reversed to rewrite toward the simple side.
