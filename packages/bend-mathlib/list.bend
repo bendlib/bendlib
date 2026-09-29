@@ -1309,6 +1309,465 @@ law contains_reverse:
 def contains_reverse(A, eq, xs, x):
   internal_contains_reverse_go(~A, ~eq, xs, Nil{}, x, False{}, {==})
 
+# Zipping the empty list with anything gives the empty list.
+law zip_nil_left:
+  for -a: Quant
+  for -A: Kind(a)
+  for -b: Quant
+  for -B: Kind(b)
+  for -ys: List<b, B>
+  {List.zip(a, A, b, B, Nil{}, ys) == Nil{} : List<&1, A & B>}
+
+def zip_nil_left(a, A, b, B, ys):
+  {==}
+
+# Zipping anything with the empty list gives the empty list.
+law zip_nil_right:
+  for -a: Quant
+  for -A: Kind(a)
+  for -b: Quant
+  for -B: Kind(b)
+  for xs: List<a, A>
+  {List.zip(a, A, b, B, xs, Nil{}) == Nil{} : List<&1, A & B>}
+
+def zip_nil_right(a, A, b, B, xs):
+  match xs:
+    case Nil{}:
+      {==}
+    case h <> t:
+      {==}
+
+# The head of a cons is its first element.
+law head_cons:
+  for -a: Quant
+  for -A: Kind(a)
+  for -x: A
+  for -xs: List<a, A>
+  {List.head(a, A, x <> xs) == Some{x} : Maybe<a, A>}
+
+def head_cons(a, A, x, xs):
+  {==}
+
+# The head of an append is the head of the first part, or else of the second.
+law head_append:
+  for -a: Quant
+  for -A: Kind(a)
+  for xs: List<a, A>
+  for -ys: List<a, A>
+  {List.head(a, A, List.append(a, A, xs, ys)) == Maybe.or(a, A, List.head(a, A, xs), List.head(a, A, ys)) : Maybe<a, A>}
+
+def head_append(a, A, xs, ys):
+  match xs:
+    case Nil{}:
+      {==}
+    case h <> t:
+      {==}
+
+# The head of a map is the mapped head.
+law head_map:
+  for ~A: Type
+  for ~B: Type
+  for ~f: A -> B
+  for xs: List<A>
+  {List.head(&1, B, List.map(~A, ~B, ~f, xs)) == Maybe.map(&1, A, B, f, List.head(&1, A, xs)) : Maybe<&1, B>}
+
+def head_map(A, B, f, xs):
+  match xs:
+    case Nil{}:
+      {==}
+    case h <> t:
+      {==}
+
+# The tail of a map is the map of the tail.
+law tail_map:
+  for ~A: Type
+  for ~B: Type
+  for ~f: A -> B
+  for xs: List<A>
+  {List.tail(&1, B, List.map(~A, ~B, ~f, xs)) == List.map(~A, ~B, ~f, List.tail(&1, A, xs)) : List<B>}
+
+def tail_map(A, B, f, xs):
+  match xs:
+    case Nil{}:
+      {==}
+    case h <> t:
+      {==}
+
+# The element at index zero of a cons is its head.
+law get_cons_zero:
+  for -a: Quant
+  for -A: Kind(a)
+  for -x: A
+  for -xs: List<a, A>
+  {List.get(a, A, x <> xs, 0n) == Some{x} : Maybe<a, A>}
+
+def get_cons_zero(a, A, x, xs):
+  {==}
+
+# The element at index n + 1 of a cons is the element at index n of its tail.
+law get_cons_succ:
+  for -a: Quant
+  for -A: Kind(a)
+  for -x: A
+  for -xs: List<a, A>
+  for -n: Nat
+  {List.get(a, A, x <> xs, 1n+n) == List.get(a, A, xs, n) : Maybe<a, A>}
+
+def get_cons_succ(a, A, x, xs, n):
+  {==}
+
+# Indexing a map is mapping the indexed element.
+law get_map:
+  for ~A: Type
+  for ~B: Type
+  for ~f: A -> B
+  for xs: List<A>
+  for n: Nat
+  {List.get(&1, B, List.map(~A, ~B, ~f, xs), n) == Maybe.map(&1, A, B, f, List.get(&1, A, xs, n)) : Maybe<&1, B>}
+
+def get_map(A, B, f, xs, n):
+  match xs n:
+    case Nil{} _:
+      {==}
+    case h <> t 0n:
+      {==}
+    case h <> t 1n+p:
+      get_map(~A, ~B, ~f, t, p)
+
+# Setting an element does not change the length.
+law length_set:
+  for -a: Quant
+  for -A: Kind(a)
+  for xs: List<a, A>
+  for n: Nat
+  for -x: A
+  {List.length(a, A, List.set(a, A, xs, n, x)) == List.length(a, A, xs) : Nat}
+
+def length_set(a, A, xs, n, x):
+  match xs n:
+    case Nil{} _:
+      {==}
+    case h <> t 0n:
+      {==}
+    case h <> t 1n+p:
+      %length_set(a, A, t, p, x) : {1n+List.length(a, A, List.set(a, A, t, p, x)) == 1n+_ : Nat}
+      {==}
+
+# Reading the index just set gives the new value wherever the index is in range.
+law get_set_self:
+  for -a: Quant
+  for -A: Kind(a)
+  for xs: List<a, A>
+  for n: Nat
+  for -x: A
+  {List.get(a, A, List.set(a, A, xs, n, x), n) == Maybe.map(a, A, A, y => x, List.get(a, A, xs, n)) : Maybe<a, A>}
+
+def get_set_self(a, A, xs, n, x):
+  match xs n:
+    case Nil{} _:
+      {==}
+    case h <> t 0n:
+      {==}
+    case h <> t 1n+p:
+      get_set_self(a, A, t, p, x)
+
+def internal_last_go_append_singleton(a, -A: Kind(a), ys: List<a, A>, -h: A, -x: A) -> {List.last.go(a, A, List.append(a, A, ys, [x]), h) == x : A}:
+  match ys:
+    case Nil{}:
+      {==}
+    case y <> t:
+      internal_last_go_append_singleton(a, A, t, y, x)
+
+# The last element of xs ++ [x] is x.
+law last_append_singleton:
+  for -a: Quant
+  for -A: Kind(a)
+  for xs: List<a, A>
+  for -x: A
+  {List.last(a, A, List.append(a, A, xs, [x])) == Some{x} : Maybe<a, A>}
+
+def last_append_singleton(a, A, xs, x):
+  match xs:
+    case Nil{}:
+      {==}
+    case h <> t:
+      %internal_last_go_append_singleton(a, A, t, h, x) : {Some{List.last.go(a, A, List.append(a, A, t, [x]), h)} == Some{_} : Maybe<a, A>}
+      {==}
+
+def internal_head_reverse_go(a, -A: Kind(a), xs: List<a, A>, -h: A, -acc: List<a, A>) -> {List.head(a, A, List.reverse.go(a, A, xs, h <> acc)) == Some{List.last.go(a, A, xs, h)} : Maybe<a, A>}:
+  match xs:
+    case Nil{}:
+      {==}
+    case y <> t:
+      internal_head_reverse_go(a, A, t, y, h <> acc)
+
+# The head of the reverse is the last element.
+law head_reverse:
+  for -a: Quant
+  for -A: Kind(a)
+  for xs: List<a, A>
+  {List.head(a, A, List.reverse(a, A, xs)) == List.last(a, A, xs) : Maybe<a, A>}
+
+def head_reverse(a, A, xs):
+  match xs:
+    case Nil{}:
+      {==}
+    case h <> t:
+      internal_head_reverse_go(a, A, t, h, Nil{})
+
+def internal_last_reverse_go(a, -A: Kind(a), xs: List<a, A>, -h: A, -acc: List<a, A>) -> {List.last(a, A, List.reverse.go(a, A, xs, h <> acc)) == Some{List.last.go(a, A, acc, h)} : Maybe<a, A>}:
+  match xs:
+    case Nil{}:
+      {==}
+    case y <> t:
+      internal_last_reverse_go(a, A, t, y, h <> acc)
+
+# The last element of the reverse is the head.
+law last_reverse:
+  for -a: Quant
+  for -A: Kind(a)
+  for xs: List<a, A>
+  {List.last(a, A, List.reverse(a, A, xs)) == List.head(a, A, xs) : Maybe<a, A>}
+
+def last_reverse(a, A, xs):
+  match xs:
+    case Nil{}:
+      {==}
+    case h <> t:
+      internal_last_reverse_go(a, A, t, h, Nil{})
+
+# A list is empty exactly when its length is zero.
+law is_empty_iff_length_eq_zero:
+  for -a: Quant
+  for -A: Kind(a)
+  for xs: List<a, A>
+  {List.is_empty(a, A, xs) == Nat.is_eq(List.length(a, A, xs), 0n) : Bool}
+
+def is_empty_iff_length_eq_zero(a, A, xs):
+  match xs:
+    case Nil{}:
+      {==}
+    case h <> t:
+      {==}
+
+# An append is empty exactly when both parts are.
+law is_empty_append:
+  for -a: Quant
+  for -A: Kind(a)
+  for xs: List<a, A>
+  for -ys: List<a, A>
+  {List.is_empty(a, A, List.append(a, A, xs, ys)) == Bool.and(List.is_empty(a, A, xs), List.is_empty(a, A, ys)) : Bool}
+
+def is_empty_append(a, A, xs, ys):
+  match xs:
+    case Nil{}:
+      {==}
+    case h <> t:
+      {==}
+
+def internal_is_empty_reverse_go(a, -A: Kind(a), xs: List<a, A>, -h: A, -acc: List<a, A>) -> {List.is_empty(a, A, List.reverse.go(a, A, xs, h <> acc)) == False{} : Bool}:
+  match xs:
+    case Nil{}:
+      {==}
+    case y <> t:
+      internal_is_empty_reverse_go(a, A, t, y, h <> acc)
+
+# The reverse is empty exactly when the list is.
+law is_empty_reverse:
+  for -a: Quant
+  for -A: Kind(a)
+  for xs: List<a, A>
+  {List.is_empty(a, A, List.reverse(a, A, xs)) == List.is_empty(a, A, xs) : Bool}
+
+def is_empty_reverse(a, A, xs):
+  match xs:
+    case Nil{}:
+      {==}
+    case h <> t:
+      internal_is_empty_reverse_go(a, A, t, h, Nil{})
+
+# A map is empty exactly when the list is.
+law is_empty_map:
+  for ~A: Type
+  for ~B: Type
+  for ~f: A -> B
+  for xs: List<A>
+  {List.is_empty(&1, B, List.map(~A, ~B, ~f, xs)) == List.is_empty(&1, A, xs) : Bool}
+
+def is_empty_map(A, B, f, xs):
+  match xs:
+    case Nil{}:
+      {==}
+    case h <> t:
+      {==}
+
+def internal_reverse_filter_put(-A: Data, -h: A, r: List<&2, A>, b: Bool) -> {List.append(&2, A, List.reverse(&2, A, r), List.filter.put(A, h, Nil{}, b)) == List.reverse(&2, A, List.filter.put(A, h, r, b)) : List<&2, A>}:
+  match b:
+    case False{}:
+      append_nil(&2, A, List.reverse(&2, A, r))
+    case True{}:
+      Equal.sym(List<&2, A>, List.reverse.go(&2, A, r, [h]), List.append(&2, A, List.reverse(&2, A, r), [h]), reverse_go_spec(&2, A, r, [h]))
+
+# Filtering commutes with reversing: filter p (reverse xs) = reverse (filter p xs).
+law filter_reverse:
+  for ~A: Data
+  for ~f: A -> Bool
+  for xs: List<&2, A>
+  {List.filter(~A, ~f, List.reverse(&2, A, xs)) == List.reverse(&2, A, List.filter(~A, ~f, xs)) : List<&2, A>}
+
+def filter_reverse(A, f, xs):
+  match xs:
+    case Nil{}:
+      {==}
+    case +h <> t:
+      +t = t
+      %Equal.sym(List<&2, A>, List.reverse.go(&2, A, t, [h]), List.append(&2, A, List.reverse(&2, A, t), [h]), reverse_go_spec(&2, A, t, [h])) : {List.filter(~A, ~f, _) == List.reverse(&2, A, List.filter.put(A, h, List.filter(~A, ~f, t), f(h))) : List<&2, A>}
+      %Equal.sym(List<&2, A>, List.filter(~A, ~f, List.append(&2, A, List.reverse(&2, A, t), [h])), List.append(&2, A, List.filter(~A, ~f, List.reverse(&2, A, t)), List.filter(~A, ~f, [h])), filter_append(~A, ~f, List.reverse(&2, A, t), [h])) : {_ == List.reverse(&2, A, List.filter.put(A, h, List.filter(~A, ~f, t), f(h))) : List<&2, A>}
+      %Equal.sym(List<&2, A>, List.filter(~A, ~f, List.reverse(&2, A, t)), List.reverse(&2, A, List.filter(~A, ~f, t)), filter_reverse(~A, ~f, t)) : {List.append(&2, A, _, List.filter(~A, ~f, [h])) == List.reverse(&2, A, List.filter.put(A, h, List.filter(~A, ~f, t), f(h))) : List<&2, A>}
+      internal_reverse_filter_put(A, h, List.filter(~A, ~f, t), f(h))
+
+# Folding cons from the right over the empty list rebuilds the list.
+law foldr_cons_nil:
+  for ~a: Quant
+  for ~A: Kind(a)
+  for xs: List<a, A>
+  {List.foldr(~a, ~A, ~List<a, A>, ~(x => acc => x <> acc), xs, Nil{}) == xs : List<a, A>}
+
+def foldr_cons_nil(a, A, xs):
+  match xs:
+    case Nil{}:
+      {==}
+    case h <> t:
+      %foldr_cons_nil(~a, ~A, t) : {h <> List.foldr(~a, ~A, ~List<a, A>, ~(x => acc => x <> acc), t, Nil{}) == h <> _ : List<a, A>}
+      {==}
+
+def internal_foldl_reverse_go(~a: Quant, ~A: Kind(a), ~B: Type, ~f: B -> A -> B, xs: List<a, A>, -acc: List<a, A>, -z: B) -> {List.foldl(~a, ~A, ~B, ~f, List.reverse.go(a, A, xs, acc), z) == List.foldl(~a, ~A, ~B, ~f, acc, List.foldr(~a, ~A, ~B, ~(x => y => f(y, x)), xs, z)) : B}:
+  match xs:
+    case Nil{}:
+      {==}
+    case h <> t:
+      internal_foldl_reverse_go(~a, ~A, ~B, ~f, t, h <> acc, z)
+
+# A left fold over the reverse is a right fold with the arguments flipped.
+law foldl_reverse:
+  for ~a: Quant
+  for ~A: Kind(a)
+  for ~B: Type
+  for ~f: B -> A -> B
+  for xs: List<a, A>
+  for -z: B
+  {List.foldl(~a, ~A, ~B, ~f, List.reverse(a, A, xs), z) == List.foldr(~a, ~A, ~B, ~(x => y => f(y, x)), xs, z) : B}
+
+def foldl_reverse(a, A, B, f, xs, z):
+  internal_foldl_reverse_go(~a, ~A, ~B, ~f, xs, Nil{}, z)
+
+def internal_foldr_reverse_go(~a: Quant, ~A: Kind(a), ~B: Type, ~f: A -> B -> B, xs: List<a, A>, -acc: List<a, A>, -z: B) -> {List.foldr(~a, ~A, ~B, ~f, List.reverse.go(a, A, xs, acc), z) == List.foldl(~a, ~A, ~B, ~(x => y => f(y, x)), xs, List.foldr(~a, ~A, ~B, ~f, acc, z)) : B}:
+  match xs:
+    case Nil{}:
+      {==}
+    case h <> t:
+      internal_foldr_reverse_go(~a, ~A, ~B, ~f, t, h <> acc, z)
+
+# A right fold over the reverse is a left fold with the arguments flipped.
+law foldr_reverse:
+  for ~a: Quant
+  for ~A: Kind(a)
+  for ~B: Type
+  for ~f: A -> B -> B
+  for xs: List<a, A>
+  for -z: B
+  {List.foldr(~a, ~A, ~B, ~f, List.reverse(a, A, xs), z) == List.foldl(~a, ~A, ~B, ~(x => y => f(y, x)), xs, z) : B}
+
+def foldr_reverse(a, A, B, f, xs, z):
+  internal_foldr_reverse_go(~a, ~A, ~B, ~f, xs, Nil{}, z)
+
+def internal_range_go_append(+n: Nat, -ys: List<&2, Nat>, -acc: List<&2, Nat>) -> {List.range.go(n, List.append(&2, Nat, ys, acc)) == List.append(&2, Nat, List.range.go(n, ys), acc) : List<&2, Nat>}:
+  match n:
+    case 0n:
+      {==}
+    case 1n+p:
+      internal_range_go_append(p, p <> ys, acc)
+
+# Range(n + 1) is range(n) followed by n.
+law range_succ:
+  for n: Nat
+  {List.range(1n+n) == List.append(&2, Nat, List.range(n), [n]) : List<&2, Nat>}
+
+def range_succ(n):
+  +n = n
+  internal_range_go_append(n, Nil{}, [n])
+
+def internal_find_put_or(-A: Data, h: A, r: Maybe<&2, A>, -s: Maybe<&2, A>, b: Bool) -> {Maybe.or(&2, A, List.find.put(A, h, r, b), s) == List.find.put(A, h, Maybe.or(&2, A, r, s), b) : Maybe<&2, A>}:
+  match b:
+    case False{}:
+      {==}
+    case True{}:
+      {==}
+
+# Finding in an append finds in the first part, or else in the second.
+law find_append:
+  for ~A: Data
+  for ~f: A -> Bool
+  for xs: List<&2, A>
+  for ys: List<&2, A>
+  {List.find(~A, ~f, List.append(&2, A, xs, ys)) == Maybe.or(&2, A, List.find(~A, ~f, xs), List.find(~A, ~f, ys)) : Maybe<&2, A>}
+
+def find_append(A, f, xs, ys):
+  match xs:
+    case Nil{}:
+      {==}
+    case +h <> t:
+      +ys = ys
+      +t = t
+      %Equal.sym(Maybe<&2, A>, List.find(~A, ~f, List.append(&2, A, t, ys)), Maybe.or(&2, A, List.find(~A, ~f, t), List.find(~A, ~f, ys)), find_append(~A, ~f, t, ys)) : {List.find.put(A, h, _, f(h)) == Maybe.or(&2, A, List.find.put(A, h, List.find(~A, ~f, t), f(h)), List.find(~A, ~f, ys)) : Maybe<&2, A>}
+      Equal.sym(Maybe<&2, A>, Maybe.or(&2, A, List.find.put(A, h, List.find(~A, ~f, t), f(h)), List.find(~A, ~f, ys)), List.find.put(A, h, Maybe.or(&2, A, List.find(~A, ~f, t), List.find(~A, ~f, ys)), f(h)), internal_find_put_or(A, h, List.find(~A, ~f, t), List.find(~A, ~f, ys), f(h)))
+
+def internal_and_not_eq_not_or_not(b: Bool, -s: Bool) -> {Bool.and(b, Bool.not(s)) == Bool.not(Bool.or(Bool.not(b), s)) : Bool}:
+  match b:
+    case False{}:
+      {==}
+    case True{}:
+      {==}
+
+# All elements satisfy f exactly when no element fails it.
+law all_eq_not_any_not:
+  for ~a: Quant
+  for ~A: Kind(a)
+  for ~f: A -> Bool
+  for xs: List<a, A>
+  {List.all(~a, ~A, ~f, xs) == Bool.not(List.any(~a, ~A, ~(x => Bool.not(f(x))), xs)) : Bool}
+
+def all_eq_not_any_not(a, A, f, xs):
+  match xs:
+    case Nil{}:
+      {==}
+    case h <> t:
+      %Equal.sym(Bool, List.all(~a, ~A, ~f, t), Bool.not(List.any(~a, ~A, ~(x => Bool.not(f(x))), t)), all_eq_not_any_not(~a, ~A, ~f, t)) : {Bool.and(f(h), _) == Bool.not(Bool.or(Bool.not(f(h)), List.any(~a, ~A, ~(x => Bool.not(f(x))), t))) : Bool}
+      internal_and_not_eq_not_or_not(f(h), List.any(~a, ~A, ~(x => Bool.not(f(x))), t))
+
+def internal_or_not_eq_not_and_not(b: Bool, -s: Bool) -> {Bool.or(b, Bool.not(s)) == Bool.not(Bool.and(Bool.not(b), s)) : Bool}:
+  match b:
+    case False{}:
+      {==}
+    case True{}:
+      {==}
+
+# Some element satisfies f exactly when not all elements fail it.
+law any_eq_not_all_not:
+  for ~a: Quant
+  for ~A: Kind(a)
+  for ~f: A -> Bool
+  for xs: List<a, A>
+  {List.any(~a, ~A, ~f, xs) == Bool.not(List.all(~a, ~A, ~(x => Bool.not(f(x))), xs)) : Bool}
+
+def any_eq_not_all_not(a, A, f, xs):
+  match xs:
+    case Nil{}:
+      {==}
+    case h <> t:
+      %Equal.sym(Bool, List.any(~a, ~A, ~f, t), Bool.not(List.all(~a, ~A, ~(x => Bool.not(f(x))), t)), any_eq_not_all_not(~a, ~A, ~f, t)) : {Bool.or(f(h), _) == Bool.not(Bool.and(Bool.not(f(h)), List.all(~a, ~A, ~(x => Bool.not(f(x))), t))) : Bool}
+      internal_or_not_eq_not_and_not(f(h), List.all(~a, ~A, ~(x => Bool.not(f(x))), t))
+
 # --- generated: _sym twins (tools/mathlib/twins.ts), do not edit ---
 
 # The empty list is a right identity for append: xs ++ [] = xs, reversed to rewrite toward the simple side.
@@ -2027,3 +2486,290 @@ law contains_reverse_sym:
 
 def contains_reverse_sym(A, eq, xs, x):
   Equal.sym(Bool, List.contains(~A, ~eq, List.reverse(&2, A, xs), x), List.contains(~A, ~eq, xs, x), contains_reverse(~A, ~eq, xs, x))
+
+# Zipping the empty list with anything gives the empty list, reversed to rewrite toward the simple side.
+law zip_nil_left_sym:
+  for -a: Quant
+  for -A: Kind(a)
+  for -b: Quant
+  for -B: Kind(b)
+  for -ys: List<b, B>
+  {Nil{} == List.zip(a, A, b, B, Nil{}, ys) : List<&1, A & B>}
+
+def zip_nil_left_sym(a, A, b, B, ys):
+  Equal.sym(List<&1, A & B>, List.zip(a, A, b, B, Nil{}, ys), Nil{}, zip_nil_left(a, A, b, B, ys))
+
+# Zipping anything with the empty list gives the empty list, reversed to rewrite toward the simple side.
+law zip_nil_right_sym:
+  for -a: Quant
+  for -A: Kind(a)
+  for -b: Quant
+  for -B: Kind(b)
+  for xs: List<a, A>
+  {Nil{} == List.zip(a, A, b, B, xs, Nil{}) : List<&1, A & B>}
+
+def zip_nil_right_sym(a, A, b, B, xs):
+  Equal.sym(List<&1, A & B>, List.zip(a, A, b, B, xs, Nil{}), Nil{}, zip_nil_right(a, A, b, B, xs))
+
+# The head of a cons is its first element, reversed to rewrite toward the simple side.
+law head_cons_sym:
+  for -a: Quant
+  for -A: Kind(a)
+  for -x: A
+  for -xs: List<a, A>
+  {Some{x} == List.head(a, A, x <> xs) : Maybe<a, A>}
+
+def head_cons_sym(a, A, x, xs):
+  Equal.sym(Maybe<a, A>, List.head(a, A, x <> xs), Some{x}, head_cons(a, A, x, xs))
+
+# The head of an append is the head of the first part, or else of the second, reversed to rewrite toward the simple side.
+law head_append_sym:
+  for -a: Quant
+  for -A: Kind(a)
+  for xs: List<a, A>
+  for -ys: List<a, A>
+  {Maybe.or(a, A, List.head(a, A, xs), List.head(a, A, ys)) == List.head(a, A, List.append(a, A, xs, ys)) : Maybe<a, A>}
+
+def head_append_sym(a, A, xs, ys):
+  Equal.sym(Maybe<a, A>, List.head(a, A, List.append(a, A, xs, ys)), Maybe.or(a, A, List.head(a, A, xs), List.head(a, A, ys)), head_append(a, A, xs, ys))
+
+# The head of a map is the mapped head, reversed to rewrite toward the simple side.
+law head_map_sym:
+  for ~A: Type
+  for ~B: Type
+  for ~f: A -> B
+  for xs: List<A>
+  {Maybe.map(&1, A, B, f, List.head(&1, A, xs)) == List.head(&1, B, List.map(~A, ~B, ~f, xs)) : Maybe<&1, B>}
+
+def head_map_sym(A, B, f, xs):
+  Equal.sym(Maybe<&1, B>, List.head(&1, B, List.map(~A, ~B, ~f, xs)), Maybe.map(&1, A, B, f, List.head(&1, A, xs)), head_map(~A, ~B, ~f, xs))
+
+# The tail of a map is the map of the tail, reversed to rewrite toward the simple side.
+law tail_map_sym:
+  for ~A: Type
+  for ~B: Type
+  for ~f: A -> B
+  for xs: List<A>
+  {List.map(~A, ~B, ~f, List.tail(&1, A, xs)) == List.tail(&1, B, List.map(~A, ~B, ~f, xs)) : List<B>}
+
+def tail_map_sym(A, B, f, xs):
+  Equal.sym(List<B>, List.tail(&1, B, List.map(~A, ~B, ~f, xs)), List.map(~A, ~B, ~f, List.tail(&1, A, xs)), tail_map(~A, ~B, ~f, xs))
+
+# The element at index zero of a cons is its head, reversed to rewrite toward the simple side.
+law get_cons_zero_sym:
+  for -a: Quant
+  for -A: Kind(a)
+  for -x: A
+  for -xs: List<a, A>
+  {Some{x} == List.get(a, A, x <> xs, 0n) : Maybe<a, A>}
+
+def get_cons_zero_sym(a, A, x, xs):
+  Equal.sym(Maybe<a, A>, List.get(a, A, x <> xs, 0n), Some{x}, get_cons_zero(a, A, x, xs))
+
+# The element at index n + 1 of a cons is the element at index n of its tail, reversed to rewrite toward the simple side.
+law get_cons_succ_sym:
+  for -a: Quant
+  for -A: Kind(a)
+  for -x: A
+  for -xs: List<a, A>
+  for -n: Nat
+  {List.get(a, A, xs, n) == List.get(a, A, x <> xs, 1n+n) : Maybe<a, A>}
+
+def get_cons_succ_sym(a, A, x, xs, n):
+  Equal.sym(Maybe<a, A>, List.get(a, A, x <> xs, 1n+n), List.get(a, A, xs, n), get_cons_succ(a, A, x, xs, n))
+
+# Indexing a map is mapping the indexed element, reversed to rewrite toward the simple side.
+law get_map_sym:
+  for ~A: Type
+  for ~B: Type
+  for ~f: A -> B
+  for xs: List<A>
+  for n: Nat
+  {Maybe.map(&1, A, B, f, List.get(&1, A, xs, n)) == List.get(&1, B, List.map(~A, ~B, ~f, xs), n) : Maybe<&1, B>}
+
+def get_map_sym(A, B, f, xs, n):
+  Equal.sym(Maybe<&1, B>, List.get(&1, B, List.map(~A, ~B, ~f, xs), n), Maybe.map(&1, A, B, f, List.get(&1, A, xs, n)), get_map(~A, ~B, ~f, xs, n))
+
+# Setting an element does not change the length, reversed to rewrite toward the simple side.
+law length_set_sym:
+  for -a: Quant
+  for -A: Kind(a)
+  for xs: List<a, A>
+  for n: Nat
+  for -x: A
+  {List.length(a, A, xs) == List.length(a, A, List.set(a, A, xs, n, x)) : Nat}
+
+def length_set_sym(a, A, xs, n, x):
+  Equal.sym(Nat, List.length(a, A, List.set(a, A, xs, n, x)), List.length(a, A, xs), length_set(a, A, xs, n, x))
+
+# Reading the index just set gives the new value wherever the index is in range, reversed to rewrite toward the simple side.
+law get_set_self_sym:
+  for -a: Quant
+  for -A: Kind(a)
+  for xs: List<a, A>
+  for n: Nat
+  for -x: A
+  {Maybe.map(a, A, A, y => x, List.get(a, A, xs, n)) == List.get(a, A, List.set(a, A, xs, n, x), n) : Maybe<a, A>}
+
+def get_set_self_sym(a, A, xs, n, x):
+  Equal.sym(Maybe<a, A>, List.get(a, A, List.set(a, A, xs, n, x), n), Maybe.map(a, A, A, y => x, List.get(a, A, xs, n)), get_set_self(a, A, xs, n, x))
+
+# The last element of xs ++ [x] is x, reversed to rewrite toward the simple side.
+law last_append_singleton_sym:
+  for -a: Quant
+  for -A: Kind(a)
+  for xs: List<a, A>
+  for -x: A
+  {Some{x} == List.last(a, A, List.append(a, A, xs, [x])) : Maybe<a, A>}
+
+def last_append_singleton_sym(a, A, xs, x):
+  Equal.sym(Maybe<a, A>, List.last(a, A, List.append(a, A, xs, [x])), Some{x}, last_append_singleton(a, A, xs, x))
+
+# The head of the reverse is the last element, reversed to rewrite toward the simple side.
+law head_reverse_sym:
+  for -a: Quant
+  for -A: Kind(a)
+  for xs: List<a, A>
+  {List.last(a, A, xs) == List.head(a, A, List.reverse(a, A, xs)) : Maybe<a, A>}
+
+def head_reverse_sym(a, A, xs):
+  Equal.sym(Maybe<a, A>, List.head(a, A, List.reverse(a, A, xs)), List.last(a, A, xs), head_reverse(a, A, xs))
+
+# The last element of the reverse is the head, reversed to rewrite toward the simple side.
+law last_reverse_sym:
+  for -a: Quant
+  for -A: Kind(a)
+  for xs: List<a, A>
+  {List.head(a, A, xs) == List.last(a, A, List.reverse(a, A, xs)) : Maybe<a, A>}
+
+def last_reverse_sym(a, A, xs):
+  Equal.sym(Maybe<a, A>, List.last(a, A, List.reverse(a, A, xs)), List.head(a, A, xs), last_reverse(a, A, xs))
+
+# A list is empty exactly when its length is zero, reversed to rewrite toward the simple side.
+law is_empty_iff_length_eq_zero_sym:
+  for -a: Quant
+  for -A: Kind(a)
+  for xs: List<a, A>
+  {Nat.is_eq(List.length(a, A, xs), 0n) == List.is_empty(a, A, xs) : Bool}
+
+def is_empty_iff_length_eq_zero_sym(a, A, xs):
+  Equal.sym(Bool, List.is_empty(a, A, xs), Nat.is_eq(List.length(a, A, xs), 0n), is_empty_iff_length_eq_zero(a, A, xs))
+
+# An append is empty exactly when both parts are, reversed to rewrite toward the simple side.
+law is_empty_append_sym:
+  for -a: Quant
+  for -A: Kind(a)
+  for xs: List<a, A>
+  for -ys: List<a, A>
+  {Bool.and(List.is_empty(a, A, xs), List.is_empty(a, A, ys)) == List.is_empty(a, A, List.append(a, A, xs, ys)) : Bool}
+
+def is_empty_append_sym(a, A, xs, ys):
+  Equal.sym(Bool, List.is_empty(a, A, List.append(a, A, xs, ys)), Bool.and(List.is_empty(a, A, xs), List.is_empty(a, A, ys)), is_empty_append(a, A, xs, ys))
+
+# The reverse is empty exactly when the list is, reversed to rewrite toward the simple side.
+law is_empty_reverse_sym:
+  for -a: Quant
+  for -A: Kind(a)
+  for xs: List<a, A>
+  {List.is_empty(a, A, xs) == List.is_empty(a, A, List.reverse(a, A, xs)) : Bool}
+
+def is_empty_reverse_sym(a, A, xs):
+  Equal.sym(Bool, List.is_empty(a, A, List.reverse(a, A, xs)), List.is_empty(a, A, xs), is_empty_reverse(a, A, xs))
+
+# A map is empty exactly when the list is, reversed to rewrite toward the simple side.
+law is_empty_map_sym:
+  for ~A: Type
+  for ~B: Type
+  for ~f: A -> B
+  for xs: List<A>
+  {List.is_empty(&1, A, xs) == List.is_empty(&1, B, List.map(~A, ~B, ~f, xs)) : Bool}
+
+def is_empty_map_sym(A, B, f, xs):
+  Equal.sym(Bool, List.is_empty(&1, B, List.map(~A, ~B, ~f, xs)), List.is_empty(&1, A, xs), is_empty_map(~A, ~B, ~f, xs))
+
+# Filtering commutes with reversing: filter p (reverse xs) = reverse (filter p xs), reversed to rewrite toward the simple side.
+law filter_reverse_sym:
+  for ~A: Data
+  for ~f: A -> Bool
+  for xs: List<&2, A>
+  {List.reverse(&2, A, List.filter(~A, ~f, xs)) == List.filter(~A, ~f, List.reverse(&2, A, xs)) : List<&2, A>}
+
+def filter_reverse_sym(A, f, xs):
+  Equal.sym(List<&2, A>, List.filter(~A, ~f, List.reverse(&2, A, xs)), List.reverse(&2, A, List.filter(~A, ~f, xs)), filter_reverse(~A, ~f, xs))
+
+# Folding cons from the right over the empty list rebuilds the list, reversed to rewrite toward the simple side.
+law foldr_cons_nil_sym:
+  for ~a: Quant
+  for ~A: Kind(a)
+  for xs: List<a, A>
+  {xs == List.foldr(~a, ~A, ~List<a, A>, ~(x => acc => x <> acc), xs, Nil{}) : List<a, A>}
+
+def foldr_cons_nil_sym(a, A, xs):
+  Equal.sym(List<a, A>, List.foldr(~a, ~A, ~List<a, A>, ~(x => acc => x <> acc), xs, Nil{}), xs, foldr_cons_nil(~a, ~A, xs))
+
+# A left fold over the reverse is a right fold with the arguments flipped, reversed to rewrite toward the simple side.
+law foldl_reverse_sym:
+  for ~a: Quant
+  for ~A: Kind(a)
+  for ~B: Type
+  for ~f: B -> A -> B
+  for xs: List<a, A>
+  for -z: B
+  {List.foldr(~a, ~A, ~B, ~(x => y => f(y, x)), xs, z) == List.foldl(~a, ~A, ~B, ~f, List.reverse(a, A, xs), z) : B}
+
+def foldl_reverse_sym(a, A, B, f, xs, z):
+  Equal.sym(B, List.foldl(~a, ~A, ~B, ~f, List.reverse(a, A, xs), z), List.foldr(~a, ~A, ~B, ~(x => y => f(y, x)), xs, z), foldl_reverse(~a, ~A, ~B, ~f, xs, z))
+
+# A right fold over the reverse is a left fold with the arguments flipped, reversed to rewrite toward the simple side.
+law foldr_reverse_sym:
+  for ~a: Quant
+  for ~A: Kind(a)
+  for ~B: Type
+  for ~f: A -> B -> B
+  for xs: List<a, A>
+  for -z: B
+  {List.foldl(~a, ~A, ~B, ~(x => y => f(y, x)), xs, z) == List.foldr(~a, ~A, ~B, ~f, List.reverse(a, A, xs), z) : B}
+
+def foldr_reverse_sym(a, A, B, f, xs, z):
+  Equal.sym(B, List.foldr(~a, ~A, ~B, ~f, List.reverse(a, A, xs), z), List.foldl(~a, ~A, ~B, ~(x => y => f(y, x)), xs, z), foldr_reverse(~a, ~A, ~B, ~f, xs, z))
+
+# Range(n + 1) is range(n) followed by n, reversed to rewrite toward the simple side.
+law range_succ_sym:
+  for n: Nat
+  {List.append(&2, Nat, List.range(n), [n]) == List.range(1n+n) : List<&2, Nat>}
+
+def range_succ_sym(n):
+  Equal.sym(List<&2, Nat>, List.range(1n+n), List.append(&2, Nat, List.range(n), [n]), range_succ(n))
+
+# Finding in an append finds in the first part, or else in the second, reversed to rewrite toward the simple side.
+law find_append_sym:
+  for ~A: Data
+  for ~f: A -> Bool
+  for xs: List<&2, A>
+  for ys: List<&2, A>
+  {Maybe.or(&2, A, List.find(~A, ~f, xs), List.find(~A, ~f, ys)) == List.find(~A, ~f, List.append(&2, A, xs, ys)) : Maybe<&2, A>}
+
+def find_append_sym(A, f, xs, ys):
+  Equal.sym(Maybe<&2, A>, List.find(~A, ~f, List.append(&2, A, xs, ys)), Maybe.or(&2, A, List.find(~A, ~f, xs), List.find(~A, ~f, ys)), find_append(~A, ~f, xs, ys))
+
+# All elements satisfy f exactly when no element fails it, reversed to rewrite toward the simple side.
+law all_eq_not_any_not_sym:
+  for ~a: Quant
+  for ~A: Kind(a)
+  for ~f: A -> Bool
+  for xs: List<a, A>
+  {Bool.not(List.any(~a, ~A, ~(x => Bool.not(f(x))), xs)) == List.all(~a, ~A, ~f, xs) : Bool}
+
+def all_eq_not_any_not_sym(a, A, f, xs):
+  Equal.sym(Bool, List.all(~a, ~A, ~f, xs), Bool.not(List.any(~a, ~A, ~(x => Bool.not(f(x))), xs)), all_eq_not_any_not(~a, ~A, ~f, xs))
+
+# Some element satisfies f exactly when not all elements fail it, reversed to rewrite toward the simple side.
+law any_eq_not_all_not_sym:
+  for ~a: Quant
+  for ~A: Kind(a)
+  for ~f: A -> Bool
+  for xs: List<a, A>
+  {Bool.not(List.all(~a, ~A, ~(x => Bool.not(f(x))), xs)) == List.any(~a, ~A, ~f, xs) : Bool}
+
+def any_eq_not_all_not_sym(a, A, f, xs):
+  Equal.sym(Bool, List.any(~a, ~A, ~f, xs), Bool.not(List.all(~a, ~A, ~(x => Bool.not(f(x))), xs)), any_eq_not_all_not(~a, ~A, ~f, xs))

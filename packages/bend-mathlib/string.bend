@@ -1,6 +1,7 @@
 # bend-mathlib/string.bend: String append, reverse and length, and comparison.
 # Comparison descends String.eq -> String.cmp -> Char.cmp -> U32.cmp -> Word.cmp.
 import Base
+import ./nat.bend as MNat
 import ./bool.bend as MBool
 
 def internal_false_ne_true(e: {False{} == True{} : Bool}) -> Empty:
@@ -286,6 +287,182 @@ def eq_of_eq_true(a, b, h):
     case SCon{Chr{+x}, +t1} SCon{Chr{+y}, +t2}:
       internal_step(x, y, t1, t2, U32.cmp(x, y), {==}, h, hh => eq_of_eq_true(t1, t2, hh))
 
+def internal_length_reverse_go(s: String, -acc: String) -> {Nat.add(String.length(s), String.length(acc)) == String.length(String.reverse.go(s, acc)) : Nat}:
+  match s:
+    case SNil{}:
+      {==}
+    case SCon{h, +t}:
+      %MNat.add_succ(String.length(t), String.length(acc)) : {_ == String.length(String.reverse.go(t, SCon{h, acc})) : Nat}
+      internal_length_reverse_go(t, SCon{h, acc})
+
+# Reversing preserves the length.
+law length_reverse:
+  for s: String
+  {String.length(String.reverse(s)) == String.length(s) : Nat}
+
+def length_reverse(s):
+  +s = s
+  Equal.trans(Nat, String.length(String.reverse(s)), Nat.add(String.length(s), 0n), String.length(s), Equal.sym(Nat, Nat.add(String.length(s), 0n), String.length(String.reverse(s)), internal_length_reverse_go(s, SNil{})), MNat.add_zero(String.length(s)))
+
+# Reversing the empty string gives the empty string.
+law reverse_nil:
+  {String.reverse(SNil{}) == SNil{} : String}
+
+def reverse_nil():
+  {==}
+
+# Reversing a one-character string gives it back.
+law reverse_singleton:
+  for -c: Char
+  {String.reverse(SCon{c, SNil{}}) == SCon{c, SNil{}} : String}
+
+def reverse_singleton(c):
+  {==}
+
+# A string is empty exactly when its length is zero.
+law is_empty_iff_length_eq_zero:
+  for s: String
+  {String.is_empty(s) == Nat.is_eq(String.length(s), 0n) : Bool}
+
+def is_empty_iff_length_eq_zero(s):
+  match s:
+    case SNil{}:
+      {==}
+    case SCon{h, t}:
+      {==}
+
+# An append is empty exactly when both parts are.
+law is_empty_append:
+  for a: String
+  for -b: String
+  {String.is_empty(String.append(a, b)) == Bool.and(String.is_empty(a), String.is_empty(b)) : Bool}
+
+def is_empty_append(a, b):
+  match a:
+    case SNil{}:
+      {==}
+    case SCon{h, t}:
+      {==}
+
+def internal_is_empty_reverse_go(s: String, -c: Char, -acc: String) -> {String.is_empty(String.reverse.go(s, SCon{c, acc})) == False{} : Bool}:
+  match s:
+    case SNil{}:
+      {==}
+    case SCon{h, t}:
+      internal_is_empty_reverse_go(t, h, SCon{c, acc})
+
+# The reverse is empty exactly when the string is.
+law is_empty_reverse:
+  for s: String
+  {String.is_empty(String.reverse(s)) == String.is_empty(s) : Bool}
+
+def is_empty_reverse(s):
+  match s:
+    case SNil{}:
+      {==}
+    case SCon{h, t}:
+      internal_is_empty_reverse_go(t, h, SNil{})
+
+# Taking n characters and appending the rest after dropping n gives the string back.
+law take_append_drop:
+  for s: String
+  for n: Nat
+  {String.append(String.take(s, n), String.drop(s, n)) == s : String}
+
+def take_append_drop(s, n):
+  match s n:
+    case SNil{} _:
+      {==}
+    case SCon{h, t} 0n:
+      {==}
+    case SCon{+h, t} 1n+p:
+      %take_append_drop(t, p) : {SCon{h, String.append(String.take(t, p), String.drop(t, p))} == SCon{h, _} : String}
+      {==}
+
+# Taking n characters leaves min(n, length) of them.
+law length_take:
+  for s: String
+  for n: Nat
+  {String.length(String.take(s, n)) == Nat.min(n, String.length(s)) : Nat}
+
+def length_take(s, n):
+  match s n:
+    case SNil{} _:
+      Equal.sym(Nat, Nat.min(n, 0n), 0n, MNat.min_zero(n))
+    case SCon{h, t} 0n:
+      {==}
+    case SCon{h, t} 1n+p:
+      %length_take(t, p) : {1n+String.length(String.take(t, p)) == 1n+_ : Nat}
+      {==}
+
+# Dropping n characters leaves length - n of them.
+law length_drop:
+  for s: String
+  for n: Nat
+  {String.length(String.drop(s, n)) == Nat.sub(String.length(s), n) : Nat}
+
+def length_drop(s, n):
+  match s n:
+    case SNil{} _:
+      Equal.sym(Nat, Nat.sub(0n, n), 0n, MNat.zero_sub(n))
+    case SCon{h, t} 0n:
+      {==}
+    case SCon{h, t} 1n+p:
+      length_drop(t, p)
+
+# Converting a character list to a string and back gives the list.
+law to_list_from_list:
+  for cs: List<&2, Char>
+  {String.to_list(String.from_list(cs)) == cs : List<&2, Char>}
+
+def to_list_from_list(cs):
+  match cs:
+    case Nil{}:
+      {==}
+    case +h <> t:
+      %to_list_from_list(t) : {h <> String.to_list(String.from_list(t)) == h <> _ : List<&2, Char>}
+      {==}
+
+# Converting a string to a character list and back gives the string.
+law from_list_to_list:
+  for s: String
+  {String.from_list(String.to_list(s)) == s : String}
+
+def from_list_to_list(s):
+  match s:
+    case SNil{}:
+      {==}
+    case SCon{+h, t}:
+      %from_list_to_list(t) : {SCon{h, String.from_list(String.to_list(t))} == SCon{h, _} : String}
+      {==}
+
+# The characters of an append are the characters of each part, appended.
+law to_list_append:
+  for a: String
+  for -b: String
+  {String.to_list(String.append(a, b)) == List.append(&2, Char, String.to_list(a), String.to_list(b)) : List<&2, Char>}
+
+def to_list_append(a, b):
+  match a:
+    case SNil{}:
+      {==}
+    case SCon{+h, t}:
+      %to_list_append(t, b) : {h <> String.to_list(String.append(t, b)) == h <> _ : List<&2, Char>}
+      {==}
+
+# A string has as many characters as its character list.
+law length_to_list:
+  for s: String
+  {List.length(&2, Char, String.to_list(s)) == String.length(s) : Nat}
+
+def length_to_list(s):
+  match s:
+    case SNil{}:
+      {==}
+    case SCon{h, t}:
+      %length_to_list(t) : {1n+List.length(&2, Char, String.to_list(t)) == 1n+_ : Nat}
+      {==}
+
 # --- generated: _sym twins (tools/mathlib/twins.ts), do not edit ---
 
 # The empty string is a right identity for append: a ++ "" = a, reversed to rewrite toward the simple side.
@@ -380,3 +557,111 @@ law eq_refl_sym:
 
 def eq_refl_sym(s):
   Equal.sym(Bool, String.eq(s, s), True{}, eq_refl(s))
+
+# Reversing preserves the length, reversed to rewrite toward the simple side.
+law length_reverse_sym:
+  for s: String
+  {String.length(s) == String.length(String.reverse(s)) : Nat}
+
+def length_reverse_sym(s):
+  Equal.sym(Nat, String.length(String.reverse(s)), String.length(s), length_reverse(s))
+
+# Reversing the empty string gives the empty string, reversed to rewrite toward the simple side.
+law reverse_nil_sym:
+  {SNil{} == String.reverse(SNil{}) : String}
+
+def reverse_nil_sym():
+  Equal.sym(String, String.reverse(SNil{}), SNil{}, reverse_nil())
+
+# Reversing a one-character string gives it back, reversed to rewrite toward the simple side.
+law reverse_singleton_sym:
+  for -c: Char
+  {SCon{c, SNil{}} == String.reverse(SCon{c, SNil{}}) : String}
+
+def reverse_singleton_sym(c):
+  Equal.sym(String, String.reverse(SCon{c, SNil{}}), SCon{c, SNil{}}, reverse_singleton(c))
+
+# A string is empty exactly when its length is zero, reversed to rewrite toward the simple side.
+law is_empty_iff_length_eq_zero_sym:
+  for s: String
+  {Nat.is_eq(String.length(s), 0n) == String.is_empty(s) : Bool}
+
+def is_empty_iff_length_eq_zero_sym(s):
+  Equal.sym(Bool, String.is_empty(s), Nat.is_eq(String.length(s), 0n), is_empty_iff_length_eq_zero(s))
+
+# An append is empty exactly when both parts are, reversed to rewrite toward the simple side.
+law is_empty_append_sym:
+  for a: String
+  for -b: String
+  {Bool.and(String.is_empty(a), String.is_empty(b)) == String.is_empty(String.append(a, b)) : Bool}
+
+def is_empty_append_sym(a, b):
+  Equal.sym(Bool, String.is_empty(String.append(a, b)), Bool.and(String.is_empty(a), String.is_empty(b)), is_empty_append(a, b))
+
+# The reverse is empty exactly when the string is, reversed to rewrite toward the simple side.
+law is_empty_reverse_sym:
+  for s: String
+  {String.is_empty(s) == String.is_empty(String.reverse(s)) : Bool}
+
+def is_empty_reverse_sym(s):
+  Equal.sym(Bool, String.is_empty(String.reverse(s)), String.is_empty(s), is_empty_reverse(s))
+
+# Taking n characters and appending the rest after dropping n gives the string back, reversed to rewrite toward the simple side.
+law take_append_drop_sym:
+  for s: String
+  for n: Nat
+  {s == String.append(String.take(s, n), String.drop(s, n)) : String}
+
+def take_append_drop_sym(s, n):
+  Equal.sym(String, String.append(String.take(s, n), String.drop(s, n)), s, take_append_drop(s, n))
+
+# Taking n characters leaves min(n, length) of them, reversed to rewrite toward the simple side.
+law length_take_sym:
+  for s: String
+  for n: Nat
+  {Nat.min(n, String.length(s)) == String.length(String.take(s, n)) : Nat}
+
+def length_take_sym(s, n):
+  Equal.sym(Nat, String.length(String.take(s, n)), Nat.min(n, String.length(s)), length_take(s, n))
+
+# Dropping n characters leaves length - n of them, reversed to rewrite toward the simple side.
+law length_drop_sym:
+  for s: String
+  for n: Nat
+  {Nat.sub(String.length(s), n) == String.length(String.drop(s, n)) : Nat}
+
+def length_drop_sym(s, n):
+  Equal.sym(Nat, String.length(String.drop(s, n)), Nat.sub(String.length(s), n), length_drop(s, n))
+
+# Converting a character list to a string and back gives the list, reversed to rewrite toward the simple side.
+law to_list_from_list_sym:
+  for cs: List<&2, Char>
+  {cs == String.to_list(String.from_list(cs)) : List<&2, Char>}
+
+def to_list_from_list_sym(cs):
+  Equal.sym(List<&2, Char>, String.to_list(String.from_list(cs)), cs, to_list_from_list(cs))
+
+# Converting a string to a character list and back gives the string, reversed to rewrite toward the simple side.
+law from_list_to_list_sym:
+  for s: String
+  {s == String.from_list(String.to_list(s)) : String}
+
+def from_list_to_list_sym(s):
+  Equal.sym(String, String.from_list(String.to_list(s)), s, from_list_to_list(s))
+
+# The characters of an append are the characters of each part, appended, reversed to rewrite toward the simple side.
+law to_list_append_sym:
+  for a: String
+  for -b: String
+  {List.append(&2, Char, String.to_list(a), String.to_list(b)) == String.to_list(String.append(a, b)) : List<&2, Char>}
+
+def to_list_append_sym(a, b):
+  Equal.sym(List<&2, Char>, String.to_list(String.append(a, b)), List.append(&2, Char, String.to_list(a), String.to_list(b)), to_list_append(a, b))
+
+# A string has as many characters as its character list, reversed to rewrite toward the simple side.
+law length_to_list_sym:
+  for s: String
+  {String.length(s) == List.length(&2, Char, String.to_list(s)) : Nat}
+
+def length_to_list_sym(s):
+  Equal.sym(Nat, List.length(&2, Char, String.to_list(s)), String.length(s), length_to_list(s))
