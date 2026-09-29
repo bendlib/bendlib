@@ -3,7 +3,7 @@
 // and render a static site with relative links into tools/docs/dist/.
 //
 // usage: bun tools/docs/build.ts [--limit N] [--only name@version|0xhash,...] [--no-check]
-//          [--local entry.bend] [--jobs N] [--timeout SEC (default 180)] [--mem-mb MB] [--out DIR] [--cache DIR]
+//          [--local entry.bend] [--jobs N] [--timeout SEC (default 180)] [--mem-mb MB] [--rss-mb MB] [--out DIR] [--cache DIR]
 //          [--require-sandbox]
 // exit: 0 site written · 1 fatal error or required-sandbox checks failed · 2 usage or toolchain mismatch
 
@@ -31,15 +31,15 @@ const MAX_SRC_BYTES = 400 * 1024;
 // PLAN §5.2: big proofs check in ~29 s, so 20 s produced false timeouts (bend-4r8.12).
 export const DEFAULT_TIMEOUT = 180;
 
-type Args = { limit: number | null; only: string[] | null; local: string | null; check: boolean; jobs: number; timeout: number; memMb: number; out: string; cache: string; requireSandbox: boolean };
+type Args = { limit: number | null; only: string[] | null; local: string | null; check: boolean; jobs: number; timeout: number; memMb: number; rssMb: number; out: string; cache: string; requireSandbox: boolean };
 
 function usage(msg: string): never {
-  console.error(`build: ${msg}\nusage: bun tools/docs/build.ts [--limit N] [--only name@version|0xhash,...] [--no-check] [--local entry.bend] [--jobs N] [--timeout SEC (default 180)] [--mem-mb MB] [--out DIR] [--cache DIR] [--require-sandbox]`);
+  console.error(`build: ${msg}\nusage: bun tools/docs/build.ts [--limit N] [--only name@version|0xhash,...] [--no-check] [--local entry.bend] [--jobs N] [--timeout SEC (default 180)] [--mem-mb MB] [--rss-mb MB] [--out DIR] [--cache DIR] [--require-sandbox]`);
   process.exit(2);
 }
 
 function parseArgs(argv: string[]): Args {
-  const a: Args = { limit: null, only: null, local: null, check: true, jobs: 8, timeout: DEFAULT_TIMEOUT, memMb: 16384, out: join(HERE, "dist"), cache: join(HERE, ".cache"), requireSandbox: false };
+  const a: Args = { limit: null, only: null, local: null, check: true, jobs: 8, timeout: DEFAULT_TIMEOUT, memMb: 16384, rssMb: 3072, out: join(HERE, "dist"), cache: join(HERE, ".cache"), requireSandbox: false };
   let outSet = false;
   const num = (i: number) => {
     const n = Number(argv[i + 1]);
@@ -54,6 +54,7 @@ function parseArgs(argv: string[]): Args {
     else if (f === "--jobs") a.jobs = Math.floor(num(i++));
     else if (f === "--timeout") a.timeout = num(i++);
     else if (f === "--mem-mb") a.memMb = num(i++);
+    else if (f === "--rss-mb") a.rssMb = num(i++);
     else if (f === "--local") { if (!argv[i + 1]) usage("--local needs an entry .bend file"); a.local = resolve(argv[++i]); }
     else if (f === "--only") { if (!argv[i + 1]) usage("--only needs a list"); a.only = argv[++i].split(",").filter(Boolean); }
     else if (f === "--out") { if (!argv[i + 1]) usage("--out needs a directory"); a.out = resolve(argv[++i]); outSet = true; }
@@ -64,11 +65,11 @@ function parseArgs(argv: string[]): Args {
   return a;
 }
 
-/** A cached status is stale when absent, a timeout with more room now, a memory-cap abort (the cap may have grown), or a pre-probe sandbox failure. */
-export function stale(c: FileStatus | undefined, timeout: number): boolean {
+/** A cached status is stale when absent, a timeout or memory limit with more room now, an address-space abort, or a pre-probe sandbox failure. */
+export function stale(c: FileStatus | undefined, timeout: number, rssMb = Infinity): boolean {
   return c === undefined
     || (c.class === "timeout" && c.seconds < timeout - 1)
-    || c.class === "limit"
+    || (c.class === "limit" && (c.rssMb ?? 0) < rssMb)
     || (c.class === "fails" && /^ASSERTION FAILED: MemoryExhaustion\b/.test(c.detail))
     || (c.class === "fails" && /^bwrap: /.test(c.detail));
 }
@@ -222,10 +223,10 @@ async function main() {
   let sandboxFails = 0;
   if (args.check) {
     const todo: { hash: string; path: string }[] = [];
-    for (const { entry: e, manifest } of good) for (const { path } of manifest) if (path.endsWith(".bend") && stale(cache[statusKey(e.hash, path, compiler)], args.timeout)) todo.push({ hash: e.hash, path });
+    for (const { entry: e, manifest } of good) for (const { path } of manifest) if (path.endsWith(".bend") && stale(cache[statusKey(e.hash, path, compiler)], args.timeout, args.rssMb)) todo.push({ hash: e.hash, path });
     let done = 0;
     await pool(todo, args.jobs, async ({ hash, path }) => {
-      const s = await checkFile(join(lib, hash, path), { bendLib: lib, timeoutSec: args.timeout, memMb: args.memMb, cwd: join(lib, hash) });
+      const s = await checkFile(join(lib, hash, path), { bendLib: lib, timeoutSec: args.timeout, memMb: args.memMb, rssMb: args.rssMb, cwd: join(lib, hash) });
       // A sandbox failure is not a file status: never cache it, so the next run retries the check.
       if (s.class === "sandbox") sandboxFails++;
       else cache[statusKey(hash, path, compiler)] = s;

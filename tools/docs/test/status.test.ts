@@ -101,7 +101,7 @@ describe("crossCheck", () => {
 });
 
 describe("checkCommand", () => {
-  const o = { bendLib: "/lib", timeoutSec: 20, memMb: 4096, cwd: "/pkg" };
+  const o = { bendLib: "/lib", timeoutSec: 20, memMb: 4096, rssMb: 3072, cwd: "/pkg" };
   test("sandboxed: bwrap with a read-only root and read-only BEND_LIB, inner check unchanged", () => {
     const argv = checkCommand("/lib/h/f.bend", o, true);
     expect(argv[0]).toBe("bwrap");
@@ -201,7 +201,23 @@ describe("checkFile under the sandbox", () => {
   test.skipIf(!hasBwrap)("the good fixture checks inside bwrap", async () => {
     const entry = join(import.meta.dir, "..", "..", "mathlib", "fixtures", "good", "list.bend");
     const lib = mkdtempSync(join(tmpdir(), "bend-docs-sandbox-"));
-    const s = await checkFile(entry, { bendLib: lib, timeoutSec: 120, memMb: 4096, cwd: dirname(entry) });
+    const s = await checkFile(entry, { bendLib: lib, timeoutSec: 120, memMb: 16384, rssMb: 3072, cwd: dirname(entry) });
     expect(s.class).toBe("checks");
   }, 180_000);
+});
+
+describe("resident-memory limit", () => {
+  const entry = join(import.meta.dir, "..", "..", "..", "packages", "bend-mathlib", "nat.bend");
+  test.skipIf(process.platform !== "linux")("a check over the limit is killed and reported as `limit`, with the limit", async () => {
+    const lib = mkdtempSync(join(tmpdir(), "bend-docs-rss-"));
+    const s = await checkFile(entry, { bendLib: lib, timeoutSec: 120, memMb: 16384, rssMb: 20, cwd: dirname(entry) });
+    expect(s.class).toBe("limit");
+    expect(s.rssMb).toBe(20);
+  }, 180_000);
+  test("a cached `limit` is re-checked only when the limit has grown", () => {
+    const at = (rssMb?: number): FileStatus => ({ class: "limit", summary: "", detail: "", exitCode: null, seconds: 1, rssMb });
+    expect(stale(at(3072), 60, 3072)).toBe(false);
+    expect(stale(at(3072), 60, 8192)).toBe(true);
+    expect(stale(at(), 60, 3072)).toBe(true);
+  });
 });

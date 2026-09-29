@@ -1,7 +1,7 @@
 // status: `bend <file> --check-only` per file on the pinned compiler, under a
 // timeout and an address-space cap, classified and cached by (hash, compiler).
 
-import { existsSync, readFileSync, writeFileSync, mkdirSync, renameSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, writeFileSync, mkdirSync, renameSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { homedir } from "node:os";
 import { CLEAN, stripCommentsAndStrings } from "../../mathlib/lib.ts";
@@ -16,6 +16,7 @@ export type FileStatus = {
   unsafeDefs?: string[];
   exitCode: number | null;
   seconds: number;
+  rssMb?: number;        // the resident-memory limit a `limit` status was reached under
 };
 
 /** Packages take the worst class of their files, in this order. */
@@ -38,9 +39,10 @@ function firstBlock(out: string): string {
 }
 
 /** Classifies checker output; anything not recognised verbatim counts as `fails`. */
-export function classify(out: string, exitCode: number | null, timedOut: boolean, seconds: number): FileStatus {
+export function classify(out: string, exitCode: number | null, timedOut: boolean, seconds: number, overRssMb?: number): FileStatus {
   const text = out.replace(/\r/g, "").trim();
   const base = { exitCode, seconds };
+  if (overRssMb !== undefined) return { ...base, class: "limit", summary: `not checked: the checker went over ${overRssMb} MB of memory`, detail: "", rssMb: overRssMb };
   if (timedOut) return { ...base, class: "timeout", summary: `no answer within ${Math.round(seconds)} s`, detail: text.slice(0, 2000) };
   if (exitCode === 0 && text === CLEAN) return { ...base, class: "checks", summary: "ALL PROOFS CHECK", detail: "" };
   // the checker's JS engine aborting under our address-space cap is no verdict on the file
@@ -109,7 +111,7 @@ export function crossCheck(s: FileStatus, source: string): FileStatus {
   };
 }
 
-export type CheckOptions = { bendLib: string; timeoutSec: number; memMb: number; cwd: string };
+export type CheckOptions = { bendLib: string; timeoutSec: number; memMb: number; rssMb: number; cwd: string };
 
 /** The bwrap binary the probe and the checks share; `BEND_DOCS_BWRAP` overrides the PATH lookup. */
 export function bwrapPath(): string {
@@ -152,11 +154,30 @@ export async function checkFile(file: string, o: CheckOptions): Promise<FileStat
     stdout: "pipe", stderr: "pipe", stdin: "ignore",
   });
   let timedOut = false;
+  let overRss = false;
   const timer = setTimeout(() => { timedOut = true; proc.kill("SIGKILL"); }, o.timeoutSec * 1000);
+  // ulimit -v cannot bound real memory: the engine reserves GBs it never touches, and one check
+  // of a hub file takes 9.6 GB resident, so parallel checks are bounded by resident size instead
+  const watch = setInterval(() => {
+    if (treeRssKb(proc.pid) > o.rssMb * 1024) { overRss = true; proc.kill("SIGKILL"); }
+  }, 100);
   const [so, se] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text()]);
   const code = await proc.exited;
   clearTimeout(timer);
-  return classify(`${so}${se}`, timedOut ? null : code, timedOut, (performance.now() - t0) / 1000);
+  clearInterval(watch);
+  return classify(`${so}${se}`, timedOut || overRss ? null : code, timedOut, (performance.now() - t0) / 1000, overRss ? o.rssMb : undefined);
+}
+
+/** Resident KB of a process and its descendants (Linux /proc; 0 where there is none). */
+export function treeRssKb(pid: number): number {
+  let kb = 0;
+  try {
+    kb += Number(readFileSync(`/proc/${pid}/status`, "utf8").match(/^VmRSS:\s+(\d+)/m)?.[1] ?? 0);
+    for (const t of readdirSync(`/proc/${pid}/task`)) {
+      for (const c of readFileSync(`/proc/${pid}/task/${t}/children`, "utf8").trim().split(/\s+/)) if (c !== "") kb += treeRssKb(Number(c));
+    }
+  } catch { /* exited, or no /proc */ }
+  return kb;
 }
 
 export function compilerVersion(): string {
