@@ -27,6 +27,9 @@ def my_rev(xs):
 ```
 
 Every lemma with its statement: [packages/bend-mathlib/README.md](packages/bend-mathlib/README.md).
+Proving with an AI agent? Give it [skills/bend-mathlib/SKILL.md](skills/bend-mathlib/SKILL.md)
+(copy the folder into your agent's skills directory, e.g. `~/.claude/skills/`): it teaches the
+agent to find, import and rewrite with these lemmas instead of re-proving them.
 By hash (content-pinned): `import 0x676cb0b2ca8c3fdeee47023a54e3ac54/nat.bend as MNat`.
 
 ## Principles
