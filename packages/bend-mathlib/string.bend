@@ -188,7 +188,7 @@ law eq_refl:
   {String.eq(s, s) == True{} : Bool}
 
 def eq_refl(s):
-  %internal_cmp_refl(s) : {String.eq.fin(_) == True{} : Bool}
+  %internal_cmp_refl(s) : {Cmp.is_eq(Pair.snd(String & String, Cmp, _)) == True{} : Bool}
   {==}
 
 def internal_fin_head(ab: Bool, bb: Bool, c: Cmp, h: {Cmp.is_eq(Word.cmp.fin(ab, bb, c)) == True{} : Bool}) -> {ab == bb : Bool}:
@@ -248,7 +248,7 @@ def char_eq_of_is_eq(a, b, h):
       %u32_eq_of_is_eq(x, y, h) : {Chr{x} == Chr{_} : Char}
       {==}
 
-def internal_rec_is_eq(h1: Char, h2: Char, rr: (String & String) & Cmp) -> {String.eq.fin(String.cmp.rec(h1, h2, rr)) == String.eq.fin(rr) : Bool}:
+def internal_rec_is_eq(h1: Char, h2: Char, rr: (String & String) & Cmp) -> {Cmp.is_eq(Pair.snd(String & String, Cmp, String.cmp.rec(h1, h2, rr))) == Cmp.is_eq(Pair.snd(String & String, Cmp, rr)) : Bool}:
   match rr:
     case ((a, b), c):
       {==}
@@ -257,7 +257,7 @@ def internal_is_eq_of(c: Cmp, +d: Cmp, e: {c == d : Cmp}, h: {Cmp.is_eq(c) == Tr
   %e : {Cmp.is_eq(_) == True{} : Bool}
   h
 
-def internal_step(+x: U32, +y: U32, +t1: String, +t2: String, c: Cmp, ec: {c == U32.cmp(x, y) : Cmp}, h: {String.eq.fin(String.cmp.fin(t1, t2, ((Chr{x}, Chr{y}), c))) == True{} : Bool}, ih: {String.eq(t1, t2) == True{} : Bool} -> {t1 == t2 : String}) -> {SCon{Chr{x}, t1} == SCon{Chr{y}, t2} : String}:
+def internal_step(+x: U32, +y: U32, +t1: String, +t2: String, c: Cmp, ec: {c == U32.cmp(x, y) : Cmp}, h: {Cmp.is_eq(Pair.snd(String & String, Cmp, String.cmp.fin(t1, t2, ((Chr{x}, Chr{y}), c)))) == True{} : Bool}, ih: {String.eq(t1, t2) == True{} : Bool} -> {t1 == t2 : String}) -> {SCon{Chr{x}, t1} == SCon{Chr{y}, t2} : String}:
   match c:
     case LT{}:
       Empty.absurd({SCon{Chr{x}, t1} == SCon{Chr{y}, t2} : String}, internal_false_ne_true(h))
@@ -265,7 +265,7 @@ def internal_step(+x: U32, +y: U32, +t1: String, +t2: String, c: Cmp, ec: {c == 
       Empty.absurd({SCon{Chr{x}, t1} == SCon{Chr{y}, t2} : String}, internal_false_ne_true(h))
     case EQ{}:
       %u32_eq_of_is_eq(x, y, internal_is_eq_of(EQ{}, U32.cmp(x, y), ec, {==})) : {SCon{Chr{x}, t1} == SCon{Chr{_}, t2} : String}
-      %ih(Equal.trans(Bool, String.eq(t1, t2), String.eq.fin(String.cmp.rec(Chr{x}, Chr{y}, String.cmp(t1, t2))), True{}, Equal.sym(Bool, String.eq.fin(String.cmp.rec(Chr{x}, Chr{y}, String.cmp(t1, t2))), String.eq(t1, t2), internal_rec_is_eq(Chr{x}, Chr{y}, String.cmp(t1, t2))), h)) : {SCon{Chr{x}, t1} == SCon{Chr{x}, _} : String}
+      %ih(Equal.trans(Bool, String.eq(t1, t2), Cmp.is_eq(Pair.snd(String & String, Cmp, String.cmp.rec(Chr{x}, Chr{y}, String.cmp(t1, t2)))), True{}, Equal.sym(Bool, Cmp.is_eq(Pair.snd(String & String, Cmp, String.cmp.rec(Chr{x}, Chr{y}, String.cmp(t1, t2)))), String.eq(t1, t2), internal_rec_is_eq(Chr{x}, Chr{y}, String.cmp(t1, t2))), h)) : {SCon{Chr{x}, t1} == SCon{Chr{x}, _} : String}
       {==}
 
 # Two strings that String.eq calls equal are equal.
