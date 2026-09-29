@@ -1497,6 +1497,64 @@ def add_le_add_left(a, b, k, h):
     case 1n+p:
       add_le_add_left(a, b, p, h)
 
+# Adding on the right preserves the order: a <= b implies a + k <= b + k.
+law add_le_add_right:
+  for +a: Nat
+  for +b: Nat
+  for +k: Nat
+  for h: le(a, b)
+  le(Nat.add(a, k), Nat.add(b, k))
+
+def add_le_add_right(a, b, k, h):
+  %add_comm(k, a) : le(_, Nat.add(b, k))
+  %add_comm(k, b) : le(Nat.add(k, a), _)
+  add_le_add_left(a, b, k, h)
+
+# Adding the same amount on the left does not change the order test: a <= b tests as k + a <= k + b.
+law le_add_cancel:
+  for k: Nat
+  for -a: Nat
+  for -b: Nat
+  {Nat.is_le(a, b) == Nat.is_le(Nat.add(k, a), Nat.add(k, b)) : Bool}
+
+def le_add_cancel(k, a, b):
+  match k:
+    case 0n:
+      {==}
+    case 1n+p:
+      le_add_cancel(p, a, b)
+
+# Adding two bounded summands stays bounded: a <= c and b <= d imply a + b <= c + d.
+law add_le_add:
+  for +a: Nat
+  for +b: Nat
+  for +c: Nat
+  for +d: Nat
+  for h1: le(a, c)
+  for h2: le(b, d)
+  le(Nat.add(a, b), Nat.add(c, d))
+
+def add_le_add(a, b, c, d, h1, h2):
+  le_trans(Nat.add(a, b), Nat.add(c, b), Nat.add(c, d), add_le_add_right(a, c, b, h1), add_le_add_left(b, d, c, h2))
+
+# A sum is at most c exactly when a <= c and b <= c - a: a + b <= c tests as both.
+law le_and_le_sub_iff_add_le:
+  for a: Nat
+  for -b: Nat
+  for c: Nat
+  {Bool.and(Nat.is_le(a, c), Nat.is_le(b, Nat.sub(c, a))) == Nat.is_le(Nat.add(a, b), c) : Bool}
+
+def le_and_le_sub_iff_add_le(a, b, c):
+  match a c:
+    case 0n 0n:
+      {==}
+    case 0n 1n+j:
+      {==}
+    case 1n+i 0n:
+      {==}
+    case 1n+i 1n+j:
+      le_and_le_sub_iff_add_le(i, b, j)
+
 # The only natural at most zero is zero.
 law le_zero_eq:
   for n: Nat
@@ -2257,6 +2315,26 @@ law not_is_lt_sym:
 
 def not_is_lt_sym(a, b):
   Equal.sym(Bool, Bool.not(Nat.is_lt(a, b)), Nat.is_le(b, a), not_is_lt(a, b))
+
+# Adding the same amount on the left does not change the order test: a <= b tests as k + a <= k + b, reversed to rewrite toward the simple side.
+law le_add_cancel_sym:
+  for k: Nat
+  for -a: Nat
+  for -b: Nat
+  {Nat.is_le(Nat.add(k, a), Nat.add(k, b)) == Nat.is_le(a, b) : Bool}
+
+def le_add_cancel_sym(k, a, b):
+  Equal.sym(Bool, Nat.is_le(a, b), Nat.is_le(Nat.add(k, a), Nat.add(k, b)), le_add_cancel(k, a, b))
+
+# A sum is at most c exactly when a <= c and b <= c - a: a + b <= c tests as both, reversed to rewrite toward the simple side.
+law le_and_le_sub_iff_add_le_sym:
+  for a: Nat
+  for -b: Nat
+  for c: Nat
+  {Nat.is_le(Nat.add(a, b), c) == Bool.and(Nat.is_le(a, c), Nat.is_le(b, Nat.sub(c, a))) : Bool}
+
+def le_and_le_sub_iff_add_le_sym(a, b, c):
+  Equal.sym(Bool, Bool.and(Nat.is_le(a, c), Nat.is_le(b, Nat.sub(c, a))), Nat.is_le(Nat.add(a, b), c), le_and_le_sub_iff_add_le(a, b, c))
 
 # The minimum is at most c exactly when one argument is: min a b <= c tests as a <= c or b <= c, reversed to rewrite toward the simple side.
 law min_le_iff_sym:
