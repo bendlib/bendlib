@@ -659,13 +659,13 @@
       "kind": "law",
       "text": "for ~a: Quant\nfor ~A: Kind(a)\nfor ~f: A -> Bool\nfor xs: List<a, A>\n{List.all(~a, ~A, ~f, xs) == Bool.not(List.any(~a, ~A, ~(x => Bool.not(f(x))), xs)) : Bool}",
       "sha256": "e3c7fca8d9f05654a7300a5e120886531cd1f1cbdb21a86abf0906dfa0b612b8",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.all_eq_not_any_not_sym": {
       "kind": "law",
       "text": "for ~a: Quant\nfor ~A: Kind(a)\nfor ~f: A -> Bool\nfor xs: List<a, A>\n{Bool.not(List.any(~a, ~A, ~(x => Bool.not(f(x))), xs)) == List.all(~a, ~A, ~f, xs) : Bool}",
       "sha256": "0a2439b9226bd57a5c7aaadd15042cff89cce3ee64ce6ea7b6d7abfad9ea0cff",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.all_filter": {
       "kind": "law",
@@ -719,13 +719,13 @@
       "kind": "law",
       "text": "for ~a: Quant\nfor ~A: Kind(a)\nfor ~f: A -> Bool\nfor xs: List<a, A>\n{List.any(~a, ~A, ~f, xs) == Bool.not(List.all(~a, ~A, ~(x => Bool.not(f(x))), xs)) : Bool}",
       "sha256": "344858d615403e0fda73f84ff45d01e0c8bfadc9980d0807c9ad8ef22cb760b7",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.any_eq_not_all_not_sym": {
       "kind": "law",
       "text": "for ~a: Quant\nfor ~A: Kind(a)\nfor ~f: A -> Bool\nfor xs: List<a, A>\n{Bool.not(List.all(~a, ~A, ~(x => Bool.not(f(x))), xs)) == List.any(~a, ~A, ~f, xs) : Bool}",
       "sha256": "5abe1e7cf22c767e771637e4c300d7a5301f34b3c061536a8f3dbc6e6a37651e",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.any_filter": {
       "kind": "law",
@@ -971,13 +971,13 @@
       "kind": "law",
       "text": "for ~A: Data\nfor ~f: A -> Bool\nfor xs: List<&2, A>\n{List.filter(~A, ~f, List.reverse(&2, A, xs)) == List.reverse(&2, A, List.filter(~A, ~f, xs)) : List<&2, A>}",
       "sha256": "d93e7b239ce85e15a708ffab839a419368a9518672a2dd77c1d1b9ff62b22a6b",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.filter_reverse_sym": {
       "kind": "law",
       "text": "for ~A: Data\nfor ~f: A -> Bool\nfor xs: List<&2, A>\n{List.reverse(&2, A, List.filter(~A, ~f, xs)) == List.filter(~A, ~f, List.reverse(&2, A, xs)) : List<&2, A>}",
       "sha256": "c59cb2655c63a43541fc298d425804889819d63c825f9fe86b29ed5cfae87c68",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.filter_true": {
       "kind": "law",
@@ -995,13 +995,13 @@
       "kind": "law",
       "text": "for ~A: Data\nfor ~f: A -> Bool\nfor xs: List<&2, A>\nfor ys: List<&2, A>\n{List.find(~A, ~f, List.append(&2, A, xs, ys)) == Maybe.or(&2, A, List.find(~A, ~f, xs), List.find(~A, ~f, ys)) : Maybe<&2, A>}",
       "sha256": "2b52d8d614849944f707a5963a10b28c41d9d2d979aeae6885c3cba2177c137d",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.find_append_sym": {
       "kind": "law",
       "text": "for ~A: Data\nfor ~f: A -> Bool\nfor xs: List<&2, A>\nfor ys: List<&2, A>\n{Maybe.or(&2, A, List.find(~A, ~f, xs), List.find(~A, ~f, ys)) == List.find(~A, ~f, List.append(&2, A, xs, ys)) : Maybe<&2, A>}",
       "sha256": "bb03f25121a7726552cc640bc26ccf0f43a1a6a462f30f645a89625668d58e17",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.foldl_append": {
       "kind": "law",
@@ -1031,13 +1031,13 @@
       "kind": "law",
       "text": "for ~a: Quant\nfor ~A: Kind(a)\nfor ~B: Type\nfor ~f: B -> A -> B\nfor xs: List<a, A>\nfor -z: B\n{List.foldl(~a, ~A, ~B, ~f, List.reverse(a, A, xs), z) == List.foldr(~a, ~A, ~B, ~(x => y => f(y, x)), xs, z) : B}",
       "sha256": "f2de20beeda245187472b71196294254987592d717108d699af6822b65ed207d",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.foldl_reverse_sym": {
       "kind": "law",
       "text": "for ~a: Quant\nfor ~A: Kind(a)\nfor ~B: Type\nfor ~f: B -> A -> B\nfor xs: List<a, A>\nfor -z: B\n{List.foldr(~a, ~A, ~B, ~(x => y => f(y, x)), xs, z) == List.foldl(~a, ~A, ~B, ~f, List.reverse(a, A, xs), z) : B}",
       "sha256": "a7b9581906638557f4922c3638a5c3b73983f8a6c62558bbfab9bb72c724e3b7",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.foldr_append": {
       "kind": "law",
@@ -1055,13 +1055,13 @@
       "kind": "law",
       "text": "for ~a: Quant\nfor ~A: Kind(a)\nfor xs: List<a, A>\n{List.foldr(~a, ~A, ~List<a, A>, ~(x => acc => x <> acc), xs, Nil{}) == xs : List<a, A>}",
       "sha256": "d7963b97c0c826bc9631fa21871a64055cc07c779e09e4238fdaa543de5b2edf",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.foldr_cons_nil_sym": {
       "kind": "law",
       "text": "for ~a: Quant\nfor ~A: Kind(a)\nfor xs: List<a, A>\n{xs == List.foldr(~a, ~A, ~List<a, A>, ~(x => acc => x <> acc), xs, Nil{}) : List<a, A>}",
       "sha256": "c893cca463110ec83e28d100e87b01e748271ed876e6024358683dd689061391",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.foldr_map": {
       "kind": "law",
@@ -1079,181 +1079,181 @@
       "kind": "law",
       "text": "for ~a: Quant\nfor ~A: Kind(a)\nfor ~B: Type\nfor ~f: A -> B -> B\nfor xs: List<a, A>\nfor -z: B\n{List.foldr(~a, ~A, ~B, ~f, List.reverse(a, A, xs), z) == List.foldl(~a, ~A, ~B, ~(x => y => f(y, x)), xs, z) : B}",
       "sha256": "3d8fbf07baae2c760892db908ae2e8dc3438a4d20cd4444805d8468816e3365f",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.foldr_reverse_sym": {
       "kind": "law",
       "text": "for ~a: Quant\nfor ~A: Kind(a)\nfor ~B: Type\nfor ~f: A -> B -> B\nfor xs: List<a, A>\nfor -z: B\n{List.foldl(~a, ~A, ~B, ~(x => y => f(y, x)), xs, z) == List.foldr(~a, ~A, ~B, ~f, List.reverse(a, A, xs), z) : B}",
       "sha256": "62af96db01dff39a251a5493e37578863e3d7cdfb042be0b3fae8f9847d03baa",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.get_cons_succ": {
       "kind": "law",
       "text": "for -a: Quant\nfor -A: Kind(a)\nfor -x: A\nfor -xs: List<a, A>\nfor -n: Nat\n{List.get(a, A, x <> xs, 1n+n) == List.get(a, A, xs, n) : Maybe<a, A>}",
       "sha256": "11dd48eae30499236649d187303668a5eadc7de9cceeac0b13a21305bc33b692",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.get_cons_succ_sym": {
       "kind": "law",
       "text": "for -a: Quant\nfor -A: Kind(a)\nfor -x: A\nfor -xs: List<a, A>\nfor -n: Nat\n{List.get(a, A, xs, n) == List.get(a, A, x <> xs, 1n+n) : Maybe<a, A>}",
       "sha256": "da6a3da65f300f04c7ae7fcd951e6760139bb3bf1d28977e205cc4730107173a",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.get_cons_zero": {
       "kind": "law",
       "text": "for -a: Quant\nfor -A: Kind(a)\nfor -x: A\nfor -xs: List<a, A>\n{List.get(a, A, x <> xs, 0n) == Some{x} : Maybe<a, A>}",
       "sha256": "21b199b440d6e035a37351209114c947bda3a72510bd1492333cbaf4df217352",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.get_cons_zero_sym": {
       "kind": "law",
       "text": "for -a: Quant\nfor -A: Kind(a)\nfor -x: A\nfor -xs: List<a, A>\n{Some{x} == List.get(a, A, x <> xs, 0n) : Maybe<a, A>}",
       "sha256": "b5593c3652e7795ef319c857547deea3653f0ef9359f971647bccfad4baae239",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.get_map": {
       "kind": "law",
       "text": "for ~A: Type\nfor ~B: Type\nfor ~f: A -> B\nfor xs: List<A>\nfor n: Nat\n{List.get(&1, B, List.map(~A, ~B, ~f, xs), n) == Maybe.map(&1, A, B, f, List.get(&1, A, xs, n)) : Maybe<&1, B>}",
       "sha256": "4a70b05a8f37e5ab2d1c817e0d13011f608ae0cf4bfdc9f6118a17ebd018f5c7",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.get_map_sym": {
       "kind": "law",
       "text": "for ~A: Type\nfor ~B: Type\nfor ~f: A -> B\nfor xs: List<A>\nfor n: Nat\n{Maybe.map(&1, A, B, f, List.get(&1, A, xs, n)) == List.get(&1, B, List.map(~A, ~B, ~f, xs), n) : Maybe<&1, B>}",
       "sha256": "c0fb7fc56c39f81bc26dbe9b2bdf92a2acc6abc828f3db1c7b02cf2f5eb64305",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.get_set_self": {
       "kind": "law",
       "text": "for -a: Quant\nfor -A: Kind(a)\nfor xs: List<a, A>\nfor n: Nat\nfor -x: A\n{List.get(a, A, List.set(a, A, xs, n, x), n) == Maybe.map(a, A, A, y => x, List.get(a, A, xs, n)) : Maybe<a, A>}",
       "sha256": "f773a9b6f30b67ce04a90e2976ee473ef1369ea3fd7fe6cd9aa6c80cf0a2c8e1",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.get_set_self_sym": {
       "kind": "law",
       "text": "for -a: Quant\nfor -A: Kind(a)\nfor xs: List<a, A>\nfor n: Nat\nfor -x: A\n{Maybe.map(a, A, A, y => x, List.get(a, A, xs, n)) == List.get(a, A, List.set(a, A, xs, n, x), n) : Maybe<a, A>}",
       "sha256": "6362d1b3cee732b9f5a6c240ffc7a1d09192a6bfc69275ec3fd09343ab9e7edd",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.head_append": {
       "kind": "law",
       "text": "for -a: Quant\nfor -A: Kind(a)\nfor xs: List<a, A>\nfor -ys: List<a, A>\n{List.head(a, A, List.append(a, A, xs, ys)) == Maybe.or(a, A, List.head(a, A, xs), List.head(a, A, ys)) : Maybe<a, A>}",
       "sha256": "a177bedf6b6cdef761093300076c7615dc8cda768d2ef44d20761149e6415713",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.head_append_sym": {
       "kind": "law",
       "text": "for -a: Quant\nfor -A: Kind(a)\nfor xs: List<a, A>\nfor -ys: List<a, A>\n{Maybe.or(a, A, List.head(a, A, xs), List.head(a, A, ys)) == List.head(a, A, List.append(a, A, xs, ys)) : Maybe<a, A>}",
       "sha256": "f2fe22154a3402380e32c51eac9a61e2561702c2428ca8bd963cf0998731176e",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.head_cons": {
       "kind": "law",
       "text": "for -a: Quant\nfor -A: Kind(a)\nfor -x: A\nfor -xs: List<a, A>\n{List.head(a, A, x <> xs) == Some{x} : Maybe<a, A>}",
       "sha256": "cdb5062da0dbe146e8ca88c8e8ab53e44331cab0b0a8a7e2a9ed8317b71e3de7",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.head_cons_sym": {
       "kind": "law",
       "text": "for -a: Quant\nfor -A: Kind(a)\nfor -x: A\nfor -xs: List<a, A>\n{Some{x} == List.head(a, A, x <> xs) : Maybe<a, A>}",
       "sha256": "4503c00b2d08b1bcec33544e726cfd961a37234c10be449a77514a42d17e100f",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.head_map": {
       "kind": "law",
       "text": "for ~A: Type\nfor ~B: Type\nfor ~f: A -> B\nfor xs: List<A>\n{List.head(&1, B, List.map(~A, ~B, ~f, xs)) == Maybe.map(&1, A, B, f, List.head(&1, A, xs)) : Maybe<&1, B>}",
       "sha256": "87721e09ae5c69f797c01a27aaa41a4df1c83d9a45bb27ea7449beb114ef2283",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.head_map_sym": {
       "kind": "law",
       "text": "for ~A: Type\nfor ~B: Type\nfor ~f: A -> B\nfor xs: List<A>\n{Maybe.map(&1, A, B, f, List.head(&1, A, xs)) == List.head(&1, B, List.map(~A, ~B, ~f, xs)) : Maybe<&1, B>}",
       "sha256": "58b76b99777bf01facc9d0c8c0e57b12d7a184fb9484f9eca5583cff0e84d274",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.head_reverse": {
       "kind": "law",
       "text": "for -a: Quant\nfor -A: Kind(a)\nfor xs: List<a, A>\n{List.head(a, A, List.reverse(a, A, xs)) == List.last(a, A, xs) : Maybe<a, A>}",
       "sha256": "0512fcaf823640d71104653c00d5d5ca39a87aad5352af712ea1ee78c1ce48b1",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.head_reverse_sym": {
       "kind": "law",
       "text": "for -a: Quant\nfor -A: Kind(a)\nfor xs: List<a, A>\n{List.last(a, A, xs) == List.head(a, A, List.reverse(a, A, xs)) : Maybe<a, A>}",
       "sha256": "fbd6eab6259e11c7c8b852fe84330dc02fe2edbd05a018b0b1aefe9c2e4010fd",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.is_empty_append": {
       "kind": "law",
       "text": "for -a: Quant\nfor -A: Kind(a)\nfor xs: List<a, A>\nfor -ys: List<a, A>\n{List.is_empty(a, A, List.append(a, A, xs, ys)) == Bool.and(List.is_empty(a, A, xs), List.is_empty(a, A, ys)) : Bool}",
       "sha256": "fe4347bfb7e8a3793809eef6bc3363aae74e2fcde430dc167e5ce9cdaa5de2c1",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.is_empty_append_sym": {
       "kind": "law",
       "text": "for -a: Quant\nfor -A: Kind(a)\nfor xs: List<a, A>\nfor -ys: List<a, A>\n{Bool.and(List.is_empty(a, A, xs), List.is_empty(a, A, ys)) == List.is_empty(a, A, List.append(a, A, xs, ys)) : Bool}",
       "sha256": "ba4a16dac3039a3a2f4d80db44474695a93aca96378d5ee02bba3184e4500a46",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.is_empty_iff_length_eq_zero": {
       "kind": "law",
       "text": "for -a: Quant\nfor -A: Kind(a)\nfor xs: List<a, A>\n{List.is_empty(a, A, xs) == Nat.is_eq(List.length(a, A, xs), 0n) : Bool}",
       "sha256": "1f540b06015d0140830e9ac9944ad8f8331f69cf99ad4c8182a55844681f7548",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.is_empty_iff_length_eq_zero_sym": {
       "kind": "law",
       "text": "for -a: Quant\nfor -A: Kind(a)\nfor xs: List<a, A>\n{Nat.is_eq(List.length(a, A, xs), 0n) == List.is_empty(a, A, xs) : Bool}",
       "sha256": "b9af0ea35a4f41f9085753766985a551d98be7f9e2f97981b958d842defd7f4a",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.is_empty_map": {
       "kind": "law",
       "text": "for ~A: Type\nfor ~B: Type\nfor ~f: A -> B\nfor xs: List<A>\n{List.is_empty(&1, B, List.map(~A, ~B, ~f, xs)) == List.is_empty(&1, A, xs) : Bool}",
       "sha256": "ac797a13c26fce704a327e437496688c79ca6395ea13d9e63c84ed3fd9ed5123",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.is_empty_map_sym": {
       "kind": "law",
       "text": "for ~A: Type\nfor ~B: Type\nfor ~f: A -> B\nfor xs: List<A>\n{List.is_empty(&1, A, xs) == List.is_empty(&1, B, List.map(~A, ~B, ~f, xs)) : Bool}",
       "sha256": "19500d091aeb298833116d5475825bb3f94c81245a37c9402864b3befa7b9207",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.is_empty_reverse": {
       "kind": "law",
       "text": "for -a: Quant\nfor -A: Kind(a)\nfor xs: List<a, A>\n{List.is_empty(a, A, List.reverse(a, A, xs)) == List.is_empty(a, A, xs) : Bool}",
       "sha256": "3a498b07f9ed31ac651f7526d2c58ace1a3edce23ff2d110c2bdfb11821ef9df",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.is_empty_reverse_sym": {
       "kind": "law",
       "text": "for -a: Quant\nfor -A: Kind(a)\nfor xs: List<a, A>\n{List.is_empty(a, A, xs) == List.is_empty(a, A, List.reverse(a, A, xs)) : Bool}",
       "sha256": "cae6de8fe78ec713e4386597b262b39601db54bce4c3464e8a31b5bfc884401b",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.last_append_singleton": {
       "kind": "law",
       "text": "for -a: Quant\nfor -A: Kind(a)\nfor xs: List<a, A>\nfor -x: A\n{List.last(a, A, List.append(a, A, xs, [x])) == Some{x} : Maybe<a, A>}",
       "sha256": "8ef7c062d7652f9a62a823f1f55ffb89accdf6dec0098fd78e3da9be480f92ad",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.last_append_singleton_sym": {
       "kind": "law",
       "text": "for -a: Quant\nfor -A: Kind(a)\nfor xs: List<a, A>\nfor -x: A\n{Some{x} == List.last(a, A, List.append(a, A, xs, [x])) : Maybe<a, A>}",
       "sha256": "884bd344b82d014af6f1a422d6384af50c065b34b1016709f77bcb8bb3174188",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.last_reverse": {
       "kind": "law",
       "text": "for -a: Quant\nfor -A: Kind(a)\nfor xs: List<a, A>\n{List.last(a, A, List.reverse(a, A, xs)) == List.head(a, A, xs) : Maybe<a, A>}",
       "sha256": "18c5e8685fe85bff2b553cab6661dd6f047fb521f1525f3204a14945b811e2f3",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.last_reverse_sym": {
       "kind": "law",
       "text": "for -a: Quant\nfor -A: Kind(a)\nfor xs: List<a, A>\n{List.head(a, A, xs) == List.last(a, A, List.reverse(a, A, xs)) : Maybe<a, A>}",
       "sha256": "ed2e8be4fad0de7b9b3e39c7f80e87f0f5b05c30a7cc0798cf1353ad5a353e7d",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.length_append": {
       "kind": "law",
@@ -1367,13 +1367,13 @@
       "kind": "law",
       "text": "for -a: Quant\nfor -A: Kind(a)\nfor xs: List<a, A>\nfor n: Nat\nfor -x: A\n{List.length(a, A, List.set(a, A, xs, n, x)) == List.length(a, A, xs) : Nat}",
       "sha256": "1d7037074017e2404fe575447178849f7ee43c4faddd7c9b16bbdb531d67027a",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.length_set_sym": {
       "kind": "law",
       "text": "for -a: Quant\nfor -A: Kind(a)\nfor xs: List<a, A>\nfor n: Nat\nfor -x: A\n{List.length(a, A, xs) == List.length(a, A, List.set(a, A, xs, n, x)) : Nat}",
       "sha256": "36ab7042b21c71e76aecd1e7eb32b92356b6112c749203bc0189f2a078257e44",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.length_tail": {
       "kind": "law",
@@ -1541,13 +1541,13 @@
       "kind": "law",
       "text": "for n: Nat\n{List.range(1n+n) == List.append(&2, Nat, List.range(n), [n]) : List<&2, Nat>}",
       "sha256": "762be7efdfe510ce4cb6630a33d7724236f6de04b72976826349fee79e06e899",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.range_succ_sym": {
       "kind": "law",
       "text": "for n: Nat\n{List.append(&2, Nat, List.range(n), [n]) == List.range(1n+n) : List<&2, Nat>}",
       "sha256": "1ef49e7123e917a63c8b4786c8ef42079ec37c47f3c600d444a7b8881df77cce",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.replicate_add": {
       "kind": "law",
@@ -1679,13 +1679,13 @@
       "kind": "law",
       "text": "for ~A: Type\nfor ~B: Type\nfor ~f: A -> B\nfor xs: List<A>\n{List.tail(&1, B, List.map(~A, ~B, ~f, xs)) == List.map(~A, ~B, ~f, List.tail(&1, A, xs)) : List<B>}",
       "sha256": "6da3176ade859ee6cba12d2e29c144d5c3dbab6da38b111972bca784fd858582",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.tail_map_sym": {
       "kind": "law",
       "text": "for ~A: Type\nfor ~B: Type\nfor ~f: A -> B\nfor xs: List<A>\n{List.map(~A, ~B, ~f, List.tail(&1, A, xs)) == List.tail(&1, B, List.map(~A, ~B, ~f, xs)) : List<B>}",
       "sha256": "90b974e91937481b610515e77efdd59c321cfdfdfeda2cd80a62629c6a76678d",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.take_append": {
       "kind": "law",
@@ -1799,25 +1799,25 @@
       "kind": "law",
       "text": "for -a: Quant\nfor -A: Kind(a)\nfor -b: Quant\nfor -B: Kind(b)\nfor -ys: List<b, B>\n{List.zip(a, A, b, B, Nil{}, ys) == Nil{} : List<&1, A & B>}",
       "sha256": "b35482b13d57748b15ce81d34e6db247dcbc642983f29e1277b2748de63ce313",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.zip_nil_left_sym": {
       "kind": "law",
       "text": "for -a: Quant\nfor -A: Kind(a)\nfor -b: Quant\nfor -B: Kind(b)\nfor -ys: List<b, B>\n{Nil{} == List.zip(a, A, b, B, Nil{}, ys) : List<&1, A & B>}",
       "sha256": "7c84cff042651b3553cc964259053077a83f44bd4479c3fb5adee13e0ed6e9b6",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.zip_nil_right": {
       "kind": "law",
       "text": "for -a: Quant\nfor -A: Kind(a)\nfor -b: Quant\nfor -B: Kind(b)\nfor xs: List<a, A>\n{List.zip(a, A, b, B, xs, Nil{}) == Nil{} : List<&1, A & B>}",
       "sha256": "090f9a210908a2906bd7eade9356b40105d7cc14cb8a6fecc04c2a5b0114c2aa",
-      "since": null
+      "since": "0.7.0.0"
     },
     "list.zip_nil_right_sym": {
       "kind": "law",
       "text": "for -a: Quant\nfor -A: Kind(a)\nfor -b: Quant\nfor -B: Kind(b)\nfor xs: List<a, A>\n{Nil{} == List.zip(a, A, b, B, xs, Nil{}) : List<&1, A & B>}",
       "sha256": "c58127b4b4cfe0062873a861cd81d77610290f693f02812ede90972f26cf169b",
-      "since": null
+      "since": "0.7.0.0"
     },
     "maybe.maybe_bind_assoc": {
       "kind": "law",
@@ -1835,25 +1835,25 @@
       "kind": "law",
       "text": "for ~A: Data\nfor ~B: Data\nfor ~C: Data\nfor ~f: A -> B\nfor ~g: B -> Maybe<&2, C>\nfor m: Maybe<&2, A>\n{Maybe.bind(&2, B, C, Maybe.map(&2, A, B, f, m), g) == Maybe.bind(&2, A, C, m, x => g(f(x))) : Maybe<&2, C>}",
       "sha256": "5789643e9e82db6f3436a00f453b2dd687216df235044de4ff56507155391c05",
-      "since": null
+      "since": "0.7.0.0"
     },
     "maybe.maybe_bind_map_sym": {
       "kind": "law",
       "text": "for ~A: Data\nfor ~B: Data\nfor ~C: Data\nfor ~f: A -> B\nfor ~g: B -> Maybe<&2, C>\nfor m: Maybe<&2, A>\n{Maybe.bind(&2, A, C, m, x => g(f(x))) == Maybe.bind(&2, B, C, Maybe.map(&2, A, B, f, m), g) : Maybe<&2, C>}",
       "sha256": "27ea03c21da88de12e5da7e71f782622eacd3fd4ea511f4378f24ad82c5f2e6b",
-      "since": null
+      "since": "0.7.0.0"
     },
     "maybe.maybe_bind_none": {
       "kind": "law",
       "text": "for ~A: Data\nfor ~B: Data\nfor m: Maybe<&2, A>\n{Maybe.bind(&2, A, B, m, x => None{}) == None{} : Maybe<&2, B>}",
       "sha256": "6c4569d0a25e870da85a1fd1f1157dd85e2ef8fc70a14b54ad6b2f413be7f721",
-      "since": null
+      "since": "0.7.0.0"
     },
     "maybe.maybe_bind_none_sym": {
       "kind": "law",
       "text": "for ~A: Data\nfor ~B: Data\nfor m: Maybe<&2, A>\n{None{} == Maybe.bind(&2, A, B, m, x => None{}) : Maybe<&2, B>}",
       "sha256": "f2963fc902b05da76e0a5009abcf0a7b4c8b9a3acf42faa5cc943858d8f93f59",
-      "since": null
+      "since": "0.7.0.0"
     },
     "maybe.maybe_bind_pure": {
       "kind": "law",
@@ -1871,49 +1871,49 @@
       "kind": "law",
       "text": "for ~A: Data\nfor ~B: Data\nfor ~f: A -> B\nfor m: Maybe<&2, A>\nfor -d: A\n{Maybe.default(&2, B, Maybe.map(&2, A, B, f, m), f(d)) == f(Maybe.default(&2, A, m, d)) : B}",
       "sha256": "db6d45b7f2e4be690ba9c99198cb6f07cb3172f8c61bb82f00c110b4a9d0e7fb",
-      "since": null
+      "since": "0.7.0.0"
     },
     "maybe.maybe_default_map_sym": {
       "kind": "law",
       "text": "for ~A: Data\nfor ~B: Data\nfor ~f: A -> B\nfor m: Maybe<&2, A>\nfor -d: A\n{f(Maybe.default(&2, A, m, d)) == Maybe.default(&2, B, Maybe.map(&2, A, B, f, m), f(d)) : B}",
       "sha256": "e2be2441d1efe2378e8eab775cd767db8606b4952a89f8bc980806905b93eb21",
-      "since": null
+      "since": "0.7.0.0"
     },
     "maybe.maybe_is_none_map": {
       "kind": "law",
       "text": "for ~A: Data\nfor ~B: Data\nfor ~f: A -> B\nfor m: Maybe<&2, A>\n{Maybe.is_none(&2, B, Maybe.map(&2, A, B, f, m)) == Maybe.is_none(&2, A, m) : Bool}",
       "sha256": "8dd36c15be5f10a5b7468858a30483a42fddc6010b777905ff7d4c89d8d20b57",
-      "since": null
+      "since": "0.7.0.0"
     },
     "maybe.maybe_is_none_map_sym": {
       "kind": "law",
       "text": "for ~A: Data\nfor ~B: Data\nfor ~f: A -> B\nfor m: Maybe<&2, A>\n{Maybe.is_none(&2, A, m) == Maybe.is_none(&2, B, Maybe.map(&2, A, B, f, m)) : Bool}",
       "sha256": "88201692320d824c3b727ad8eaa2c216b80f56a759bda305cb48477f5d956649",
-      "since": null
+      "since": "0.7.0.0"
     },
     "maybe.maybe_is_some_map": {
       "kind": "law",
       "text": "for ~A: Data\nfor ~B: Data\nfor ~f: A -> B\nfor m: Maybe<&2, A>\n{Maybe.is_some(&2, B, Maybe.map(&2, A, B, f, m)) == Maybe.is_some(&2, A, m) : Bool}",
       "sha256": "845187cae3c824dfd81c0b5a59ee1b2863c063de96f7977f4745ab9d15e21458",
-      "since": null
+      "since": "0.7.0.0"
     },
     "maybe.maybe_is_some_map_sym": {
       "kind": "law",
       "text": "for ~A: Data\nfor ~B: Data\nfor ~f: A -> B\nfor m: Maybe<&2, A>\n{Maybe.is_some(&2, A, m) == Maybe.is_some(&2, B, Maybe.map(&2, A, B, f, m)) : Bool}",
       "sha256": "89de1390aa1c3fdbdb86f7598ce9cdb98928dbfb749bbe339031a2d3ea7c87b9",
-      "since": null
+      "since": "0.7.0.0"
     },
     "maybe.maybe_map_bind": {
       "kind": "law",
       "text": "for ~A: Data\nfor ~B: Data\nfor ~C: Data\nfor ~f: A -> Maybe<&2, B>\nfor ~g: B -> C\nfor m: Maybe<&2, A>\n{Maybe.map(&2, B, C, g, Maybe.bind(&2, A, B, m, f)) == Maybe.bind(&2, A, C, m, x => Maybe.map(&2, B, C, g, f(x))) : Maybe<&2, C>}",
       "sha256": "a124fbce7b262156b3b71913ba8b3a89a7038f3bb6328e6578c92e5429c7c9d5",
-      "since": null
+      "since": "0.7.0.0"
     },
     "maybe.maybe_map_bind_sym": {
       "kind": "law",
       "text": "for ~A: Data\nfor ~B: Data\nfor ~C: Data\nfor ~f: A -> Maybe<&2, B>\nfor ~g: B -> C\nfor m: Maybe<&2, A>\n{Maybe.bind(&2, A, C, m, x => Maybe.map(&2, B, C, g, f(x))) == Maybe.map(&2, B, C, g, Maybe.bind(&2, A, B, m, f)) : Maybe<&2, C>}",
       "sha256": "e9b0b5daa222b6a31bf88c485cbda4fb7639e1a352e6f286e8cda541064db5a3",
-      "since": null
+      "since": "0.7.0.0"
     },
     "maybe.maybe_map_compose": {
       "kind": "law",
@@ -1931,25 +1931,25 @@
       "kind": "law",
       "text": "for ~A: Data\nfor ~B: Data\nfor ~f: A -> B\nfor m: Maybe<&2, A>\n{Maybe.map(&2, A, B, f, m) == Maybe.bind(&2, A, B, m, x => Maybe.pure(&2, B, f(x))) : Maybe<&2, B>}",
       "sha256": "66226455549412946dd2b20f28816114f8678b7e36cc521b3e19857bbf75b1c5",
-      "since": null
+      "since": "0.7.0.0"
     },
     "maybe.maybe_map_eq_bind_sym": {
       "kind": "law",
       "text": "for ~A: Data\nfor ~B: Data\nfor ~f: A -> B\nfor m: Maybe<&2, A>\n{Maybe.bind(&2, A, B, m, x => Maybe.pure(&2, B, f(x))) == Maybe.map(&2, A, B, f, m) : Maybe<&2, B>}",
       "sha256": "9b48c9bbb3d742f5e098d6d389b373936ea6cf003482280e9e882ba7e15af09e",
-      "since": null
+      "since": "0.7.0.0"
     },
     "maybe.maybe_map_id": {
       "kind": "law",
       "text": "for ~A: Data\nfor m: Maybe<&2, A>\n{Maybe.map(&2, A, A, x => x, m) == m : Maybe<&2, A>}",
       "sha256": "1f667e3b9826c9d2a59c3d7c2161c4c00bbbadeb5274f69470fa579fdab0015a",
-      "since": null
+      "since": "0.7.0.0"
     },
     "maybe.maybe_map_id_sym": {
       "kind": "law",
       "text": "for ~A: Data\nfor m: Maybe<&2, A>\n{m == Maybe.map(&2, A, A, x => x, m) : Maybe<&2, A>}",
       "sha256": "9941d7c16ba02a47f9b6a08cabd645046b85439fa0d1e831ceee952bf6b03a34",
-      "since": null
+      "since": "0.7.0.0"
     },
     "maybe.maybe_map_pure": {
       "kind": "law",
@@ -1967,25 +1967,25 @@
       "kind": "law",
       "text": "for ~A: Data\nfor m: Maybe<&2, A>\nfor -n: Maybe<&2, A>\nfor -k: Maybe<&2, A>\n{Maybe.or(&2, A, Maybe.or(&2, A, m, n), k) == Maybe.or(&2, A, m, Maybe.or(&2, A, n, k)) : Maybe<&2, A>}",
       "sha256": "2df64912054b93fcfb0d6a7ae7da9d910423efae665d09c8f38b7b5fd0325f99",
-      "since": null
+      "since": "0.7.0.0"
     },
     "maybe.maybe_or_assoc_sym": {
       "kind": "law",
       "text": "for ~A: Data\nfor m: Maybe<&2, A>\nfor -n: Maybe<&2, A>\nfor -k: Maybe<&2, A>\n{Maybe.or(&2, A, m, Maybe.or(&2, A, n, k)) == Maybe.or(&2, A, Maybe.or(&2, A, m, n), k) : Maybe<&2, A>}",
       "sha256": "2bc7bdb0291b204c3bad59c535c6d1fd59aa90474cb1544a25ee363eb3aa37a3",
-      "since": null
+      "since": "0.7.0.0"
     },
     "maybe.maybe_or_none": {
       "kind": "law",
       "text": "for ~A: Data\nfor m: Maybe<&2, A>\n{Maybe.or(&2, A, m, None{}) == m : Maybe<&2, A>}",
       "sha256": "14a2a381b6560334c7daba9909d07799c80861b7356fe9fbb29efb59ffff5180",
-      "since": null
+      "since": "0.7.0.0"
     },
     "maybe.maybe_or_none_sym": {
       "kind": "law",
       "text": "for ~A: Data\nfor m: Maybe<&2, A>\n{m == Maybe.or(&2, A, m, None{}) : Maybe<&2, A>}",
       "sha256": "ffec0e688be3dc6371ea6aad5f2dc736d7a4a64b2b230372ad0a71eb0d303afb",
-      "since": null
+      "since": "0.7.0.0"
     },
     "maybe.maybe_pure_bind": {
       "kind": "law",
@@ -2099,43 +2099,43 @@
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\nfor c: Nat\nfor d: Nat\nfor h1: lt(a, c)\nfor h2: lt(b, d)\nlt(Nat.add(a, b), Nat.add(c, d))",
       "sha256": "aa6fa2c101a82ecc9ff70c3ef67086bdb84b9c5e6f6389c1ba8d8fd2a4e4f052",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.add_lt_add_iff_left": {
       "kind": "law",
       "text": "for k: Nat\nfor -a: Nat\nfor -b: Nat\n{Nat.is_lt(a, b) == Nat.is_lt(Nat.add(k, a), Nat.add(k, b)) : Bool}",
       "sha256": "e7170adae07aa68f3bd83090aa8ac0f218a729b77256496500407e780e0ed45d",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.add_lt_add_iff_left_sym": {
       "kind": "law",
       "text": "for k: Nat\nfor -a: Nat\nfor -b: Nat\n{Nat.is_lt(Nat.add(k, a), Nat.add(k, b)) == Nat.is_lt(a, b) : Bool}",
       "sha256": "fdb247f988ac5be817996eb872f358f3e604a79fdc807351f04fbc837df0da27",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.add_lt_add_iff_right": {
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\nfor k: Nat\n{Nat.is_lt(a, b) == Nat.is_lt(Nat.add(a, k), Nat.add(b, k)) : Bool}",
       "sha256": "db0095c9689ed9a133d0de22c6ee369127413c9f5198760e96bcf7546df2747a",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.add_lt_add_iff_right_sym": {
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\nfor k: Nat\n{Nat.is_lt(Nat.add(a, k), Nat.add(b, k)) == Nat.is_lt(a, b) : Bool}",
       "sha256": "b4d123322a5d81cea6749d41da3c807a6e0fdb11a5a1138c3fada244fb524700",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.add_lt_add_left": {
       "kind": "law",
       "text": "for -a: Nat\nfor -b: Nat\nfor k: Nat\nfor h: lt(a, b)\nlt(Nat.add(k, a), Nat.add(k, b))",
       "sha256": "d9e9a5309ffa2dab7ce5c49f5610150659bd179d04fabb1c4f435bcea75c5d67",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.add_lt_add_right": {
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\nfor k: Nat\nfor h: lt(a, b)\nlt(Nat.add(a, k), Nat.add(b, k))",
       "sha256": "4e3a7438b91326076cab51d261420ae43e5c05bd6cd037c0886516e6a0d4c832",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.add_mod_left": {
       "kind": "law",
@@ -2159,49 +2159,49 @@
       "kind": "law",
       "text": "for x: Nat\nfor z: Nat\nfor b: Nat\n{Nat.div(Nat.add(x, Nat.mul(1n+b, z)), 1n+b) == Nat.add(Nat.div(x, 1n+b), z) : Nat}",
       "sha256": "8ed6a04351d44392096b43afdb16a7e1492de452c8816986edd1e4b0f38bd16e",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.add_mul_div_left_sym": {
       "kind": "law",
       "text": "for x: Nat\nfor z: Nat\nfor b: Nat\n{Nat.add(Nat.div(x, 1n+b), z) == Nat.div(Nat.add(x, Nat.mul(1n+b, z)), 1n+b) : Nat}",
       "sha256": "d1a1509d5a397b9cdbd602010eba10776f3824febe680b5d7774a9ddb14ee1c9",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.add_mul_div_right": {
       "kind": "law",
       "text": "for x: Nat\nfor z: Nat\nfor b: Nat\n{Nat.div(Nat.add(x, Nat.mul(z, 1n+b)), 1n+b) == Nat.add(Nat.div(x, 1n+b), z) : Nat}",
       "sha256": "9be628cf84b67ff8958d4fa25c2ac1051bfb478fb95330b11604e46ff05b4930",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.add_mul_div_right_sym": {
       "kind": "law",
       "text": "for x: Nat\nfor z: Nat\nfor b: Nat\n{Nat.add(Nat.div(x, 1n+b), z) == Nat.div(Nat.add(x, Nat.mul(z, 1n+b)), 1n+b) : Nat}",
       "sha256": "1e7882af172f17ac8db85eb96e1f0439be9592a49f2a36ca5598adf18df6f2b5",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.add_mul_mod_self_left": {
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\nfor c: Nat\n{Nat.mod(Nat.add(a, Nat.mul(b, c)), b) == Nat.mod(a, b) : Nat}",
       "sha256": "9cde2d7812ada36d9d666e395585bb752a2e09b07de2102d31ae7c7cfaef0afd",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.add_mul_mod_self_left_sym": {
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\nfor c: Nat\n{Nat.mod(a, b) == Nat.mod(Nat.add(a, Nat.mul(b, c)), b) : Nat}",
       "sha256": "afdfb4027fd9c19ff5da82ca01a80db3d2e9d35ab1d023c325284f5133b7b0d2",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.add_mul_mod_self_right": {
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\nfor c: Nat\n{Nat.mod(Nat.add(a, Nat.mul(c, b)), b) == Nat.mod(a, b) : Nat}",
       "sha256": "80f6bf7def2bd71065e077b15643001245e8385325e5bcd52485a03b5f99b009",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.add_mul_mod_self_right_sym": {
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\nfor c: Nat\n{Nat.mod(a, b) == Nat.mod(Nat.add(a, Nat.mul(c, b)), b) : Nat}",
       "sha256": "b1e8442593b0e4594d71ed581b1fbedb875fd663167a1bfe60da7aef3c0fceb7",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.add_mul_sym": {
       "kind": "law",
@@ -2315,13 +2315,13 @@
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\n{Nat.add(Nat.mul(b, Nat.div(a, b)), Nat.mod(a, b)) == a : Nat}",
       "sha256": "48d82ed1970d3d270b323d2854fa16b3d66d5f388b32f900ea79091c1a4f1d1d",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.div_add_mod_sym": {
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\n{a == Nat.add(Nat.mul(b, Nat.div(a, b)), Nat.mod(a, b)) : Nat}",
       "sha256": "a3d4d75fe96b86b2f8be9217723f5eb8e1625ac75b2f8b18c0b26f6f0d335226",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.div_eq_zero_of_le": {
       "kind": "law",
@@ -2537,25 +2537,25 @@
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\n{Nat.is_le(a, b) == Bool.or(Nat.is_lt(a, b), Nat.is_eq(a, b)) : Bool}",
       "sha256": "5b07841bf9ed487e58c0290886b12d07cf0c9f7daa44ca378539cacf07fb4a04",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.le_iff_lt_or_eq_sym": {
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\n{Bool.or(Nat.is_lt(a, b), Nat.is_eq(a, b)) == Nat.is_le(a, b) : Bool}",
       "sha256": "cdc866dc24412a595fa1dc9f6034e4bf92867a5de26132d59c8fd9bbe148cc8c",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.le_max_iff": {
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\nfor c: Nat\n{Nat.is_le(a, Nat.max(b, c)) == Bool.or(Nat.is_le(a, b), Nat.is_le(a, c)) : Bool}",
       "sha256": "407cacc32cf30a3763c695b7127a5fb52796c1e269e8aa0d81df388df8070496",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.le_max_iff_sym": {
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\nfor c: Nat\n{Bool.or(Nat.is_le(a, b), Nat.is_le(a, c)) == Nat.is_le(a, Nat.max(b, c)) : Bool}",
       "sha256": "c6692aece8f18b86021b2fc1102d97af62f1828d7a6f50334fc963335e116bd9",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.le_max_left": {
       "kind": "law",
@@ -2567,13 +2567,13 @@
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\nfor c: Nat\nfor h: le(a, b)\nle(a, Nat.max(b, c))",
       "sha256": "1e130514f1b9dd39e750e8434ac1a79a95ce1aae8a907f96f099743d9d923fb5",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.le_max_of_le_right": {
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\nfor c: Nat\nfor h: le(a, c)\nle(a, Nat.max(b, c))",
       "sha256": "b8ba6d56553f60ee5c7b70ffd67def56d65c6ecb049671218288542255707b4b",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.le_max_right": {
       "kind": "law",
@@ -2597,13 +2597,13 @@
       "kind": "law",
       "text": "for m: Nat\nfor n: Nat\nle(m, Nat.mul(1n+n, m))",
       "sha256": "b0dc5e200650de3352366c26fb7f94e70ab45ae4b4bc84622baa801fd2a1c8d8",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.le_mul_of_pos_right": {
       "kind": "law",
       "text": "for m: Nat\nfor n: Nat\nle(m, Nat.mul(m, 1n+n))",
       "sha256": "04e52049c256fa082988a61386c4513bd75e1db50bb70d38f29b2a32c9e9dea0",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.le_of_add_eq": {
       "kind": "law",
@@ -2627,7 +2627,7 @@
       "kind": "law",
       "text": "for m: Nat\nfor n: Nat\nfor h: lt(m, 1n+n)\nle(m, n)",
       "sha256": "b83f5055493d4d824b67196c903623cb1bd7468185d34282ca34143c412103ae",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.le_of_not_lt": {
       "kind": "law",
@@ -2687,37 +2687,37 @@
       "kind": "law",
       "text": "for n: Nat\nfor k: Nat\nlt(n, Nat.add(1n+k, n))",
       "sha256": "7d241bde18bcff6dbcbe42d54fab9e2afa62affd1297203efd9dc8caaf064ac8",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.lt_add_of_pos_right": {
       "kind": "law",
       "text": "for n: Nat\nfor -k: Nat\nlt(n, Nat.add(n, 1n+k))",
       "sha256": "ffa10bc78e8bd64c511cd883512cd8ad956b034866bc2d9f32fa7090297cd3db",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.lt_add_right": {
       "kind": "law",
       "text": "for n: Nat\nfor m: Nat\nfor -k: Nat\nfor h: lt(n, m)\nlt(n, Nat.add(m, k))",
       "sha256": "c4db55ed1d3c2c89757cbdc876e0c9aa00d93751ce7802b5dae52d62f35660cb",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.lt_asymm": {
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\nfor h: lt(a, b)\nlt(b, a) -> Empty",
       "sha256": "a11f5cf5965046917bfcf5aea597e3379814dc7714e973aae014701f966ecba0",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.lt_iff_le_and_ne": {
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\n{Nat.is_lt(a, b) == Bool.and(Nat.is_le(a, b), Bool.not(Nat.is_eq(a, b))) : Bool}",
       "sha256": "b03d22bdbbd7f4c71190a4b2b27e5c21169dcb91a6423d4d9af6476fa9023bdd",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.lt_iff_le_and_ne_sym": {
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\n{Bool.and(Nat.is_le(a, b), Bool.not(Nat.is_eq(a, b))) == Nat.is_lt(a, b) : Bool}",
       "sha256": "8b61db3bfef5857e892eb94eb0a8c28646ae211e8d95b749a1fd7223f6eb13fa",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.lt_irrefl": {
       "kind": "law",
@@ -2747,25 +2747,25 @@
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\nfor c: Nat\n{Nat.is_lt(a, Nat.min(b, c)) == Bool.and(Nat.is_lt(a, b), Nat.is_lt(a, c)) : Bool}",
       "sha256": "1af9fbf63647e39597511bec7b3e287fc28945dc05f093f659ba98a3b2897b66",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.lt_min_iff_sym": {
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\nfor c: Nat\n{Bool.and(Nat.is_lt(a, b), Nat.is_lt(a, c)) == Nat.is_lt(a, Nat.min(b, c)) : Bool}",
       "sha256": "9ed9da8411d744d75fc2726e7038ddb6c9030d1936e8805a5061434aa2fc4ee5",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.lt_of_add_lt_add_left": {
       "kind": "law",
       "text": "for k: Nat\nfor -a: Nat\nfor -b: Nat\nfor h: lt(Nat.add(k, a), Nat.add(k, b))\nlt(a, b)",
       "sha256": "31c4f00a6cdfd0968b4df1ed7c39de2cee5511a2d17e21a293857cf000a1de4d",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.lt_of_add_lt_add_right": {
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\nfor k: Nat\nfor h: lt(Nat.add(a, k), Nat.add(b, k))\nlt(a, b)",
       "sha256": "d08a11ee9410fe1abda5df4fd0220f3e7f44dd64705b9a4dd125ea7fe420997b",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.lt_of_gt": {
       "kind": "law",
@@ -2789,13 +2789,13 @@
       "kind": "law",
       "text": "for k: Nat\nfor a: Nat\nfor b: Nat\nfor h: lt(Nat.mul(k, a), Nat.mul(k, b))\nlt(a, b)",
       "sha256": "f10c6d9afa95ecc17c9d0acdf2be48107880f07b1bb3ef94a4fddb416975e953",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.lt_of_mul_lt_mul_right": {
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\nfor k: Nat\nfor h: lt(Nat.mul(a, k), Nat.mul(b, k))\nlt(a, b)",
       "sha256": "cefb1d6927c9819656eb5aa51b05a5ebf7a0333703cdc40e5ff91353b00ddc7e",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.lt_of_not_le": {
       "kind": "law",
@@ -2807,13 +2807,13 @@
       "kind": "law",
       "text": "for n: Nat\nfor m: Nat\nfor h: le(1n+n, m)\nlt(n, m)",
       "sha256": "5520aa77c69a4c5ee06e9fe9251cb7b9a3ed42127fc39bdbe6a3be239b45b315",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.lt_of_succ_lt_succ": {
       "kind": "law",
       "text": "for -a: Nat\nfor -b: Nat\nfor h: lt(1n+a, 1n+b)\nlt(a, b)",
       "sha256": "39cf7eddca6d698e8c42cc6609634310960596a0c7429d5ae461184fb9c0e160",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.lt_sub_iff_add_lt": {
       "kind": "law",
@@ -2831,25 +2831,25 @@
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\nfor c: Nat\nfor h: lt(Nat.add(a, b), c)\nlt(a, Nat.sub(c, b))",
       "sha256": "badd30f0ba8db993b036f0738ebf09eb6280a6249dd2365edfa76d13e0716428",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.lt_succ_iff": {
       "kind": "law",
       "text": "for m: Nat\nfor n: Nat\n{Nat.is_lt(m, 1n+n) == Nat.is_le(m, n) : Bool}",
       "sha256": "9f6b6f0409a09c346c29028ca5ce4ab9218e8df6e39a6f407cc4a3e491aa7a3a",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.lt_succ_iff_sym": {
       "kind": "law",
       "text": "for m: Nat\nfor n: Nat\n{Nat.is_le(m, n) == Nat.is_lt(m, 1n+n) : Bool}",
       "sha256": "2e98e1b30a0f8566cef0d52f475947383f5336f7359b09ba601522d9bfcdfa00",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.lt_succ_of_le": {
       "kind": "law",
       "text": "for m: Nat\nfor n: Nat\nfor h: le(m, n)\nlt(m, 1n+n)",
       "sha256": "ee248813b9ecf61035697e6d6f1787f123bcb915fba9234449dfc81cda3117cc",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.lt_succ_self": {
       "kind": "law",
@@ -2873,25 +2873,25 @@
       "kind": "law",
       "text": "for a: Nat\nfor -b: Nat\nfor -c: Nat\n{Nat.max(Nat.add(a, b), Nat.add(a, c)) == Nat.add(a, Nat.max(b, c)) : Nat}",
       "sha256": "2d7924ae67cb43353fa9ae7b5f6e9b193265af20265db346f9d5d2199f3fb16a",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.max_add_add_left_sym": {
       "kind": "law",
       "text": "for a: Nat\nfor -b: Nat\nfor -c: Nat\n{Nat.add(a, Nat.max(b, c)) == Nat.max(Nat.add(a, b), Nat.add(a, c)) : Nat}",
       "sha256": "cd502d143bff7471c1ef01234fffbac99a32ffdb3a6a0017cc6edfe12b782151",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.max_add_add_right": {
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\nfor c: Nat\n{Nat.max(Nat.add(a, c), Nat.add(b, c)) == Nat.add(Nat.max(a, b), c) : Nat}",
       "sha256": "0d61f0c42f82c4799fb4047e8bdabca241abe5ba0e022a0effa0a3e3fa0d5756",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.max_add_add_right_sym": {
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\nfor c: Nat\n{Nat.add(Nat.max(a, b), c) == Nat.max(Nat.add(a, c), Nat.add(b, c)) : Nat}",
       "sha256": "d59a7c209388e37c9ac09422476069850c3ccf1a8086d9041c96154491ffe76b",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.max_assoc": {
       "kind": "law",
@@ -2939,7 +2939,7 @@
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\nfor c: Nat\nfor d: Nat\nfor h1: le(a, c)\nfor h2: le(b, d)\nle(Nat.max(a, b), Nat.max(c, d))",
       "sha256": "814365bebae8fb72fb09ffab1c47c5ae7e3d0a41a0cf03ab4ca7f740a44352e0",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.max_le_sym": {
       "kind": "law",
@@ -2951,25 +2951,25 @@
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\nfor c: Nat\n{Nat.is_lt(Nat.max(a, b), c) == Bool.and(Nat.is_lt(a, c), Nat.is_lt(b, c)) : Bool}",
       "sha256": "d3f9d20a7aae8e813efaa4007da026d1d9826f5dc98283d6976f67ef196ca45b",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.max_lt_iff_sym": {
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\nfor c: Nat\n{Bool.and(Nat.is_lt(a, c), Nat.is_lt(b, c)) == Nat.is_lt(Nat.max(a, b), c) : Bool}",
       "sha256": "75c5edc540045caa6e4fbedb3ad2c0a0f4b68a295e546498f506167352e14d40",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.max_min_distrib_left": {
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\nfor c: Nat\n{Nat.max(a, Nat.min(b, c)) == Nat.min(Nat.max(a, b), Nat.max(a, c)) : Nat}",
       "sha256": "be71ad004b1e1d4c8df311be73b5e0f608772e71bfbb5c5d63dbe70041684190",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.max_min_distrib_left_sym": {
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\nfor c: Nat\n{Nat.min(Nat.max(a, b), Nat.max(a, c)) == Nat.max(a, Nat.min(b, c)) : Nat}",
       "sha256": "88afd8223869e974b9dd4a525bdd94e7b791abef906b3c88d5536504c504ffba",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.max_self": {
       "kind": "law",
@@ -2999,25 +2999,25 @@
       "kind": "law",
       "text": "for a: Nat\nfor -b: Nat\nfor -c: Nat\n{Nat.min(Nat.add(a, b), Nat.add(a, c)) == Nat.add(a, Nat.min(b, c)) : Nat}",
       "sha256": "6d4e5f3a499122fe6d2222a8236699f593736d1085542dcb342fe85ec44269d1",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.min_add_add_left_sym": {
       "kind": "law",
       "text": "for a: Nat\nfor -b: Nat\nfor -c: Nat\n{Nat.add(a, Nat.min(b, c)) == Nat.min(Nat.add(a, b), Nat.add(a, c)) : Nat}",
       "sha256": "b2440e31ca61fea17e48314d63fad28c0d80bd7fd478cef6bd8599c28de6386f",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.min_add_add_right": {
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\nfor c: Nat\n{Nat.min(Nat.add(a, c), Nat.add(b, c)) == Nat.add(Nat.min(a, b), c) : Nat}",
       "sha256": "8e75b299df1a859e7ff0f754847f7178558a3860baaff8bc8cdc0cafbe484992",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.min_add_add_right_sym": {
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\nfor c: Nat\n{Nat.add(Nat.min(a, b), c) == Nat.min(Nat.add(a, c), Nat.add(b, c)) : Nat}",
       "sha256": "9707f13a73922dfc7a40e21c64eecbefdf38f1e80e537bb5235c83145bcc25f9",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.min_add_max": {
       "kind": "law",
@@ -3089,19 +3089,19 @@
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\nfor c: Nat\nfor d: Nat\nfor h1: le(a, c)\nfor h2: le(b, d)\nle(Nat.min(a, b), Nat.min(c, d))",
       "sha256": "46deb815c53070caed69c41721b2e4d89533ca35f5e067fb06ef8ca187e4cf96",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.min_le_of_left_le": {
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\nfor c: Nat\nfor h: le(a, c)\nle(Nat.min(a, b), c)",
       "sha256": "e81fe6642b70a6f938ffa63cf340008848c54e83c2f8c253745aeb33359c6952",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.min_le_of_right_le": {
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\nfor c: Nat\nfor h: le(b, c)\nle(Nat.min(a, b), c)",
       "sha256": "76837bf0b2b23ab6fc0e71f4b5e3944423d43aaf8b85dc0e2d434f931fb3667e",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.min_le_right": {
       "kind": "law",
@@ -3113,25 +3113,25 @@
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\nfor c: Nat\n{Nat.is_lt(Nat.min(a, b), c) == Bool.or(Nat.is_lt(a, c), Nat.is_lt(b, c)) : Bool}",
       "sha256": "a5c5c05cee27a888b616b9190b2b8769289bafc7fcb4e5b55696cb434a5df415",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.min_lt_iff_sym": {
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\nfor c: Nat\n{Bool.or(Nat.is_lt(a, c), Nat.is_lt(b, c)) == Nat.is_lt(Nat.min(a, b), c) : Bool}",
       "sha256": "cf7cbbb37bf339e744425e9292af4f13925eeda66f5b0c3bad65b3acda8f4c16",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.min_max_distrib_left": {
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\nfor c: Nat\n{Nat.min(a, Nat.max(b, c)) == Nat.max(Nat.min(a, b), Nat.min(a, c)) : Nat}",
       "sha256": "39a350b4636f402ee21ecd2f22b71be130fc94fd6deed681617d21a00fa1c255",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.min_max_distrib_left_sym": {
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\nfor c: Nat\n{Nat.max(Nat.min(a, b), Nat.min(a, c)) == Nat.min(a, Nat.max(b, c)) : Nat}",
       "sha256": "21946962e75a01daa59eaf3fff497a9311a6151dd9d8a364ce9994568d9306f3",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.min_self": {
       "kind": "law",
@@ -3227,13 +3227,13 @@
       "kind": "law",
       "text": "for n: Nat\n{Bool.or(Nat.is_eq(Nat.mod(n, 2n), 0n), Nat.is_eq(Nat.mod(n, 2n), 1n)) == True{} : Bool}",
       "sha256": "4b4500c80c96a054f10a372e033c9a9e771c847ad8a7f5f04ff4066b8adb8a14",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.mod_two_eq_zero_or_one_sym": {
       "kind": "law",
       "text": "for n: Nat\n{True{} == Bool.or(Nat.is_eq(Nat.mod(n, 2n), 0n), Nat.is_eq(Nat.mod(n, 2n), 1n)) : Bool}",
       "sha256": "b83504b5e9a854659928b6a535370be8a0a25560f8197442a0b7457c2cb1d388",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.mul_add": {
       "kind": "law",
@@ -3329,19 +3329,19 @@
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\nfor c: Nat\nfor d: Nat\nfor h1: lt(a, c)\nfor h2: lt(b, d)\nlt(Nat.mul(a, b), Nat.mul(c, d))",
       "sha256": "073e428cd138414be43ac674f222055ee5e1be33346b08f252ae31138373bc8c",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.mul_lt_mul_of_pos_left": {
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\nfor k: Nat\nfor h: lt(a, b)\nlt(Nat.mul(1n+k, a), Nat.mul(1n+k, b))",
       "sha256": "a7300fc8e8a3207e54437dcf9670b934aca2657d1532a4e754acd8155465478e",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.mul_lt_mul_of_pos_right": {
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\nfor k: Nat\nfor h: lt(a, b)\nlt(Nat.mul(a, 1n+k), Nat.mul(b, 1n+k))",
       "sha256": "52b089afdf297aefa6f7649ebb52425a1d564bf174588c978fc313a786f339cb",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.mul_mod_left": {
       "kind": "law",
@@ -3419,13 +3419,13 @@
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\nfor h: le(a, b)\nle(Nat.mul(a, a), Nat.mul(b, b))",
       "sha256": "c01c491f21501da489374561d0a84b56628fb7556be30a30902d9b302d65c252",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.mul_self_lt_mul_self": {
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\nfor h: lt(a, b)\nlt(Nat.mul(a, a), Nat.mul(b, b))",
       "sha256": "03ef8157cd3ae41b6ba7864ca2ad3323b6622ed14243e91354ba59fe73f2b40f",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.mul_sub": {
       "kind": "law",
@@ -3533,7 +3533,7 @@
       "kind": "law",
       "text": "for n: Nat\nfor h: {Nat.is_eq(n, 0n) == False{} : Bool}\nlt(0n, n)",
       "sha256": "44abf85f4dd29b4c6632b171b77725383c9505ca3f28c07adc92d947dc2d4f1f",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.pow_add": {
       "kind": "law",
@@ -3551,25 +3551,25 @@
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\nfor h: le(a, b)\nfor n: Nat\nle(Nat.pow(a, n), Nat.pow(b, n))",
       "sha256": "b19dff79e29d056bb3f56589041eb6b53f65050e6127044588a31a9b10dbcc2f",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.pow_le_pow_right": {
       "kind": "law",
       "text": "for a: Nat\nfor i: Nat\nfor j: Nat\nfor h: le(i, j)\nle(Nat.pow(1n+a, i), Nat.pow(1n+a, j))",
       "sha256": "fd5bad393a42709d5c0e1d6e1516604a1341830a0885d88cfac5bd9725c0279b",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.pow_lt_pow_left": {
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\nfor h: lt(a, b)\nfor n: Nat\nlt(Nat.pow(a, 1n+n), Nat.pow(b, 1n+n))",
       "sha256": "a89a4e8bc53c743778180b4727bdc7f098e8fc820d8b874050b35940a9611f6e",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.pow_lt_pow_right": {
       "kind": "law",
       "text": "for a: Nat\nfor i: Nat\nfor j: Nat\nfor h: lt(i, j)\nlt(Nat.pow(2n+a, i), Nat.pow(2n+a, j))",
       "sha256": "01892145c52ff3f0a1d86dccd6647e279adafb50ec9deb34af72c80f85ce09f5",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.pow_mul": {
       "kind": "law",
@@ -3647,19 +3647,19 @@
       "kind": "law",
       "text": "for n: Nat\nfor m: Nat\nfor h: le(n, m)\nfor k: Nat\nle(Nat.sub(k, m), Nat.sub(k, n))",
       "sha256": "0b6246e502c62ed6d67c27b16e1d820315a27690bdeac2f45348796b032ccda7",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.sub_le_sub_right": {
       "kind": "law",
       "text": "for n: Nat\nfor m: Nat\nfor h: le(n, m)\nfor k: Nat\nle(Nat.sub(n, k), Nat.sub(m, k))",
       "sha256": "e0b840cf282dcd83e2754d756cff1b15b6243539deb5c2f28377d3bc3751c486",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.sub_lt": {
       "kind": "law",
       "text": "for n: Nat\nfor m: Nat\nlt(Nat.sub(1n+n, 1n+m), 1n+n)",
       "sha256": "6f19affecdb34fbfe2403407a341a68d59d5254d42e1005a048e1bf07214a37b",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.sub_mul": {
       "kind": "law",
@@ -3677,7 +3677,7 @@
       "kind": "law",
       "text": "for m: Nat\nfor n: Nat\nfor h: lt(m, n)\nlt(0n, Nat.sub(n, m))",
       "sha256": "e9637b79a428608dd41b9f90c57ebc87575bbcfb97969aba5b88da3e45f371ea",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.sub_self": {
       "kind": "law",
@@ -3743,7 +3743,7 @@
       "kind": "law",
       "text": "for n: Nat\nfor m: Nat\nfor h: lt(n, m)\nle(1n+n, m)",
       "sha256": "e2417b34916a75b242494c651683baa4d971d6d8f6462fd8debccaaaef6d6bf0",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.succ_le_succ": {
       "kind": "law",
@@ -3755,7 +3755,7 @@
       "kind": "law",
       "text": "for -a: Nat\nfor -b: Nat\nfor h: lt(a, b)\nlt(1n+a, 1n+b)",
       "sha256": "6844161da94cc5dde52acf1f6746b7da46095bffa7df963dde8fb0d256aa3a10",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.succ_mul": {
       "kind": "law",
@@ -3779,7 +3779,7 @@
       "kind": "law",
       "text": "for -n: Nat\nlt(0n, 1n+n)",
       "sha256": "4debc855ff3ef010daa7c81aa017ed0e31b9d3019bb0a7162feb4be162f69f66",
-      "since": null
+      "since": "0.7.0.0"
     },
     "nat.succ_sub": {
       "kind": "law",
@@ -4253,49 +4253,49 @@
       "kind": "law",
       "text": "for s: String\n{String.from_list(String.to_list(s)) == s : String}",
       "sha256": "1d60eb05eb642b7a4f60f0d905291ec8b3526acecae8ab36029af27280470e40",
-      "since": null
+      "since": "0.7.0.0"
     },
     "string.from_list_to_list_sym": {
       "kind": "law",
       "text": "for s: String\n{s == String.from_list(String.to_list(s)) : String}",
       "sha256": "849979b05b7f1f2204662d684611d7ce83e06e6d810204742c08862f00af55df",
-      "since": null
+      "since": "0.7.0.0"
     },
     "string.is_empty_append": {
       "kind": "law",
       "text": "for a: String\nfor -b: String\n{String.is_empty(String.append(a, b)) == Bool.and(String.is_empty(a), String.is_empty(b)) : Bool}",
       "sha256": "108c1589faf887939ab0f5282557c1c581ffe366a000d73827cf440e46364d96",
-      "since": null
+      "since": "0.7.0.0"
     },
     "string.is_empty_append_sym": {
       "kind": "law",
       "text": "for a: String\nfor -b: String\n{Bool.and(String.is_empty(a), String.is_empty(b)) == String.is_empty(String.append(a, b)) : Bool}",
       "sha256": "7d0c2dd1944207637e04bf10e9824cc3a40aebeb60ba7f8bf32574d7ce68b8d0",
-      "since": null
+      "since": "0.7.0.0"
     },
     "string.is_empty_iff_length_eq_zero": {
       "kind": "law",
       "text": "for s: String\n{String.is_empty(s) == Nat.is_eq(String.length(s), 0n) : Bool}",
       "sha256": "90b986c41dd60e0e861ecff6a3f8666a4e0def2e9ea7d449b1cb7e62b60d46b3",
-      "since": null
+      "since": "0.7.0.0"
     },
     "string.is_empty_iff_length_eq_zero_sym": {
       "kind": "law",
       "text": "for s: String\n{Nat.is_eq(String.length(s), 0n) == String.is_empty(s) : Bool}",
       "sha256": "b9e7a772497156f2496fd03aa8bd915d66065b1f2a9479ae090d0773e8433df6",
-      "since": null
+      "since": "0.7.0.0"
     },
     "string.is_empty_reverse": {
       "kind": "law",
       "text": "for s: String\n{String.is_empty(String.reverse(s)) == String.is_empty(s) : Bool}",
       "sha256": "22145f842c6efdbd4d438b6a54dc67231c8365ea2a825512a8f15e9bf7909fe6",
-      "since": null
+      "since": "0.7.0.0"
     },
     "string.is_empty_reverse_sym": {
       "kind": "law",
       "text": "for s: String\n{String.is_empty(s) == String.is_empty(String.reverse(s)) : Bool}",
       "sha256": "4e2bceb814a52477bac2f3d8c6e6ceecd36857a9a6b446cbe8b662bf3d1974fa",
-      "since": null
+      "since": "0.7.0.0"
     },
     "string.length_append": {
       "kind": "law",
@@ -4313,49 +4313,49 @@
       "kind": "law",
       "text": "for s: String\nfor n: Nat\n{String.length(String.drop(s, n)) == Nat.sub(String.length(s), n) : Nat}",
       "sha256": "2c283abbeaa58512b129d77c5a5fb72039418bded309e4af6c2ccec43f80f2e3",
-      "since": null
+      "since": "0.7.0.0"
     },
     "string.length_drop_sym": {
       "kind": "law",
       "text": "for s: String\nfor n: Nat\n{Nat.sub(String.length(s), n) == String.length(String.drop(s, n)) : Nat}",
       "sha256": "11075e4c9cb103c706bbc4afe5334915d5702350685ebeae4b87611b5922cccc",
-      "since": null
+      "since": "0.7.0.0"
     },
     "string.length_reverse": {
       "kind": "law",
       "text": "for s: String\n{String.length(String.reverse(s)) == String.length(s) : Nat}",
       "sha256": "58f1d4095ab73efa37537c1a7ca15d5ebd9f6a933ea129821591c9c823ef839b",
-      "since": null
+      "since": "0.7.0.0"
     },
     "string.length_reverse_sym": {
       "kind": "law",
       "text": "for s: String\n{String.length(s) == String.length(String.reverse(s)) : Nat}",
       "sha256": "d0519c13c386afc72e1aef044155a72d9858c25c69503f427972f7ea1afc9cdd",
-      "since": null
+      "since": "0.7.0.0"
     },
     "string.length_take": {
       "kind": "law",
       "text": "for s: String\nfor n: Nat\n{String.length(String.take(s, n)) == Nat.min(n, String.length(s)) : Nat}",
       "sha256": "aab832c8211e02821780479a22deb759046ff766dbed3d85749e2131053de6ff",
-      "since": null
+      "since": "0.7.0.0"
     },
     "string.length_take_sym": {
       "kind": "law",
       "text": "for s: String\nfor n: Nat\n{Nat.min(n, String.length(s)) == String.length(String.take(s, n)) : Nat}",
       "sha256": "3d7a8b0a7000903852d0112f5a127f95d1582c1a43ad8becf537cd2589201378",
-      "since": null
+      "since": "0.7.0.0"
     },
     "string.length_to_list": {
       "kind": "law",
       "text": "for s: String\n{List.length(&2, Char, String.to_list(s)) == String.length(s) : Nat}",
       "sha256": "fd39a2816e2b6579527388e5f56113760f4450372c7a6264dc5514ad0b890292",
-      "since": null
+      "since": "0.7.0.0"
     },
     "string.length_to_list_sym": {
       "kind": "law",
       "text": "for s: String\n{String.length(s) == List.length(&2, Char, String.to_list(s)) : Nat}",
       "sha256": "138a6677fb8a13b986a948c750868a11de91298264449143c119a1e6f1f245b8",
-      "since": null
+      "since": "0.7.0.0"
     },
     "string.nil_append": {
       "kind": "law",
@@ -4397,13 +4397,13 @@
       "kind": "law",
       "text": "{String.reverse(SNil{}) == SNil{} : String}",
       "sha256": "8cf19d765230ae2ec7fc61f513e9d198b84ea182635a362d17ae184a354bad5e",
-      "since": null
+      "since": "0.7.0.0"
     },
     "string.reverse_nil_sym": {
       "kind": "law",
       "text": "{SNil{} == String.reverse(SNil{}) : String}",
       "sha256": "afd55ea5c0f39f0aab58f3dced0f807191d188c6231227bfebdcd5e480e5dad9",
-      "since": null
+      "since": "0.7.0.0"
     },
     "string.reverse_reverse": {
       "kind": "law",
@@ -4421,49 +4421,49 @@
       "kind": "law",
       "text": "for -c: Char\n{String.reverse(SCon{c, SNil{}}) == SCon{c, SNil{}} : String}",
       "sha256": "abc27f646d8d47592f6573977a575c730a13f4d2f42cc57a12213817f82dab64",
-      "since": null
+      "since": "0.7.0.0"
     },
     "string.reverse_singleton_sym": {
       "kind": "law",
       "text": "for -c: Char\n{SCon{c, SNil{}} == String.reverse(SCon{c, SNil{}}) : String}",
       "sha256": "5fd73e951131c9715ee41b21069b3ee181e387e1f2b0b8c56e979fb77601b5e9",
-      "since": null
+      "since": "0.7.0.0"
     },
     "string.take_append_drop": {
       "kind": "law",
       "text": "for s: String\nfor n: Nat\n{String.append(String.take(s, n), String.drop(s, n)) == s : String}",
       "sha256": "e433c609f1833e64b898e9738b9df81e332c79f1135aae806b5a78232562bf4d",
-      "since": null
+      "since": "0.7.0.0"
     },
     "string.take_append_drop_sym": {
       "kind": "law",
       "text": "for s: String\nfor n: Nat\n{s == String.append(String.take(s, n), String.drop(s, n)) : String}",
       "sha256": "3904968bb15f90c040309974f923fec27f9e2025c6dbc25c276ee930b8bd26d0",
-      "since": null
+      "since": "0.7.0.0"
     },
     "string.to_list_append": {
       "kind": "law",
       "text": "for a: String\nfor -b: String\n{String.to_list(String.append(a, b)) == List.append(&2, Char, String.to_list(a), String.to_list(b)) : List<&2, Char>}",
       "sha256": "e21e39aa28c9b013a265b09d082342f385e521899ac0de6953b55eebedc9d08d",
-      "since": null
+      "since": "0.7.0.0"
     },
     "string.to_list_append_sym": {
       "kind": "law",
       "text": "for a: String\nfor -b: String\n{List.append(&2, Char, String.to_list(a), String.to_list(b)) == String.to_list(String.append(a, b)) : List<&2, Char>}",
       "sha256": "99ee4d83052ff2f73d435708f26c635e5c3bb4b5a6694eff1beb4288558d5921",
-      "since": null
+      "since": "0.7.0.0"
     },
     "string.to_list_from_list": {
       "kind": "law",
       "text": "for cs: List<&2, Char>\n{String.to_list(String.from_list(cs)) == cs : List<&2, Char>}",
       "sha256": "3be179c02d15cb89d0bcd0d839fbabb6b174c484f625dce6d6544f68675e7787",
-      "since": null
+      "since": "0.7.0.0"
     },
     "string.to_list_from_list_sym": {
       "kind": "law",
       "text": "for cs: List<&2, Char>\n{cs == String.to_list(String.from_list(cs)) : List<&2, Char>}",
       "sha256": "126cc112580850516e260675a9810ff979d099e422bcf79a0ccb342ab1bd18b3",
-      "since": null
+      "since": "0.7.0.0"
     },
     "string.u32_cmp_refl": {
       "kind": "law",

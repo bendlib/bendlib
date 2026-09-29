@@ -11,7 +11,7 @@ import instead of re-proving, and tools that keep laws honest.
 
 | Part | What | Status |
 |---|---|---|
-| [`bend-mathlib`](packages/bend-mathlib) | 310 published lemmas (+211 generated `_sym` twins) about `Nat`, `Bool`, `List`, `String`, equality — generic, proved, zero `@unsafe` | **0.6.0.0 on BendHub** |
+| [`bend-mathlib`](packages/bend-mathlib) | 421 published lemmas (+281 generated `_sym` twins) about `Nat`, `Bool`, `List`, `String`, `Maybe`, equality — generic, proved, zero `@unsafe` | **0.7.0.0 on BendHub** |
 | [`@bendlib/reader`](tools/reader) | Reads Bend source with the official parser of your installed compiler version | working |
 | [`lawcheck`](tools/lawcheck) | Finds counterexamples to laws before you try to prove them, and shrinks them; mutation mode shows how well the laws pin each def | v0.2 working |
 | [Bend Docs](https://bendlib.github.io/bendlib/) | API docs, checker status and law-shape search for every BendHub package | **live**, rebuilt on a schedule (the footer shows the build time) |
@@ -21,8 +21,8 @@ import instead of re-proving, and tools that keep laws honest.
 ![86 lines by hand vs two imports and four rewrites](examples/demo/demo.gif)
 
 ```python
-import bend-mathlib@0.6.0.0/nat.bend as MNat
-import bend-mathlib@0.6.0.0/list.bend as MList
+import bend-mathlib@0.7.0.0/nat.bend as MNat
+import bend-mathlib@0.7.0.0/list.bend as MList
 
 law my_rev:
   for xs: List<&2, U32>
@@ -36,7 +36,7 @@ Every lemma with its statement: [packages/bend-mathlib/README.md](packages/bend-
 Proving with an AI agent? Give it [skills/bend-mathlib/SKILL.md](skills/bend-mathlib/SKILL.md)
 (copy the folder into your agent's skills directory, e.g. `~/.claude/skills/`): it teaches the
 agent to find, import and rewrite with these lemmas instead of re-proving them.
-By hash (content-pinned): `import 0x0eaaf505a355d14d67066b86c801e960/nat.bend as MNat`.
+By hash (content-pinned): `import 0x63d5fd78a2a52f082c7824372390170c/nat.bend as MNat`.
 
 ## Check a law before you prove it
 
@@ -108,7 +108,7 @@ for m in $(find packages/bend-mathlib -name '*.bend' | sort); do bun tools/mathl
 bun tools/mathlib/lint.ts packages/bend-mathlib --erasure
 bun tools/mathlib/twins.ts packages/bend-mathlib --check
 bun tools/mathlib/lock.ts packages/bend-mathlib --check
-bun tools/mathlib/index.ts packages/bend-mathlib bend-mathlib 0.6.0.0 --check
+bun tools/mathlib/index.ts packages/bend-mathlib bend-mathlib 0.7.0.0 --check
 ```
 
 Published statements never change: a fix gets a new name (`PLAN.md` §3.1 rule 2). Full procedure and

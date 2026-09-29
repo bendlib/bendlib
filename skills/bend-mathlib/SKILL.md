@@ -5,7 +5,7 @@ description: Use when writing or proving Bend 2 laws (a `law` and its proof `def
 
 # bend-mathlib
 
-bend-mathlib is a BendHub package of machine-checked lemmas for Bend 2: 310 lemmas about `Nat`,
+bend-mathlib is a BendHub package of machine-checked lemmas for Bend 2: 421 lemmas about `Nat`,
 `Bool`, `List`, `String`, `Maybe` and equality, plus abstract order/algebra theorems. Every
 statement is locked, so a newer version never changes one you use. Before you prove a basic fact
 (`add_comm`, `append_assoc`, `reverse_reverse`, `le_trans`, `take_append_drop` …), import it.
@@ -13,13 +13,13 @@ statement is locked, so a newer version never changes one you use. Before you pr
 ## Import
 
 ```python
-import bend-mathlib@0.6.0.0/nat.bend as MNat
-import bend-mathlib@0.6.0.0/list.bend as MList
+import bend-mathlib@0.7.0.0/nat.bend as MNat
+import bend-mathlib@0.7.0.0/list.bend as MList
 ```
 
 Modules: `nat`, `bool`, `list`, `string`, `maybe`, `equal`, `order`, `algebra`, `perm`, `sort`.
 Pin by content hash if you want bytes that can never change:
-`import 0x0eaaf505a355d14d67066b86c801e960/nat.bend as MNat`.
+`import 0x63d5fd78a2a52f082c7824372390170c/nat.bend as MNat`.
 
 ## Find a lemma
 
@@ -49,8 +49,8 @@ its left side, at the spot marked `_`. Use the `_sym` twin to rewrite the other 
 
 ```python
 import Base
-import bend-mathlib@0.6.0.0/nat.bend as MNat
-import bend-mathlib@0.6.0.0/list.bend as MList
+import bend-mathlib@0.7.0.0/nat.bend as MNat
+import bend-mathlib@0.7.0.0/list.bend as MList
 
 law rev_len:
   for +xs: List<&2, U32>
