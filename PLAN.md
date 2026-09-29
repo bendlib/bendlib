@@ -1,7 +1,7 @@
 # bendlib — plan
 
-> **Date:** 2026-09-24 · **Owner:** Muhammed Durakovic · **Compiler:** `bend 2.0.32` since 2026-09-28
-> (linux-x64 archive sha256 `5c365ddb12954d0933cef751802e0f7d9875f842edcb80f9661f89cd1a9ff7b6`; 2.0.27 before)
+> **Date:** 2026-09-24 · **Owner:** Muhammed Durakovic · **Compiler:** `bend 2.0.34` since 2026-09-29
+> (linux-x64 archive sha256 `78106a97af242429dcc057258eb8d10f69cddebcd5e263022185a52d003e09bf`; 2.0.32 before)
 > **Brand:** GitHub org `bendlib` · hub package `bend-mathlib` (D1: decided) · Apache-2.0
 >
 > Scope rule: this document holds architecture, design and build order. Process, publicity cadence
@@ -27,6 +27,8 @@ structures (`bendlib-heap`, `bendlib-rbmap` over frozen kernels, §3.4), lawful 
 ---
 
 ## 1. Grounded facts (verified on 2.0.27, experiments in `research/experiments/`)
+
+Re-run on 2.0.34 (2026-09-29, `research/experiments/run.sh`): 56 passed, 0 failed; no replayed outcome changed. F35 was checked separately with `--verdict` on bool and algebra.
 
 Re-run on 2.0.32 (2026-09-28, `research/experiments/run.sh`): F1, F3, F4, F8, F18, F24 and F33 changed as
 noted in their rows; every other replayed outcome is unchanged. The F31/F34 files sit under
@@ -71,7 +73,7 @@ those files, their outcomes are unchanged.
 | F32 | Every bend-mathlib 0.1 law is lawcheck-clean: 107 ✓, 12 skipped (template or function binders), 0 ✗; ≈25 s for the five modules here (nat.bend alone ≈9 s) | `bun tools/lawcheck/cli.ts packages/bend-mathlib/<m>.bend` | lawcheck can gate mathlib CI |
 | F33 | Open bend issue #1001: one `@unsafe` law fill in an imported file makes `bend PROOF.bend` print a clean `All terms check.`. **Fixed in 2.0.28:** the verdict walks from every def, so the reliance fails the check (F18); seen on 2.0.32 with a file that imports an `@unsafe` law fill | github.com/bendlang/bend/issues/1001; 2.0.28 release notes | The docs' source cross-check for `@unsafe` is now redundant on the pinned compiler; mathlib's `check.ts` still scans source |
 | F34 | 80 candidate 0.2 statements (Nat `sub`/`min`/`max`/`pow`/reflection/order, List `take`/`drop`/`length`, Bool) type-check and have no counterexample (78 ✓, 2 `!` from F31, 1 skipped); 7 template statements type-check (lawcheck skips them) | `research/candidates/mathlib-0.2/*.bend` | 0.2 lemma beads copy statements verbatim from there; the candidate files report 87 laws, 0 ✗, 0 `!` (1 ~). |
-| F35 | `bend <m>.bend --verdict` (2.0.32) builds `$HOME/.bend/bendtt/7f6ef51c9f75d7de/bendtt.lean` with Lean v4.34.0 (≈29 s first run, then 0.2–1.0 s/module; 5.8 s for all 12). Clean prints exactly `ALL PROOFS CHECK` (exit 0); `?goal`/`?TODO` print `SOME PROOFS FAIL` + the goal/TODO (exit 1); `@unsafe` prints `Error: N defs rely on unsafe or foreign code:` (exit 1). But `algebra`, `order`, `sort` and `all` print `Sorry - this is a mismatch between the TypeScript implementation, and the formalized BendTT kernel.` (exit 1) when a proof calls a higher-order `~` parameter returning `{le(x, y) == True{} : Bool}` (reproducer `v_n`; declaring it unused, or returning a reflexive equality, passes); these are exactly the laws lawcheck already `--allow-skip`s (`foldl_op_eq_foldr_op`, `le_trans3`, `le_trans4`, `le_total_*`, `le_antisymm_eq`). Without Lean: `the kernel did not build (lean: Executable not found in $PATH)` | `~/.bend/bin/bend <m> --verdict` with Lean v4.34.0 (a local elan, not global); bisected reproducer | `--verdict` cannot gate every bend-mathlib module in CI or `release.ts` until the upstream mismatch is fixed; bead `bend-xaz` open |
+| F35 | `bend <m>.bend --verdict` (2.0.32) builds `$HOME/.bend/bendtt/7f6ef51c9f75d7de/bendtt.lean` with Lean v4.34.0 (≈29 s first run, then 0.2–1.0 s/module; 5.8 s for all 12). Clean prints exactly `ALL PROOFS CHECK` (exit 0); `?goal`/`?TODO` print `SOME PROOFS FAIL` + the goal/TODO (exit 1); `@unsafe` prints `Error: N defs rely on unsafe or foreign code:` (exit 1). But `algebra`, `order`, `sort` and `all` print `Sorry - this is a mismatch between the TypeScript implementation, and the formalized BendTT kernel.` (exit 1) when a proof calls a higher-order `~` parameter returning `{le(x, y) == True{} : Bool}` (reproducer `v_n`; declaring it unused, or returning a reflexive equality, passes); these are exactly the laws lawcheck already `--allow-skip`s (`foldl_op_eq_foldr_op`, `le_trans3`, `le_trans4`, `le_total_*`, `le_antisymm_eq`). Without Lean: `the kernel did not build (lean: Executable not found in $PATH)`. **2.0.34:** `bool.bend --verdict` prints `ALL PROOFS CHECK` (exit 0); `algebra.bend --verdict` still prints the TypeScript/BendTT mismatch (exit 1). The 2.0.34 release notes say conversion shares equal cells, but BendTT does not: its `--verdict` runs out of fuel on the depth-32 shared Merkle proof. This performance claim is from release notes, not a local reproduction. | `~/.bend/bin/bend <m> --verdict` on 2.0.32 with Lean v4.34.0; 2.0.34 `bool.bend` and `algebra.bend --verdict`; v2.0.34 release notes (#1071, #1151) | `--verdict` cannot gate every bend-mathlib module in CI or `release.ts` until the upstream mismatch is fixed; bead `bend-xaz` open |
 
 ---
 
