@@ -408,8 +408,14 @@ function splitTopArgs(s: string): string[] {
   return out;
 }
 
-/** A capped evaluation of a rendered `Nat` expression, or null when it is not one. */
-function evalNat(s: string): bigint | null {
+/** A capped evaluation of a rendered `Nat` expression, or null when it is not one; `peak` gets its largest subterm value. */
+function evalNat(s: string, peak: { v: bigint } = { v: 0n }): bigint | null {
+  const v = evalNatAt(s, peak);
+  if (v !== null && v > peak.v) peak.v = v;
+  return v;
+}
+
+function evalNatAt(s: string, peak: { v: bigint }): bigint | null {
   let t = s.trim();
   for (;;) {
     if (!(t.startsWith("(") && t.endsWith(")"))) break;
@@ -424,12 +430,12 @@ function evalNat(s: string): bigint | null {
   const lit = /^(\d+)n$/.exec(t);
   if (lit !== null) return BigInt(lit[1]);
   const suc = /^(\d+)n\+(.+)$/s.exec(t);
-  if (suc !== null) { const r = evalNat(suc[2]); return r === null ? null : capNat(BigInt(suc[1]) + r); }
+  if (suc !== null) { const r = evalNat(suc[2], peak); return r === null ? null : capNat(BigInt(suc[1]) + r); }
   const app = /^Nat\.(add|mul|pow)\(([\s\S]*)\)$/.exec(t);
   if (app === null) return null;
   const args = splitTopArgs(app[2]);
   if (args.length !== 2) return null;
-  const a = evalNat(args[0]), b = evalNat(args[1]);
+  const a = evalNat(args[0], peak), b = evalNat(args[1], peak);
   if (a === null || b === null) return null;
   if (app[1] === "add") return capNat(a + b);
   if (app[1] === "mul") return a === 0n || b === 0n ? 0n : capNat(a * b);
@@ -441,12 +447,15 @@ function evalNat(s: string): bigint | null {
   return v;
 }
 
-/** True only for a `Nat`-typed equation whose side evaluates past the checker's stack bound. */
+/** True only for a `Nat`-typed equation one of whose sides builds a value past the checker's stack bound. */
 export function predictTooLarge(claim: string): boolean {
   const eq = splitEquation(claim);
   if (eq === null || eq.type !== "Nat") return false;
-  const a = evalNat(eq.lhs), b = evalNat(eq.rhs);
-  return (a !== null && a > OVERFLOW_NAT) || (b !== null && b > OVERFLOW_NAT);
+  // the checker builds every argument in unary, so Nat.mul(Nat.pow(7n, 9n), 0n) is as costly as 7^9
+  const pa = { v: 0n }, pb = { v: 0n };
+  evalNat(eq.lhs, pa);
+  evalNat(eq.rhs, pb);
+  return pa.v > OVERFLOW_NAT || pb.v > OVERFLOW_NAT;
 }
 
 function generable(U: Universe, ty: Ty): boolean {

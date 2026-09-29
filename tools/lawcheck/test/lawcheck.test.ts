@@ -324,6 +324,11 @@ describe("too-large instances and --max-nat", () => {
     expect(predictTooLarge("{Nat.is_le(Nat.pow(30n, 5n), 0n) == True{} : Bool}")).toBe(false);
     expect(predictTooLarge("{Nat.add(two(), 0n) == 0n : Nat}")).toBe(false);
   });
+
+  test("predictTooLarge sees a large subterm under a small result (the mul_pow instance that timed out)", () => {
+    expect(predictTooLarge("{Nat.pow(Nat.mul(7n, 0n), 9n) == Nat.mul(Nat.pow(7n, 9n), Nat.pow(0n, 9n)) : Nat}")).toBe(true);
+    expect(predictTooLarge("{Nat.pow(Nat.mul(2n, 0n), 3n) == Nat.mul(Nat.pow(2n, 3n), Nat.pow(0n, 3n)) : Nat}")).toBe(false);
+  });
 });
 
 describe("imports and --impl", () => {
