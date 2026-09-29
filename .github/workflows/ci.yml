@@ -117,6 +117,37 @@ jobs:
           path: .lawcheck-stamp
           key: lawcheck-${{ matrix.module }}-${{ hashFiles('packages/**','tools/lawcheck/**','tools/reader/**','tools/mathlib/**','toolchain.json') }}
 
+  verdict:
+    # bend --verdict re-checks every def in BendTT, the kernel whose soundness is proved in Lean.
+    runs-on: ubuntu-latest
+    env:
+      BEND_NO_TELEMETRY: "1"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: 1.4.2
+      - run: bun tools/install-bend.ts
+      - name: Lean v4.34.0 (bend --verdict builds its kernel with it)
+        run: |
+          curl -fsSL -o elan-init.sh https://raw.githubusercontent.com/leanprover/elan/v4.2.4/elan-init.sh
+          echo "a620ff1641616222c8d37c54845492004bb84d6877cdbc944dd65c1aa685bf53  elan-init.sh" | sha256sum -c -
+          sh elan-init.sh -y --no-modify-path --default-toolchain leanprover/lean4:v4.34.0
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: the proven kernel accepts every module it can express
+        run: |
+          verdict() { bun tools/mathlib/devlib.ts run -- "$HOME/.bend/bin/bend" "$1" --verdict 2>&1; }
+          for f in packages/bendlib-kernel-list/list.bend packages/bend-mathlib/{bool,equal,list,maybe,nat,perm,string}.bend; do
+            out=$(verdict "$f") && [ "$out" = "ALL PROOFS CHECK" ] || { echo "$f: $out"; exit 1; }
+            echo "ok $f"
+          done
+          # bendlang/bend#1182: the kernel cannot yet express a call of a higher-order ~ parameter whose result is an equation
+          for f in packages/bend-mathlib/{algebra,order,sort,all}.bend; do
+            out=$(verdict "$f") && { echo "$f now passes --verdict: move it to the list above"; exit 1; }
+            echo "$out" | grep -q "mismatch between the TypeScript implementation" || { echo "$f: $out"; exit 1; }
+            echo "blocked upstream (#1182) $f"
+          done
+
   latest-compiler:
     # Early warning only: the newest Bend release against our sources.
     if: github.event_name != 'push' && github.event_name != 'pull_request'
