@@ -8,3 +8,4 @@
 | bendlib-kernel-list | 1.0.0.0 | `0xb5c8145e53a6a127d611f45f602666ec` | bend 2.0.27 | 2026-09-25 |
 | bend-mathlib | 0.3.0.0 | `0x74bdc843cd4bfb31bb6f7ba1eb38d231` | bend 2.0.27 | 2026-09-25 |
 | bend-mathlib | 0.4.0.0 | `0xfa8bcf3897afe3da6c28dd6f9de6cbea` | bend 2.0.32 | 2026-09-28 |
+| bend-mathlib | 0.5.0.0 | `0x676cb0b2ca8c3fdeee47023a54e3ac54` | bend 2.0.34 | 2026-09-29 |

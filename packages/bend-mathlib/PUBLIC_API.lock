@@ -233,7 +233,7 @@
       "kind": "law",
       "text": "for a: Bool\nfor -b: Bool\nfor ha: {a == True{} : Bool}\nfor hb: {b == True{} : Bool}\n{Bool.and(a, b) == True{} : Bool}",
       "sha256": "9e2140e9373f9b0ccdc1b3ba12d539f533af9f7aa510e78bb0fa8a6fbc204d29",
-      "since": null
+      "since": "0.5.0.0"
     },
     "bool.and_false": {
       "kind": "law",
@@ -347,7 +347,7 @@
       "kind": "law",
       "text": "for b: Bool\nfor h: {Bool.not(b) == True{} : Bool}\n{b == False{} : Bool}",
       "sha256": "85536afb4915655ed6874e3351a37ac9d3512117d67ecd9a199282c1d3ab1d40",
-      "since": null
+      "since": "0.5.0.0"
     },
     "bool.eq_of_cmp_eq": {
       "kind": "law",
@@ -359,13 +359,13 @@
       "kind": "law",
       "text": "for a: Bool\nfor -b: Bool\nfor h: {Bool.and(a, b) == True{} : Bool}\n{a == True{} : Bool}",
       "sha256": "e2c3420838b7e77ac277b6978a59abf7ceacc3eaae173bad77c1d22dfe587847",
-      "since": null
+      "since": "0.5.0.0"
     },
     "bool.eq_true_of_and_right": {
       "kind": "law",
       "text": "for a: Bool\nfor -b: Bool\nfor h: {Bool.and(a, b) == True{} : Bool}\n{b == True{} : Bool}",
       "sha256": "722f9acae23ae58d3154dbccb05f4d6eca63222799010390b2aa3e2f77b4b035",
-      "since": null
+      "since": "0.5.0.0"
     },
     "bool.eq_true_of_ne_false": {
       "kind": "law",
@@ -377,13 +377,13 @@
       "kind": "law",
       "text": "for a: Bool\nfor -b: Bool\nfor h: {Bool.or(a, b) == True{} : Bool}\nfor ha: {a == False{} : Bool}\n{b == True{} : Bool}",
       "sha256": "d90fc370e7106e4423a10aabb85b2b2b8a542b28a032c1742770a0c70363da48",
-      "since": null
+      "since": "0.5.0.0"
     },
     "bool.eq_true_of_or_eq_false_right": {
       "kind": "law",
       "text": "for a: Bool\nfor -b: Bool\nfor h: {Bool.or(a, b) == True{} : Bool}\nfor hb: {b == False{} : Bool}\n{a == True{} : Bool}",
       "sha256": "cd1dc0797b3afa8ec05a260fd5101201c70d7abc3fca5cef2dd27f63a45f121c",
-      "since": null
+      "since": "0.5.0.0"
     },
     "bool.false_and": {
       "kind": "law",
@@ -401,7 +401,7 @@
       "kind": "law",
       "text": "{False{} != True{} : Bool}",
       "sha256": "d6412e2b5ae3413ecb88f2d231d752f72015910f82d1a7647c6cba5e675689c7",
-      "since": null
+      "since": "0.5.0.0"
     },
     "bool.false_or": {
       "kind": "law",
@@ -1301,19 +1301,19 @@
       "kind": "law",
       "text": "for +a: Nat\nfor +b: Nat\nfor +c: Nat\nfor +d: Nat\nfor h1: le(a, c)\nfor h2: le(b, d)\nle(Nat.add(a, b), Nat.add(c, d))",
       "sha256": "c892df2d4c877079222ce01f8508cc301d68110ae1c95a0171e0f4ba2f162ae7",
-      "since": null
+      "since": "0.5.0.0"
     },
     "nat.add_le_add_iff_left": {
       "kind": "law",
       "text": "for k: Nat\nfor -a: Nat\nfor -b: Nat\n{Nat.is_le(a, b) == Nat.is_le(Nat.add(k, a), Nat.add(k, b)) : Bool}",
       "sha256": "b3a672a9b74578de066774a74e5a42ee574579fc9b9bdfd81ee5ce736e3c88e8",
-      "since": null
+      "since": "0.5.0.0"
     },
     "nat.add_le_add_iff_left_sym": {
       "kind": "law",
       "text": "for k: Nat\nfor -a: Nat\nfor -b: Nat\n{Nat.is_le(Nat.add(k, a), Nat.add(k, b)) == Nat.is_le(a, b) : Bool}",
       "sha256": "9cf5c3150de827b9d90fef376032cf5e6f5ed2525cbbbcf671379752e2fa7d5e",
-      "since": null
+      "since": "0.5.0.0"
     },
     "nat.add_le_add_left": {
       "kind": "law",
@@ -1325,7 +1325,7 @@
       "kind": "law",
       "text": "for +a: Nat\nfor +b: Nat\nfor +k: Nat\nfor h: le(a, b)\nle(Nat.add(a, k), Nat.add(b, k))",
       "sha256": "d4f6421b3aeb856941c34168a7d39c56970cbe43f021cea6ea48bd8a0cb72c2c",
-      "since": null
+      "since": "0.5.0.0"
     },
     "nat.add_left_cancel": {
       "kind": "law",
@@ -1571,13 +1571,13 @@
       "kind": "law",
       "text": "for a: Nat\nfor -b: Nat\nfor c: Nat\n{Bool.and(Nat.is_le(a, c), Nat.is_le(b, Nat.sub(c, a))) == Nat.is_le(Nat.add(a, b), c) : Bool}",
       "sha256": "eb008eccd5967cf8623ef56b08b828ec2442379aad6f5a62e0faebb49f2cae6c",
-      "since": null
+      "since": "0.5.0.0"
     },
     "nat.le_and_le_sub_iff_add_le_sym": {
       "kind": "law",
       "text": "for a: Nat\nfor -b: Nat\nfor c: Nat\n{Nat.is_le(Nat.add(a, b), c) == Bool.and(Nat.is_le(a, c), Nat.is_le(b, Nat.sub(c, a))) : Bool}",
       "sha256": "ce1acde3ce8554566945beb08ae0f3ca6f32fde884beb9ceb6fb9b8674fee510",
-      "since": null
+      "since": "0.5.0.0"
     },
     "nat.le_antisymm": {
       "kind": "law",

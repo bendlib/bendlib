@@ -5,12 +5,10 @@ Machine-checked lemmas for Bend 2, checked with `bend 2.0.34`.
 Rewriting: `%e : P` replaces the right side of `e` with its left side, so `name` expands the simple
 side into the compound one and `name_sym` simplifies the compound side.
 
-Rows marked `next` are proved in this repository but not yet published: the import lines above do not contain them yet.
-
 ## algebra
 
 ```python
-import bend-mathlib@0.4.0.0/algebra.bend as MAlgebra
+import bend-mathlib@0.5.0.0/algebra.bend as MAlgebra
 ```
 
 | lemma | statement | meaning | since |
@@ -53,7 +51,7 @@ import bend-mathlib@0.4.0.0/algebra.bend as MAlgebra
 ## bool
 
 ```python
-import bend-mathlib@0.4.0.0/bool.bend as MBool
+import bend-mathlib@0.5.0.0/bool.bend as MBool
 ```
 
 | lemma | statement | meaning | since |
@@ -91,13 +89,13 @@ import bend-mathlib@0.4.0.0/bool.bend as MBool
 | `eq_true_of_ne_false(a, h)` | `∀ a: Bool, h: {a == False{} : Bool} -> Empty. {a == True{} : Bool}` | A boolean that is not false is true. | 0.2.0.0 |
 | `cmp_refl(b)` | `∀ b: Bool. {Bool.cmp(b, b) == EQ{} : Cmp}` | Comparing a boolean with itself gives EQ. | 0.4.0.0 |
 | `eq_of_cmp_eq(a, b, h)` | `∀ a: Bool, b: Bool, h: {Cmp.is_eq(Bool.cmp(a, b)) == True{} : Bool}. {a == b : Bool}` | Two booleans that compare EQ are equal. | 0.4.0.0 |
-| `false_ne_true()` | `{False{} != True{} : Bool}` | False and True are different booleans, the other way round. | next |
-| `eq_true_of_and_left(a, b, h)` | `∀ a: Bool, -b: Bool, h: {Bool.and(a, b) == True{} : Bool}. {a == True{} : Bool}` | If a and b is true then a is true. | next |
-| `eq_true_of_and_right(a, b, h)` | `∀ a: Bool, -b: Bool, h: {Bool.and(a, b) == True{} : Bool}. {b == True{} : Bool}` | If a and b is true then b is true. | next |
-| `and_eq_true(a, b, ha, hb)` | `∀ a: Bool, -b: Bool, ha: {a == True{} : Bool}, hb: {b == True{} : Bool}. {Bool.and(a, b) == True{} : Bool}` | If a and b are both true then a and b is true. | next |
-| `eq_true_of_or_eq_false_right(a, b, h, hb)` | `∀ a: Bool, -b: Bool, h: {Bool.or(a, b) == True{} : Bool}, hb: {b == False{} : Bool}. {a == True{} : Bool}` | If a or b is true and b is false then a is true. | next |
-| `eq_true_of_or_eq_false_left(a, b, h, ha)` | `∀ a: Bool, -b: Bool, h: {Bool.or(a, b) == True{} : Bool}, ha: {a == False{} : Bool}. {b == True{} : Bool}` | If a or b is true and a is false then b is true. | next |
-| `eq_false_of_not_eq_true(b, h)` | `∀ b: Bool, h: {Bool.not(b) == True{} : Bool}. {b == False{} : Bool}` | If not b is true then b is false. | next |
+| `false_ne_true()` | `{False{} != True{} : Bool}` | False and True are different booleans, the other way round. | 0.5.0.0 |
+| `eq_true_of_and_left(a, b, h)` | `∀ a: Bool, -b: Bool, h: {Bool.and(a, b) == True{} : Bool}. {a == True{} : Bool}` | If a and b is true then a is true. | 0.5.0.0 |
+| `eq_true_of_and_right(a, b, h)` | `∀ a: Bool, -b: Bool, h: {Bool.and(a, b) == True{} : Bool}. {b == True{} : Bool}` | If a and b is true then b is true. | 0.5.0.0 |
+| `and_eq_true(a, b, ha, hb)` | `∀ a: Bool, -b: Bool, ha: {a == True{} : Bool}, hb: {b == True{} : Bool}. {Bool.and(a, b) == True{} : Bool}` | If a and b are both true then a and b is true. | 0.5.0.0 |
+| `eq_true_of_or_eq_false_right(a, b, h, hb)` | `∀ a: Bool, -b: Bool, h: {Bool.or(a, b) == True{} : Bool}, hb: {b == False{} : Bool}. {a == True{} : Bool}` | If a or b is true and b is false then a is true. | 0.5.0.0 |
+| `eq_true_of_or_eq_false_left(a, b, h, ha)` | `∀ a: Bool, -b: Bool, h: {Bool.or(a, b) == True{} : Bool}, ha: {a == False{} : Bool}. {b == True{} : Bool}` | If a or b is true and a is false then b is true. | 0.5.0.0 |
+| `eq_false_of_not_eq_true(b, h)` | `∀ b: Bool, h: {Bool.not(b) == True{} : Bool}. {b == False{} : Bool}` | If not b is true then b is false. | 0.5.0.0 |
 | `not_not_sym(b)` | `∀ b: Bool. {b == Bool.not(Bool.not(b)) : Bool}` | Negating a boolean twice gives it back, reversed to rewrite toward the simple side. | 0.1.0.0 |
 | `and_comm_sym(a, b)` | `∀ a: Bool, b: Bool. {Bool.and(b, a) == Bool.and(a, b) : Bool}` | Boolean and is commutative, reversed to rewrite toward the simple side. | 0.1.0.0 |
 | `or_comm_sym(a, b)` | `∀ a: Bool, b: Bool. {Bool.or(b, a) == Bool.or(a, b) : Bool}` | Boolean or is commutative, reversed to rewrite toward the simple side. | 0.1.0.0 |
@@ -131,7 +129,7 @@ import bend-mathlib@0.4.0.0/bool.bend as MBool
 ## equal
 
 ```python
-import bend-mathlib@0.4.0.0/equal.bend as MEqual
+import bend-mathlib@0.5.0.0/equal.bend as MEqual
 ```
 
 | lemma | statement | meaning | since |
@@ -144,7 +142,7 @@ import bend-mathlib@0.4.0.0/equal.bend as MEqual
 ## list
 
 ```python
-import bend-mathlib@0.4.0.0/list.bend as MList
+import bend-mathlib@0.5.0.0/list.bend as MList
 ```
 
 | predicate | definition | since |
@@ -247,7 +245,7 @@ import bend-mathlib@0.4.0.0/list.bend as MList
 ## maybe
 
 ```python
-import bend-mathlib@0.4.0.0/maybe.bend as MMaybe
+import bend-mathlib@0.5.0.0/maybe.bend as MMaybe
 ```
 
 | lemma | statement | meaning | since |
@@ -266,7 +264,7 @@ import bend-mathlib@0.4.0.0/maybe.bend as MMaybe
 ## nat
 
 ```python
-import bend-mathlib@0.4.0.0/nat.bend as MNat
+import bend-mathlib@0.5.0.0/nat.bend as MNat
 ```
 
 | predicate | definition | since |
@@ -366,10 +364,10 @@ import bend-mathlib@0.4.0.0/nat.bend as MNat
 | `lt_of_lt_of_le(a, b, c, ab, bc)` | `∀ a: Nat, b: Nat, c: Nat, ab: lt(a, b), bc: le(b, c). lt(a, c)` | A < b and b <= c imply a < c. | 0.2.0.0 |
 | `lt_of_le_of_lt(a, b, c, ab, bc)` | `∀ a: Nat, b: Nat, c: Nat, ab: le(a, b), bc: lt(b, c). lt(a, c)` | A <= b and b < c imply a < c. | 0.2.0.0 |
 | `add_le_add_left(a, b, k, h)` | `∀ -a: Nat, -b: Nat, k: Nat, h: le(a, b). le(Nat.add(k, a), Nat.add(k, b))` | Adding on the left preserves the order: a <= b implies k + a <= k + b. | 0.2.0.0 |
-| `add_le_add_right(a, b, k, h)` | `∀ +a: Nat, +b: Nat, +k: Nat, h: le(a, b). le(Nat.add(a, k), Nat.add(b, k))` | Adding on the right preserves the order: a <= b implies a + k <= b + k. | next |
-| `add_le_add_iff_left(k, a, b)` | `∀ k: Nat, -a: Nat, -b: Nat. {Nat.is_le(a, b) == Nat.is_le(Nat.add(k, a), Nat.add(k, b)) : Bool}` | Adding the same amount on the left does not change the order test: a <= b tests as k + a <= k + b. | next |
-| `add_le_add(a, b, c, d, h1, h2)` | `∀ +a: Nat, +b: Nat, +c: Nat, +d: Nat, h1: le(a, c), h2: le(b, d). le(Nat.add(a, b), Nat.add(c, d))` | Adding two bounded summands stays bounded: a <= c and b <= d imply a + b <= c + d. | next |
-| `le_and_le_sub_iff_add_le(a, b, c)` | `∀ a: Nat, -b: Nat, c: Nat. {Bool.and(Nat.is_le(a, c), Nat.is_le(b, Nat.sub(c, a))) == Nat.is_le(Nat.add(a, b), c) : Bool}` | A sum is at most c exactly when a <= c and b <= c - a: a + b <= c tests as both. | next |
+| `add_le_add_right(a, b, k, h)` | `∀ +a: Nat, +b: Nat, +k: Nat, h: le(a, b). le(Nat.add(a, k), Nat.add(b, k))` | Adding on the right preserves the order: a <= b implies a + k <= b + k. | 0.5.0.0 |
+| `add_le_add_iff_left(k, a, b)` | `∀ k: Nat, -a: Nat, -b: Nat. {Nat.is_le(a, b) == Nat.is_le(Nat.add(k, a), Nat.add(k, b)) : Bool}` | Adding the same amount on the left does not change the order test: a <= b tests as k + a <= k + b. | 0.5.0.0 |
+| `add_le_add(a, b, c, d, h1, h2)` | `∀ +a: Nat, +b: Nat, +c: Nat, +d: Nat, h1: le(a, c), h2: le(b, d). le(Nat.add(a, b), Nat.add(c, d))` | Adding two bounded summands stays bounded: a <= c and b <= d imply a + b <= c + d. | 0.5.0.0 |
+| `le_and_le_sub_iff_add_le(a, b, c)` | `∀ a: Nat, -b: Nat, c: Nat. {Bool.and(Nat.is_le(a, c), Nat.is_le(b, Nat.sub(c, a))) == Nat.is_le(Nat.add(a, b), c) : Bool}` | A sum is at most c exactly when a <= c and b <= c - a: a + b <= c tests as both. | 0.5.0.0 |
 | `le_zero_eq(n, h)` | `∀ n: Nat, h: le(n, 0n). {n == 0n : Nat}` | The only natural at most zero is zero. | 0.2.0.0 |
 | `lt_zero(n)` | `∀ n: Nat. lt(n, 0n) -> Empty` | No natural is less than zero. | 0.2.0.0 |
 | `not_le_of_lt(a, b, h)` | `∀ a: Nat, b: Nat, h: lt(a, b). {Nat.is_le(b, a) == False{} : Bool}` | A strict inequality rules out the reverse weak one: a < b implies b <= a is false. | 0.4.0.0 |
@@ -438,8 +436,8 @@ import bend-mathlib@0.4.0.0/nat.bend as MNat
 | `is_lt_eq_succ_le_sym(a, b)` | `∀ a: Nat, b: Nat. {Nat.is_le(1n+a, b) == Nat.is_lt(a, b) : Bool}` | A < b tests the same as a + 1 <= b, reversed to rewrite toward the simple side. | 0.2.0.0 |
 | `not_is_le_sym(a, b)` | `∀ a: Nat, b: Nat. {Nat.is_lt(b, a) == Bool.not(Nat.is_le(a, b)) : Bool}` | Not (a <= b) tests the same as b < a, reversed to rewrite toward the simple side. | 0.2.0.0 |
 | `not_is_lt_sym(a, b)` | `∀ a: Nat, b: Nat. {Nat.is_le(b, a) == Bool.not(Nat.is_lt(a, b)) : Bool}` | Not (a < b) tests the same as b <= a, reversed to rewrite toward the simple side. | 0.2.0.0 |
-| `add_le_add_iff_left_sym(k, a, b)` | `∀ k: Nat, -a: Nat, -b: Nat. {Nat.is_le(Nat.add(k, a), Nat.add(k, b)) == Nat.is_le(a, b) : Bool}` | Adding the same amount on the left does not change the order test: a <= b tests as k + a <= k + b, reversed to rewrite toward the simple side. | next |
-| `le_and_le_sub_iff_add_le_sym(a, b, c)` | `∀ a: Nat, -b: Nat, c: Nat. {Nat.is_le(Nat.add(a, b), c) == Bool.and(Nat.is_le(a, c), Nat.is_le(b, Nat.sub(c, a))) : Bool}` | A sum is at most c exactly when a <= c and b <= c - a: a + b <= c tests as both, reversed to rewrite toward the simple side. | next |
+| `add_le_add_iff_left_sym(k, a, b)` | `∀ k: Nat, -a: Nat, -b: Nat. {Nat.is_le(Nat.add(k, a), Nat.add(k, b)) == Nat.is_le(a, b) : Bool}` | Adding the same amount on the left does not change the order test: a <= b tests as k + a <= k + b, reversed to rewrite toward the simple side. | 0.5.0.0 |
+| `le_and_le_sub_iff_add_le_sym(a, b, c)` | `∀ a: Nat, -b: Nat, c: Nat. {Nat.is_le(Nat.add(a, b), c) == Bool.and(Nat.is_le(a, c), Nat.is_le(b, Nat.sub(c, a))) : Bool}` | A sum is at most c exactly when a <= c and b <= c - a: a + b <= c tests as both, reversed to rewrite toward the simple side. | 0.5.0.0 |
 | `min_le_iff_sym(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Bool.or(Nat.is_le(a, c), Nat.is_le(b, c)) == Nat.is_le(Nat.min(a, b), c) : Bool}` | The minimum is at most c exactly when one argument is: min a b <= c tests as a <= c or b <= c, reversed to rewrite toward the simple side. | 0.4.0.0 |
 | `lt_max_iff_sym(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Bool.or(Nat.is_lt(a, b), Nat.is_lt(a, c)) == Nat.is_lt(a, Nat.max(b, c)) : Bool}` | The maximum is above a exactly when one argument is: a < max b c tests as a < b or a < c, reversed to rewrite toward the simple side. | 0.4.0.0 |
 | `lt_sub_iff_add_lt_sym(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.is_lt(Nat.add(b, a), c) == Nat.is_lt(a, Nat.sub(c, b)) : Bool}` | Comparing against a difference is comparing the sum: a < c - b tests as b + a < c, reversed to rewrite toward the simple side. | 0.4.0.0 |
@@ -447,7 +445,7 @@ import bend-mathlib@0.4.0.0/nat.bend as MNat
 ## order
 
 ```python
-import bend-mathlib@0.4.0.0/order.bend as MOrder
+import bend-mathlib@0.5.0.0/order.bend as MOrder
 ```
 
 | lemma | statement | meaning | since |
@@ -462,7 +460,7 @@ import bend-mathlib@0.4.0.0/order.bend as MOrder
 ## string
 
 ```python
-import bend-mathlib@0.4.0.0/string.bend as MString
+import bend-mathlib@0.5.0.0/string.bend as MString
 ```
 
 | lemma | statement | meaning | since |
