@@ -5,12 +5,10 @@ Machine-checked lemmas for Bend 2, checked with `bend 2.0.34`.
 Rewriting: `%e : P` replaces the right side of `e` with its left side, so `name` expands the simple
 side into the compound one and `name_sym` simplifies the compound side.
 
-Rows marked `next` are proved in this repository but not yet published: the import lines above do not contain them yet.
-
 ## algebra
 
 ```python
-import bend-mathlib@0.5.0.0/algebra.bend as MAlgebra
+import bend-mathlib@0.6.0.0/algebra.bend as MAlgebra
 ```
 
 | lemma | statement | meaning | since |
@@ -53,7 +51,7 @@ import bend-mathlib@0.5.0.0/algebra.bend as MAlgebra
 ## bool
 
 ```python
-import bend-mathlib@0.5.0.0/bool.bend as MBool
+import bend-mathlib@0.6.0.0/bool.bend as MBool
 ```
 
 | lemma | statement | meaning | since |
@@ -131,7 +129,7 @@ import bend-mathlib@0.5.0.0/bool.bend as MBool
 ## equal
 
 ```python
-import bend-mathlib@0.5.0.0/equal.bend as MEqual
+import bend-mathlib@0.6.0.0/equal.bend as MEqual
 ```
 
 | lemma | statement | meaning | since |
@@ -144,7 +142,7 @@ import bend-mathlib@0.5.0.0/equal.bend as MEqual
 ## list
 
 ```python
-import bend-mathlib@0.5.0.0/list.bend as MList
+import bend-mathlib@0.6.0.0/list.bend as MList
 ```
 
 | predicate | definition | since |
@@ -204,33 +202,33 @@ import bend-mathlib@0.5.0.0/list.bend as MList
 | `sorted_cons_cons_elim_le(x, y, t, h)` | `∀ x: Nat, y: Nat, -t: List<&2, Nat>, h: sorted_by(~Nat, ~Nat.is_le, x <> y <> t). MNat.le(x, y)` | The head pair of a sorted cons-cons list is in order. | 0.3.0.0 |
 | `sorted_cons_cons_elim_tail(x, y, t, h)` | `∀ x: Nat, y: Nat, -t: List<&2, Nat>, h: sorted_by(~Nat, ~Nat.is_le, x <> y <> t). sorted_by(~Nat, ~Nat.is_le, y <> t)` | The tail of a sorted cons-cons list is sorted. | 0.3.0.0 |
 | `sorted_tail(x, xs, h)` | `∀ x: Nat, xs: List<&2, Nat>, h: sorted_by(~Nat, ~Nat.is_le, x <> xs). sorted_by(~Nat, ~Nat.is_le, xs)` | A sorted list has a sorted tail. | 0.3.0.0 |
-| `take_left(a, A, xs, ys)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>, ys: List<a, A>. {List.take(a, A, List.append(a, A, xs, ys), List.length(a, A, xs)) == xs : List<a, A>}` | Taking the length of the first part of an append gives the first part back. | next |
-| `drop_left(a, A, xs, ys)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>, ys: List<a, A>. {List.drop(a, A, List.append(a, A, xs, ys), List.length(a, A, xs)) == ys : List<a, A>}` | Dropping the length of the first part of an append gives the second part. | next |
-| `take_append(a, A, xs, ys, n)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>, -ys: List<a, A>, -n: Nat. {List.take(a, A, List.append(a, A, xs, ys), Nat.add(List.length(a, A, xs), n)) == List.append(a, A, xs, List.take(a, A, ys, n)) : List<a, A>}` | Taking past the first part of an append keeps it and takes the rest from the second part. | next |
-| `drop_append(a, A, xs, ys, n)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>, -ys: List<a, A>, -n: Nat. {List.drop(a, A, List.append(a, A, xs, ys), Nat.add(List.length(a, A, xs), n)) == List.drop(a, A, ys, n) : List<a, A>}` | Dropping past the first part of an append drops the rest from the second part. | next |
-| `take_append_of_le_length(a, A, xs, ys, n, h)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>, ys: List<a, A>, n: Nat, h: MNat.le(n, List.length(a, A, xs)). {List.take(a, A, List.append(a, A, xs, ys), n) == List.take(a, A, xs, n) : List<a, A>}` | Taking at most the length of the first part of an append only sees the first part. | next |
-| `drop_append_of_le_length(a, A, xs, ys, n, h)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>, ys: List<a, A>, n: Nat, h: MNat.le(n, List.length(a, A, xs)). {List.drop(a, A, List.append(a, A, xs, ys), n) == List.append(a, A, List.drop(a, A, xs, n), ys) : List<a, A>}` | Dropping at most the length of the first part of an append drops only from the first part. | next |
-| `map_take(~A, ~B, ~f, xs, n)` | `∀ ~A: Type, ~B: Type, ~f: A -> B, xs: List<A>, n: Nat. {List.map(~A, ~B, ~f, List.take(&1, A, xs, n)) == List.take(&1, B, List.map(~A, ~B, ~f, xs), n) : List<B>}` | Mapping commutes with taking: map f (take n xs) = take n (map f xs). | next |
-| `map_drop(~A, ~B, ~f, xs, n)` | `∀ ~A: Type, ~B: Type, ~f: A -> B, xs: List<A>, n: Nat. {List.map(~A, ~B, ~f, List.drop(&1, A, xs, n)) == List.drop(&1, B, List.map(~A, ~B, ~f, xs), n) : List<B>}` | Mapping commutes with dropping: map f (drop n xs) = drop n (map f xs). | next |
-| `take_replicate(A, n, m, x)` | `∀ -A: Data, n: Nat, m: Nat, -x: A. {List.take(&2, A, List.replicate(A, n, x), m) == List.replicate(A, Nat.min(m, n), x) : List<&2, A>}` | Taking m from n copies of x gives min(m, n) copies of x. | next |
-| `drop_replicate(A, n, m, x)` | `∀ -A: Data, n: Nat, m: Nat, -x: A. {List.drop(&2, A, List.replicate(A, n, x), m) == List.replicate(A, Nat.sub(n, m), x) : List<&2, A>}` | Dropping m from n copies of x gives n - m copies of x. | next |
-| `length_take_le(a, A, xs, n)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>, n: Nat. MNat.le(List.length(a, A, List.take(a, A, xs, n)), n)` | Taking n elements gives at most n of them. | next |
-| `length_tail(a, A, xs)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>. {List.length(a, A, List.tail(a, A, xs)) == Nat.sub(List.length(a, A, xs), 1n) : Nat}` | The tail is one shorter than the list, or empty: length (tail xs) = length xs - 1. | next |
-| `map_id(~A, xs)` | `∀ ~A: Type, xs: List<A>. {List.map(~A, ~A, ~(x => x), xs) == xs : List<A>}` | Mapping the identity gives the list back. | next |
-| `foldr_map(~A, ~B, ~C, ~f, ~g, xs, z)` | `∀ ~A: Type, ~B: Type, ~C: Type, ~f: A -> B, ~g: B -> C -> C, xs: List<A>, -z: C. {List.foldr(~&1, ~B, ~C, ~g, List.map(~A, ~B, ~f, xs), z) == List.foldr(~&1, ~A, ~C, ~(x => y => g(f(x), y)), xs, z) : C}` | A right fold over a map folds with the mapped function: foldr g z (map f xs) = foldr (g . f) z xs. | next |
-| `foldl_map(~A, ~B, ~C, ~f, ~g, xs, z)` | `∀ ~A: Type, ~B: Type, ~C: Type, ~f: A -> B, ~g: C -> B -> C, xs: List<A>, -z: C. {List.foldl(~&1, ~B, ~C, ~g, List.map(~A, ~B, ~f, xs), z) == List.foldl(~&1, ~A, ~C, ~(x => y => g(x, f(y))), xs, z) : C}` | A left fold over a map folds with the mapped function: foldl g z (map f xs) = foldl (fun acc x => g acc (f x)) z xs. | next |
-| `replicate_add(A, m, n, x)` | `∀ -A: Data, m: Nat, -n: Nat, -x: A. {List.replicate(A, Nat.add(m, n), x) == List.append(&2, A, List.replicate(A, m, x), List.replicate(A, n, x)) : List<&2, A>}` | Replicating m + n times appends m copies to n copies. | next |
-| `reverse_replicate(A, n, x)` | `∀ -A: Data, n: Nat, -x: A. {List.reverse(&2, A, List.replicate(A, n, x)) == List.replicate(A, n, x) : List<&2, A>}` | Reversing n copies of x gives them back. | next |
-| `filter_true(~A, xs)` | `∀ ~A: Data, xs: List<&2, A>. {List.filter(~A, ~(x => True{}), xs) == xs : List<&2, A>}` | Filtering with an always-true predicate gives the list back. | next |
-| `filter_false(~A, xs)` | `∀ ~A: Data, xs: List<&2, A>. {List.filter(~A, ~(x => False{}), xs) == Nil{} : List<&2, A>}` | Filtering with an always-false predicate gives the empty list. | next |
-| `filter_filter(~A, ~p, ~q, xs)` | `∀ ~A: Data, ~p: A -> Bool, ~q: A -> Bool, xs: List<&2, A>. {List.filter(~A, ~p, List.filter(~A, ~q, xs)) == List.filter(~A, ~(+x => Bool.and(p(x), q(x))), xs) : List<&2, A>}` | Filtering twice is filtering by both predicates: filter p (filter q xs) = filter (p and q) xs. | next |
-| `all_filter(~A, ~p, ~q, xs)` | `∀ ~A: Data, ~p: A -> Bool, ~q: A -> Bool, xs: List<&2, A>. {List.all(~&2, ~A, ~q, List.filter(~A, ~p, xs)) == List.all(~&2, ~A, ~(+x => Bool.or(Bool.not(p(x)), q(x))), xs) : Bool}` | All over a filter checks q only where p holds: all q (filter p xs) = all (not p or q) xs. | next |
-| `any_filter(~A, ~p, ~q, xs)` | `∀ ~A: Data, ~p: A -> Bool, ~q: A -> Bool, xs: List<&2, A>. {List.any(~&2, ~A, ~q, List.filter(~A, ~p, xs)) == List.any(~&2, ~A, ~(+x => Bool.and(p(x), q(x))), xs) : Bool}` | Any over a filter looks for q only where p holds: any q (filter p xs) = any (p and q) xs. | next |
-| `all_map(~A, ~B, ~f, ~p, xs)` | `∀ ~A: Type, ~B: Type, ~f: A -> B, ~p: B -> Bool, xs: List<A>. {List.all(~&1, ~B, ~p, List.map(~A, ~B, ~f, xs)) == List.all(~&1, ~A, ~(x => p(f(x))), xs) : Bool}` | All over a map checks the composed predicate: all p (map f xs) = all (p . f) xs. | next |
-| `any_map(~A, ~B, ~f, ~p, xs)` | `∀ ~A: Type, ~B: Type, ~f: A -> B, ~p: B -> Bool, xs: List<A>. {List.any(~&1, ~B, ~p, List.map(~A, ~B, ~f, xs)) == List.any(~&1, ~A, ~(x => p(f(x))), xs) : Bool}` | Any over a map checks the composed predicate: any p (map f xs) = any (p . f) xs. | next |
-| `all_reverse(~a, ~A, ~f, xs)` | `∀ ~a: Quant, ~A: Kind(a), ~f: A -> Bool, xs: List<a, A>. {List.all(~a, ~A, ~f, List.reverse(a, A, xs)) == List.all(~a, ~A, ~f, xs) : Bool}` | Reversing does not change whether all elements satisfy a predicate. | next |
-| `any_reverse(~a, ~A, ~f, xs)` | `∀ ~a: Quant, ~A: Kind(a), ~f: A -> Bool, xs: List<a, A>. {List.any(~a, ~A, ~f, List.reverse(a, A, xs)) == List.any(~a, ~A, ~f, xs) : Bool}` | Reversing does not change whether some element satisfies a predicate. | next |
-| `contains_reverse(~A, ~eq, xs, x)` | `∀ ~A: Data, ~eq: A -> A -> Bool, xs: List<&2, A>, +x: A. {List.contains(~A, ~eq, List.reverse(&2, A, xs), x) == List.contains(~A, ~eq, xs, x) : Bool}` | Reversing does not change whether a list contains x. | next |
+| `take_left(a, A, xs, ys)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>, ys: List<a, A>. {List.take(a, A, List.append(a, A, xs, ys), List.length(a, A, xs)) == xs : List<a, A>}` | Taking the length of the first part of an append gives the first part back. | 0.6.0.0 |
+| `drop_left(a, A, xs, ys)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>, ys: List<a, A>. {List.drop(a, A, List.append(a, A, xs, ys), List.length(a, A, xs)) == ys : List<a, A>}` | Dropping the length of the first part of an append gives the second part. | 0.6.0.0 |
+| `take_append(a, A, xs, ys, n)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>, -ys: List<a, A>, -n: Nat. {List.take(a, A, List.append(a, A, xs, ys), Nat.add(List.length(a, A, xs), n)) == List.append(a, A, xs, List.take(a, A, ys, n)) : List<a, A>}` | Taking past the first part of an append keeps it and takes the rest from the second part. | 0.6.0.0 |
+| `drop_append(a, A, xs, ys, n)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>, -ys: List<a, A>, -n: Nat. {List.drop(a, A, List.append(a, A, xs, ys), Nat.add(List.length(a, A, xs), n)) == List.drop(a, A, ys, n) : List<a, A>}` | Dropping past the first part of an append drops the rest from the second part. | 0.6.0.0 |
+| `take_append_of_le_length(a, A, xs, ys, n, h)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>, ys: List<a, A>, n: Nat, h: MNat.le(n, List.length(a, A, xs)). {List.take(a, A, List.append(a, A, xs, ys), n) == List.take(a, A, xs, n) : List<a, A>}` | Taking at most the length of the first part of an append only sees the first part. | 0.6.0.0 |
+| `drop_append_of_le_length(a, A, xs, ys, n, h)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>, ys: List<a, A>, n: Nat, h: MNat.le(n, List.length(a, A, xs)). {List.drop(a, A, List.append(a, A, xs, ys), n) == List.append(a, A, List.drop(a, A, xs, n), ys) : List<a, A>}` | Dropping at most the length of the first part of an append drops only from the first part. | 0.6.0.0 |
+| `map_take(~A, ~B, ~f, xs, n)` | `∀ ~A: Type, ~B: Type, ~f: A -> B, xs: List<A>, n: Nat. {List.map(~A, ~B, ~f, List.take(&1, A, xs, n)) == List.take(&1, B, List.map(~A, ~B, ~f, xs), n) : List<B>}` | Mapping commutes with taking: map f (take n xs) = take n (map f xs). | 0.6.0.0 |
+| `map_drop(~A, ~B, ~f, xs, n)` | `∀ ~A: Type, ~B: Type, ~f: A -> B, xs: List<A>, n: Nat. {List.map(~A, ~B, ~f, List.drop(&1, A, xs, n)) == List.drop(&1, B, List.map(~A, ~B, ~f, xs), n) : List<B>}` | Mapping commutes with dropping: map f (drop n xs) = drop n (map f xs). | 0.6.0.0 |
+| `take_replicate(A, n, m, x)` | `∀ -A: Data, n: Nat, m: Nat, -x: A. {List.take(&2, A, List.replicate(A, n, x), m) == List.replicate(A, Nat.min(m, n), x) : List<&2, A>}` | Taking m from n copies of x gives min(m, n) copies of x. | 0.6.0.0 |
+| `drop_replicate(A, n, m, x)` | `∀ -A: Data, n: Nat, m: Nat, -x: A. {List.drop(&2, A, List.replicate(A, n, x), m) == List.replicate(A, Nat.sub(n, m), x) : List<&2, A>}` | Dropping m from n copies of x gives n - m copies of x. | 0.6.0.0 |
+| `length_take_le(a, A, xs, n)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>, n: Nat. MNat.le(List.length(a, A, List.take(a, A, xs, n)), n)` | Taking n elements gives at most n of them. | 0.6.0.0 |
+| `length_tail(a, A, xs)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>. {List.length(a, A, List.tail(a, A, xs)) == Nat.sub(List.length(a, A, xs), 1n) : Nat}` | The tail is one shorter than the list, or empty: length (tail xs) = length xs - 1. | 0.6.0.0 |
+| `map_id(~A, xs)` | `∀ ~A: Type, xs: List<A>. {List.map(~A, ~A, ~(x => x), xs) == xs : List<A>}` | Mapping the identity gives the list back. | 0.6.0.0 |
+| `foldr_map(~A, ~B, ~C, ~f, ~g, xs, z)` | `∀ ~A: Type, ~B: Type, ~C: Type, ~f: A -> B, ~g: B -> C -> C, xs: List<A>, -z: C. {List.foldr(~&1, ~B, ~C, ~g, List.map(~A, ~B, ~f, xs), z) == List.foldr(~&1, ~A, ~C, ~(x => y => g(f(x), y)), xs, z) : C}` | A right fold over a map folds with the mapped function: foldr g z (map f xs) = foldr (g . f) z xs. | 0.6.0.0 |
+| `foldl_map(~A, ~B, ~C, ~f, ~g, xs, z)` | `∀ ~A: Type, ~B: Type, ~C: Type, ~f: A -> B, ~g: C -> B -> C, xs: List<A>, -z: C. {List.foldl(~&1, ~B, ~C, ~g, List.map(~A, ~B, ~f, xs), z) == List.foldl(~&1, ~A, ~C, ~(x => y => g(x, f(y))), xs, z) : C}` | A left fold over a map folds with the mapped function: foldl g z (map f xs) = foldl (fun acc x => g acc (f x)) z xs. | 0.6.0.0 |
+| `replicate_add(A, m, n, x)` | `∀ -A: Data, m: Nat, -n: Nat, -x: A. {List.replicate(A, Nat.add(m, n), x) == List.append(&2, A, List.replicate(A, m, x), List.replicate(A, n, x)) : List<&2, A>}` | Replicating m + n times appends m copies to n copies. | 0.6.0.0 |
+| `reverse_replicate(A, n, x)` | `∀ -A: Data, n: Nat, -x: A. {List.reverse(&2, A, List.replicate(A, n, x)) == List.replicate(A, n, x) : List<&2, A>}` | Reversing n copies of x gives them back. | 0.6.0.0 |
+| `filter_true(~A, xs)` | `∀ ~A: Data, xs: List<&2, A>. {List.filter(~A, ~(x => True{}), xs) == xs : List<&2, A>}` | Filtering with an always-true predicate gives the list back. | 0.6.0.0 |
+| `filter_false(~A, xs)` | `∀ ~A: Data, xs: List<&2, A>. {List.filter(~A, ~(x => False{}), xs) == Nil{} : List<&2, A>}` | Filtering with an always-false predicate gives the empty list. | 0.6.0.0 |
+| `filter_filter(~A, ~p, ~q, xs)` | `∀ ~A: Data, ~p: A -> Bool, ~q: A -> Bool, xs: List<&2, A>. {List.filter(~A, ~p, List.filter(~A, ~q, xs)) == List.filter(~A, ~(+x => Bool.and(p(x), q(x))), xs) : List<&2, A>}` | Filtering twice is filtering by both predicates: filter p (filter q xs) = filter (p and q) xs. | 0.6.0.0 |
+| `all_filter(~A, ~p, ~q, xs)` | `∀ ~A: Data, ~p: A -> Bool, ~q: A -> Bool, xs: List<&2, A>. {List.all(~&2, ~A, ~q, List.filter(~A, ~p, xs)) == List.all(~&2, ~A, ~(+x => Bool.or(Bool.not(p(x)), q(x))), xs) : Bool}` | All over a filter checks q only where p holds: all q (filter p xs) = all (not p or q) xs. | 0.6.0.0 |
+| `any_filter(~A, ~p, ~q, xs)` | `∀ ~A: Data, ~p: A -> Bool, ~q: A -> Bool, xs: List<&2, A>. {List.any(~&2, ~A, ~q, List.filter(~A, ~p, xs)) == List.any(~&2, ~A, ~(+x => Bool.and(p(x), q(x))), xs) : Bool}` | Any over a filter looks for q only where p holds: any q (filter p xs) = any (p and q) xs. | 0.6.0.0 |
+| `all_map(~A, ~B, ~f, ~p, xs)` | `∀ ~A: Type, ~B: Type, ~f: A -> B, ~p: B -> Bool, xs: List<A>. {List.all(~&1, ~B, ~p, List.map(~A, ~B, ~f, xs)) == List.all(~&1, ~A, ~(x => p(f(x))), xs) : Bool}` | All over a map checks the composed predicate: all p (map f xs) = all (p . f) xs. | 0.6.0.0 |
+| `any_map(~A, ~B, ~f, ~p, xs)` | `∀ ~A: Type, ~B: Type, ~f: A -> B, ~p: B -> Bool, xs: List<A>. {List.any(~&1, ~B, ~p, List.map(~A, ~B, ~f, xs)) == List.any(~&1, ~A, ~(x => p(f(x))), xs) : Bool}` | Any over a map checks the composed predicate: any p (map f xs) = any (p . f) xs. | 0.6.0.0 |
+| `all_reverse(~a, ~A, ~f, xs)` | `∀ ~a: Quant, ~A: Kind(a), ~f: A -> Bool, xs: List<a, A>. {List.all(~a, ~A, ~f, List.reverse(a, A, xs)) == List.all(~a, ~A, ~f, xs) : Bool}` | Reversing does not change whether all elements satisfy a predicate. | 0.6.0.0 |
+| `any_reverse(~a, ~A, ~f, xs)` | `∀ ~a: Quant, ~A: Kind(a), ~f: A -> Bool, xs: List<a, A>. {List.any(~a, ~A, ~f, List.reverse(a, A, xs)) == List.any(~a, ~A, ~f, xs) : Bool}` | Reversing does not change whether some element satisfies a predicate. | 0.6.0.0 |
+| `contains_reverse(~A, ~eq, xs, x)` | `∀ ~A: Data, ~eq: A -> A -> Bool, xs: List<&2, A>, +x: A. {List.contains(~A, ~eq, List.reverse(&2, A, xs), x) == List.contains(~A, ~eq, xs, x) : Bool}` | Reversing does not change whether a list contains x. | 0.6.0.0 |
 | `append_nil_sym(a, A, xs)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>. {xs == List.append(a, A, xs, Nil{}) : List<a, A>}` | The empty list is a right identity for append: xs ++ [] = xs, reversed to rewrite toward the simple side. | 0.1.0.0 |
 | `nil_append_sym(a, A, xs)` | `∀ -a: Quant, -A: Kind(a), -xs: List<a, A>. {xs == List.append(a, A, Nil{}, xs) : List<a, A>}` | The empty list is a left identity for append: [] ++ xs = xs, reversed to rewrite toward the simple side. | 0.1.0.0 |
 | `append_assoc_sym(a, A, xs, ys, zs)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>, -ys: List<a, A>, -zs: List<a, A>. {List.append(a, A, xs, List.append(a, A, ys, zs)) == List.append(a, A, List.append(a, A, xs, ys), zs) : List<a, A>}` | Append is associative: (xs ++ ys) ++ zs = xs ++ (ys ++ zs), reversed to rewrite toward the simple side. | 0.1.0.0 |
@@ -270,37 +268,37 @@ import bend-mathlib@0.5.0.0/list.bend as MList
 | `filter_append_sym(~A, ~f, xs, ys)` | `∀ ~A: Data, ~f: A -> Bool, xs: List<&2, A>, ys: List<&2, A>. {List.append(&2, A, List.filter(~A, ~f, xs), List.filter(~A, ~f, ys)) == List.filter(~A, ~f, List.append(&2, A, xs, ys)) : List<&2, A>}` | Filtering an append filters each part, reversed to rewrite toward the simple side. | 0.2.0.0 |
 | `contains_append_sym(~A, ~eq, xs, ys, x)` | `∀ ~A: Data, ~eq: A -> A -> Bool, xs: List<&2, A>, -ys: List<&2, A>, +x: A. {Bool.or(List.contains(~A, ~eq, xs, x), List.contains(~A, ~eq, ys, x)) == List.contains(~A, ~eq, List.append(&2, A, xs, ys), x) : Bool}` | An append contains x iff either part does, reversed to rewrite toward the simple side. | 0.2.0.0 |
 | `length_filter_le_sym(~A, ~f, xs)` | `∀ ~A: Data, ~f: A -> Bool, xs: List<&2, A>. {True{} == Nat.is_le(List.length(&2, A, List.filter(~A, ~f, xs)), List.length(&2, A, xs)) : Bool}` | Filtering never makes a list longer, reversed to rewrite toward the simple side. | 0.2.0.0 |
-| `take_left_sym(a, A, xs, ys)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>, ys: List<a, A>. {xs == List.take(a, A, List.append(a, A, xs, ys), List.length(a, A, xs)) : List<a, A>}` | Taking the length of the first part of an append gives the first part back, reversed to rewrite toward the simple side. | next |
-| `drop_left_sym(a, A, xs, ys)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>, ys: List<a, A>. {ys == List.drop(a, A, List.append(a, A, xs, ys), List.length(a, A, xs)) : List<a, A>}` | Dropping the length of the first part of an append gives the second part, reversed to rewrite toward the simple side. | next |
-| `take_append_sym(a, A, xs, ys, n)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>, -ys: List<a, A>, -n: Nat. {List.append(a, A, xs, List.take(a, A, ys, n)) == List.take(a, A, List.append(a, A, xs, ys), Nat.add(List.length(a, A, xs), n)) : List<a, A>}` | Taking past the first part of an append keeps it and takes the rest from the second part, reversed to rewrite toward the simple side. | next |
-| `drop_append_sym(a, A, xs, ys, n)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>, -ys: List<a, A>, -n: Nat. {List.drop(a, A, ys, n) == List.drop(a, A, List.append(a, A, xs, ys), Nat.add(List.length(a, A, xs), n)) : List<a, A>}` | Dropping past the first part of an append drops the rest from the second part, reversed to rewrite toward the simple side. | next |
-| `take_append_of_le_length_sym(a, A, xs, ys, n, h)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>, ys: List<a, A>, n: Nat, h: MNat.le(n, List.length(a, A, xs)). {List.take(a, A, xs, n) == List.take(a, A, List.append(a, A, xs, ys), n) : List<a, A>}` | Taking at most the length of the first part of an append only sees the first part, reversed to rewrite toward the simple side. | next |
-| `drop_append_of_le_length_sym(a, A, xs, ys, n, h)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>, ys: List<a, A>, n: Nat, h: MNat.le(n, List.length(a, A, xs)). {List.append(a, A, List.drop(a, A, xs, n), ys) == List.drop(a, A, List.append(a, A, xs, ys), n) : List<a, A>}` | Dropping at most the length of the first part of an append drops only from the first part, reversed to rewrite toward the simple side. | next |
-| `map_take_sym(~A, ~B, ~f, xs, n)` | `∀ ~A: Type, ~B: Type, ~f: A -> B, xs: List<A>, n: Nat. {List.take(&1, B, List.map(~A, ~B, ~f, xs), n) == List.map(~A, ~B, ~f, List.take(&1, A, xs, n)) : List<B>}` | Mapping commutes with taking: map f (take n xs) = take n (map f xs), reversed to rewrite toward the simple side. | next |
-| `map_drop_sym(~A, ~B, ~f, xs, n)` | `∀ ~A: Type, ~B: Type, ~f: A -> B, xs: List<A>, n: Nat. {List.drop(&1, B, List.map(~A, ~B, ~f, xs), n) == List.map(~A, ~B, ~f, List.drop(&1, A, xs, n)) : List<B>}` | Mapping commutes with dropping: map f (drop n xs) = drop n (map f xs), reversed to rewrite toward the simple side. | next |
-| `take_replicate_sym(A, n, m, x)` | `∀ -A: Data, n: Nat, m: Nat, -x: A. {List.replicate(A, Nat.min(m, n), x) == List.take(&2, A, List.replicate(A, n, x), m) : List<&2, A>}` | Taking m from n copies of x gives min(m, n) copies of x, reversed to rewrite toward the simple side. | next |
-| `drop_replicate_sym(A, n, m, x)` | `∀ -A: Data, n: Nat, m: Nat, -x: A. {List.replicate(A, Nat.sub(n, m), x) == List.drop(&2, A, List.replicate(A, n, x), m) : List<&2, A>}` | Dropping m from n copies of x gives n - m copies of x, reversed to rewrite toward the simple side. | next |
-| `length_tail_sym(a, A, xs)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>. {Nat.sub(List.length(a, A, xs), 1n) == List.length(a, A, List.tail(a, A, xs)) : Nat}` | The tail is one shorter than the list, or empty: length (tail xs) = length xs - 1, reversed to rewrite toward the simple side. | next |
-| `map_id_sym(~A, xs)` | `∀ ~A: Type, xs: List<A>. {xs == List.map(~A, ~A, ~(x => x), xs) : List<A>}` | Mapping the identity gives the list back, reversed to rewrite toward the simple side. | next |
-| `foldr_map_sym(~A, ~B, ~C, ~f, ~g, xs, z)` | `∀ ~A: Type, ~B: Type, ~C: Type, ~f: A -> B, ~g: B -> C -> C, xs: List<A>, -z: C. {List.foldr(~&1, ~A, ~C, ~(x => y => g(f(x), y)), xs, z) == List.foldr(~&1, ~B, ~C, ~g, List.map(~A, ~B, ~f, xs), z) : C}` | A right fold over a map folds with the mapped function: foldr g z (map f xs) = foldr (g . f) z xs, reversed to rewrite toward the simple side. | next |
-| `foldl_map_sym(~A, ~B, ~C, ~f, ~g, xs, z)` | `∀ ~A: Type, ~B: Type, ~C: Type, ~f: A -> B, ~g: C -> B -> C, xs: List<A>, -z: C. {List.foldl(~&1, ~A, ~C, ~(x => y => g(x, f(y))), xs, z) == List.foldl(~&1, ~B, ~C, ~g, List.map(~A, ~B, ~f, xs), z) : C}` | A left fold over a map folds with the mapped function: foldl g z (map f xs) = foldl (fun acc x => g acc (f x)) z xs, reversed to rewrite toward the simple side. | next |
-| `replicate_add_sym(A, m, n, x)` | `∀ -A: Data, m: Nat, -n: Nat, -x: A. {List.append(&2, A, List.replicate(A, m, x), List.replicate(A, n, x)) == List.replicate(A, Nat.add(m, n), x) : List<&2, A>}` | Replicating m + n times appends m copies to n copies, reversed to rewrite toward the simple side. | next |
-| `reverse_replicate_sym(A, n, x)` | `∀ -A: Data, n: Nat, -x: A. {List.replicate(A, n, x) == List.reverse(&2, A, List.replicate(A, n, x)) : List<&2, A>}` | Reversing n copies of x gives them back, reversed to rewrite toward the simple side. | next |
-| `filter_true_sym(~A, xs)` | `∀ ~A: Data, xs: List<&2, A>. {xs == List.filter(~A, ~(x => True{}), xs) : List<&2, A>}` | Filtering with an always-true predicate gives the list back, reversed to rewrite toward the simple side. | next |
-| `filter_false_sym(~A, xs)` | `∀ ~A: Data, xs: List<&2, A>. {Nil{} == List.filter(~A, ~(x => False{}), xs) : List<&2, A>}` | Filtering with an always-false predicate gives the empty list, reversed to rewrite toward the simple side. | next |
-| `filter_filter_sym(~A, ~p, ~q, xs)` | `∀ ~A: Data, ~p: A -> Bool, ~q: A -> Bool, xs: List<&2, A>. {List.filter(~A, ~(+x => Bool.and(p(x), q(x))), xs) == List.filter(~A, ~p, List.filter(~A, ~q, xs)) : List<&2, A>}` | Filtering twice is filtering by both predicates: filter p (filter q xs) = filter (p and q) xs, reversed to rewrite toward the simple side. | next |
-| `all_filter_sym(~A, ~p, ~q, xs)` | `∀ ~A: Data, ~p: A -> Bool, ~q: A -> Bool, xs: List<&2, A>. {List.all(~&2, ~A, ~(+x => Bool.or(Bool.not(p(x)), q(x))), xs) == List.all(~&2, ~A, ~q, List.filter(~A, ~p, xs)) : Bool}` | All over a filter checks q only where p holds: all q (filter p xs) = all (not p or q) xs, reversed to rewrite toward the simple side. | next |
-| `any_filter_sym(~A, ~p, ~q, xs)` | `∀ ~A: Data, ~p: A -> Bool, ~q: A -> Bool, xs: List<&2, A>. {List.any(~&2, ~A, ~(+x => Bool.and(p(x), q(x))), xs) == List.any(~&2, ~A, ~q, List.filter(~A, ~p, xs)) : Bool}` | Any over a filter looks for q only where p holds: any q (filter p xs) = any (p and q) xs, reversed to rewrite toward the simple side. | next |
-| `all_map_sym(~A, ~B, ~f, ~p, xs)` | `∀ ~A: Type, ~B: Type, ~f: A -> B, ~p: B -> Bool, xs: List<A>. {List.all(~&1, ~A, ~(x => p(f(x))), xs) == List.all(~&1, ~B, ~p, List.map(~A, ~B, ~f, xs)) : Bool}` | All over a map checks the composed predicate: all p (map f xs) = all (p . f) xs, reversed to rewrite toward the simple side. | next |
-| `any_map_sym(~A, ~B, ~f, ~p, xs)` | `∀ ~A: Type, ~B: Type, ~f: A -> B, ~p: B -> Bool, xs: List<A>. {List.any(~&1, ~A, ~(x => p(f(x))), xs) == List.any(~&1, ~B, ~p, List.map(~A, ~B, ~f, xs)) : Bool}` | Any over a map checks the composed predicate: any p (map f xs) = any (p . f) xs, reversed to rewrite toward the simple side. | next |
-| `all_reverse_sym(~a, ~A, ~f, xs)` | `∀ ~a: Quant, ~A: Kind(a), ~f: A -> Bool, xs: List<a, A>. {List.all(~a, ~A, ~f, xs) == List.all(~a, ~A, ~f, List.reverse(a, A, xs)) : Bool}` | Reversing does not change whether all elements satisfy a predicate, reversed to rewrite toward the simple side. | next |
-| `any_reverse_sym(~a, ~A, ~f, xs)` | `∀ ~a: Quant, ~A: Kind(a), ~f: A -> Bool, xs: List<a, A>. {List.any(~a, ~A, ~f, xs) == List.any(~a, ~A, ~f, List.reverse(a, A, xs)) : Bool}` | Reversing does not change whether some element satisfies a predicate, reversed to rewrite toward the simple side. | next |
-| `contains_reverse_sym(~A, ~eq, xs, x)` | `∀ ~A: Data, ~eq: A -> A -> Bool, xs: List<&2, A>, +x: A. {List.contains(~A, ~eq, xs, x) == List.contains(~A, ~eq, List.reverse(&2, A, xs), x) : Bool}` | Reversing does not change whether a list contains x, reversed to rewrite toward the simple side. | next |
+| `take_left_sym(a, A, xs, ys)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>, ys: List<a, A>. {xs == List.take(a, A, List.append(a, A, xs, ys), List.length(a, A, xs)) : List<a, A>}` | Taking the length of the first part of an append gives the first part back, reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `drop_left_sym(a, A, xs, ys)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>, ys: List<a, A>. {ys == List.drop(a, A, List.append(a, A, xs, ys), List.length(a, A, xs)) : List<a, A>}` | Dropping the length of the first part of an append gives the second part, reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `take_append_sym(a, A, xs, ys, n)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>, -ys: List<a, A>, -n: Nat. {List.append(a, A, xs, List.take(a, A, ys, n)) == List.take(a, A, List.append(a, A, xs, ys), Nat.add(List.length(a, A, xs), n)) : List<a, A>}` | Taking past the first part of an append keeps it and takes the rest from the second part, reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `drop_append_sym(a, A, xs, ys, n)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>, -ys: List<a, A>, -n: Nat. {List.drop(a, A, ys, n) == List.drop(a, A, List.append(a, A, xs, ys), Nat.add(List.length(a, A, xs), n)) : List<a, A>}` | Dropping past the first part of an append drops the rest from the second part, reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `take_append_of_le_length_sym(a, A, xs, ys, n, h)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>, ys: List<a, A>, n: Nat, h: MNat.le(n, List.length(a, A, xs)). {List.take(a, A, xs, n) == List.take(a, A, List.append(a, A, xs, ys), n) : List<a, A>}` | Taking at most the length of the first part of an append only sees the first part, reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `drop_append_of_le_length_sym(a, A, xs, ys, n, h)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>, ys: List<a, A>, n: Nat, h: MNat.le(n, List.length(a, A, xs)). {List.append(a, A, List.drop(a, A, xs, n), ys) == List.drop(a, A, List.append(a, A, xs, ys), n) : List<a, A>}` | Dropping at most the length of the first part of an append drops only from the first part, reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `map_take_sym(~A, ~B, ~f, xs, n)` | `∀ ~A: Type, ~B: Type, ~f: A -> B, xs: List<A>, n: Nat. {List.take(&1, B, List.map(~A, ~B, ~f, xs), n) == List.map(~A, ~B, ~f, List.take(&1, A, xs, n)) : List<B>}` | Mapping commutes with taking: map f (take n xs) = take n (map f xs), reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `map_drop_sym(~A, ~B, ~f, xs, n)` | `∀ ~A: Type, ~B: Type, ~f: A -> B, xs: List<A>, n: Nat. {List.drop(&1, B, List.map(~A, ~B, ~f, xs), n) == List.map(~A, ~B, ~f, List.drop(&1, A, xs, n)) : List<B>}` | Mapping commutes with dropping: map f (drop n xs) = drop n (map f xs), reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `take_replicate_sym(A, n, m, x)` | `∀ -A: Data, n: Nat, m: Nat, -x: A. {List.replicate(A, Nat.min(m, n), x) == List.take(&2, A, List.replicate(A, n, x), m) : List<&2, A>}` | Taking m from n copies of x gives min(m, n) copies of x, reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `drop_replicate_sym(A, n, m, x)` | `∀ -A: Data, n: Nat, m: Nat, -x: A. {List.replicate(A, Nat.sub(n, m), x) == List.drop(&2, A, List.replicate(A, n, x), m) : List<&2, A>}` | Dropping m from n copies of x gives n - m copies of x, reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `length_tail_sym(a, A, xs)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>. {Nat.sub(List.length(a, A, xs), 1n) == List.length(a, A, List.tail(a, A, xs)) : Nat}` | The tail is one shorter than the list, or empty: length (tail xs) = length xs - 1, reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `map_id_sym(~A, xs)` | `∀ ~A: Type, xs: List<A>. {xs == List.map(~A, ~A, ~(x => x), xs) : List<A>}` | Mapping the identity gives the list back, reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `foldr_map_sym(~A, ~B, ~C, ~f, ~g, xs, z)` | `∀ ~A: Type, ~B: Type, ~C: Type, ~f: A -> B, ~g: B -> C -> C, xs: List<A>, -z: C. {List.foldr(~&1, ~A, ~C, ~(x => y => g(f(x), y)), xs, z) == List.foldr(~&1, ~B, ~C, ~g, List.map(~A, ~B, ~f, xs), z) : C}` | A right fold over a map folds with the mapped function: foldr g z (map f xs) = foldr (g . f) z xs, reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `foldl_map_sym(~A, ~B, ~C, ~f, ~g, xs, z)` | `∀ ~A: Type, ~B: Type, ~C: Type, ~f: A -> B, ~g: C -> B -> C, xs: List<A>, -z: C. {List.foldl(~&1, ~A, ~C, ~(x => y => g(x, f(y))), xs, z) == List.foldl(~&1, ~B, ~C, ~g, List.map(~A, ~B, ~f, xs), z) : C}` | A left fold over a map folds with the mapped function: foldl g z (map f xs) = foldl (fun acc x => g acc (f x)) z xs, reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `replicate_add_sym(A, m, n, x)` | `∀ -A: Data, m: Nat, -n: Nat, -x: A. {List.append(&2, A, List.replicate(A, m, x), List.replicate(A, n, x)) == List.replicate(A, Nat.add(m, n), x) : List<&2, A>}` | Replicating m + n times appends m copies to n copies, reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `reverse_replicate_sym(A, n, x)` | `∀ -A: Data, n: Nat, -x: A. {List.replicate(A, n, x) == List.reverse(&2, A, List.replicate(A, n, x)) : List<&2, A>}` | Reversing n copies of x gives them back, reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `filter_true_sym(~A, xs)` | `∀ ~A: Data, xs: List<&2, A>. {xs == List.filter(~A, ~(x => True{}), xs) : List<&2, A>}` | Filtering with an always-true predicate gives the list back, reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `filter_false_sym(~A, xs)` | `∀ ~A: Data, xs: List<&2, A>. {Nil{} == List.filter(~A, ~(x => False{}), xs) : List<&2, A>}` | Filtering with an always-false predicate gives the empty list, reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `filter_filter_sym(~A, ~p, ~q, xs)` | `∀ ~A: Data, ~p: A -> Bool, ~q: A -> Bool, xs: List<&2, A>. {List.filter(~A, ~(+x => Bool.and(p(x), q(x))), xs) == List.filter(~A, ~p, List.filter(~A, ~q, xs)) : List<&2, A>}` | Filtering twice is filtering by both predicates: filter p (filter q xs) = filter (p and q) xs, reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `all_filter_sym(~A, ~p, ~q, xs)` | `∀ ~A: Data, ~p: A -> Bool, ~q: A -> Bool, xs: List<&2, A>. {List.all(~&2, ~A, ~(+x => Bool.or(Bool.not(p(x)), q(x))), xs) == List.all(~&2, ~A, ~q, List.filter(~A, ~p, xs)) : Bool}` | All over a filter checks q only where p holds: all q (filter p xs) = all (not p or q) xs, reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `any_filter_sym(~A, ~p, ~q, xs)` | `∀ ~A: Data, ~p: A -> Bool, ~q: A -> Bool, xs: List<&2, A>. {List.any(~&2, ~A, ~(+x => Bool.and(p(x), q(x))), xs) == List.any(~&2, ~A, ~q, List.filter(~A, ~p, xs)) : Bool}` | Any over a filter looks for q only where p holds: any q (filter p xs) = any (p and q) xs, reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `all_map_sym(~A, ~B, ~f, ~p, xs)` | `∀ ~A: Type, ~B: Type, ~f: A -> B, ~p: B -> Bool, xs: List<A>. {List.all(~&1, ~A, ~(x => p(f(x))), xs) == List.all(~&1, ~B, ~p, List.map(~A, ~B, ~f, xs)) : Bool}` | All over a map checks the composed predicate: all p (map f xs) = all (p . f) xs, reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `any_map_sym(~A, ~B, ~f, ~p, xs)` | `∀ ~A: Type, ~B: Type, ~f: A -> B, ~p: B -> Bool, xs: List<A>. {List.any(~&1, ~A, ~(x => p(f(x))), xs) == List.any(~&1, ~B, ~p, List.map(~A, ~B, ~f, xs)) : Bool}` | Any over a map checks the composed predicate: any p (map f xs) = any (p . f) xs, reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `all_reverse_sym(~a, ~A, ~f, xs)` | `∀ ~a: Quant, ~A: Kind(a), ~f: A -> Bool, xs: List<a, A>. {List.all(~a, ~A, ~f, xs) == List.all(~a, ~A, ~f, List.reverse(a, A, xs)) : Bool}` | Reversing does not change whether all elements satisfy a predicate, reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `any_reverse_sym(~a, ~A, ~f, xs)` | `∀ ~a: Quant, ~A: Kind(a), ~f: A -> Bool, xs: List<a, A>. {List.any(~a, ~A, ~f, xs) == List.any(~a, ~A, ~f, List.reverse(a, A, xs)) : Bool}` | Reversing does not change whether some element satisfies a predicate, reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `contains_reverse_sym(~A, ~eq, xs, x)` | `∀ ~A: Data, ~eq: A -> A -> Bool, xs: List<&2, A>, +x: A. {List.contains(~A, ~eq, xs, x) == List.contains(~A, ~eq, List.reverse(&2, A, xs), x) : Bool}` | Reversing does not change whether a list contains x, reversed to rewrite toward the simple side. | 0.6.0.0 |
 
 ## maybe
 
 ```python
-import bend-mathlib@0.5.0.0/maybe.bend as MMaybe
+import bend-mathlib@0.6.0.0/maybe.bend as MMaybe
 ```
 
 | lemma | statement | meaning | since |
@@ -319,7 +317,7 @@ import bend-mathlib@0.5.0.0/maybe.bend as MMaybe
 ## nat
 
 ```python
-import bend-mathlib@0.5.0.0/nat.bend as MNat
+import bend-mathlib@0.6.0.0/nat.bend as MNat
 ```
 
 | predicate | definition | since |
@@ -438,47 +436,47 @@ import bend-mathlib@0.5.0.0/nat.bend as MNat
 | `lt_sub_iff_add_lt(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.is_lt(a, Nat.sub(c, b)) == Nat.is_lt(Nat.add(b, a), c) : Bool}` | Comparing against a difference is comparing the sum: a < c - b tests as b + a < c. | 0.4.0.0 |
 | `le_of_add_eq(a, k, b, e)` | `∀ a: Nat, k: Nat, -b: Nat, e: {Nat.add(a, k) == b : Nat}. le(a, b)` | A witnessed difference gives the order: a + k = b implies a <= b. | 0.4.0.0 |
 | `mul_le_mul_right(a, b, k, h)` | `∀ +a: Nat, +b: Nat, +k: Nat, h: le(a, b). le(Nat.mul(a, k), Nat.mul(b, k))` | Multiplying on the right preserves the order: a <= b implies a * k <= b * k. | 0.4.0.0 |
-| `zero_div(b)` | `∀ b: Nat. {Nat.div(0n, b) == 0n : Nat}` | Zero divided by anything is zero: 0 / b = 0. | next |
-| `zero_mod(b)` | `∀ b: Nat. {Nat.mod(0n, b) == 0n : Nat}` | Zero modulo anything is zero: 0 % b = 0. | next |
-| `div_one(a)` | `∀ a: Nat. {Nat.div(a, 1n) == a : Nat}` | Dividing by one changes nothing: a / 1 = a. | next |
-| `mod_one(a)` | `∀ a: Nat. {Nat.mod(a, 1n) == 0n : Nat}` | Any natural modulo one is zero: a % 1 = 0. | next |
-| `mod_self(n)` | `∀ n: Nat. {Nat.mod(n, n) == 0n : Nat}` | A natural modulo itself is zero: n % n = 0. | next |
-| `div_self(b)` | `∀ b: Nat. {Nat.div(1n+b, 1n+b) == 1n : Nat}` | A positive natural divided by itself is one: (1 + b) / (1 + b) = 1. | next |
-| `mod_lt(a, b)` | `∀ a: Nat, b: Nat. lt(Nat.mod(a, 1n+b), 1n+b)` | A remainder is below its positive divisor: a % (1 + b) < 1 + b. | next |
-| `mod_le(a, b)` | `∀ a: Nat, b: Nat. le(Nat.mod(a, b), a)` | A remainder never exceeds the dividend: a % b <= a. | next |
-| `div_le_self(a, b)` | `∀ a: Nat, b: Nat. le(Nat.div(a, b), a)` | A quotient never exceeds the dividend: a / b <= a. | next |
-| `mod_eq_of_lt(a, b, h)` | `∀ a: Nat, b: Nat, h: lt(a, b). {Nat.mod(a, b) == a : Nat}` | A number below the divisor is its own remainder: a < b implies a % b = a. | next |
-| `mod_mod(a, n)` | `∀ a: Nat, n: Nat. {Nat.mod(Nat.mod(a, n), n) == Nat.mod(a, n) : Nat}` | Taking a remainder twice is taking it once: (a % n) % n = a % n. | next |
-| `add_mod_left(a, b)` | `∀ a: Nat, b: Nat. {Nat.mod(Nat.add(b, a), b) == Nat.mod(a, b) : Nat}` | Adding the divisor does not change the remainder: (b + a) % b = a % b. | next |
-| `mul_div_cancel(a, b)` | `∀ a: Nat, b: Nat. {Nat.div(Nat.mul(a, 1n+b), 1n+b) == a : Nat}` | Multiplying by a positive divisor then dividing by it cancels: (a * (1 + b)) / (1 + b) = a. | next |
-| `mul_div_cancel_left(a, b)` | `∀ a: Nat, b: Nat. {Nat.div(Nat.mul(1n+b, a), 1n+b) == a : Nat}` | Multiplying on the left by a positive divisor then dividing by it cancels: ((1 + b) * a) / (1 + b) = a. | next |
-| `mul_mod_left(a, b)` | `∀ a: Nat, b: Nat. {Nat.mod(Nat.mul(a, b), b) == 0n : Nat}` | A multiple of b leaves no remainder modulo b: (a * b) % b = 0. | next |
-| `mul_mod_right(a, b)` | `∀ a: Nat, b: Nat. {Nat.mod(Nat.mul(a, b), a) == 0n : Nat}` | A multiple of a leaves no remainder modulo a: (a * b) % a = 0. | next |
-| `mod_add_div(a, b)` | `∀ a: Nat, b: Nat. {Nat.add(Nat.mod(a, b), Nat.mul(b, Nat.div(a, b))) == a : Nat}` | The remainder plus the divisor times the quotient is the dividend: a % b + b * (a / b) = a. | next |
-| `div_mul_le_self(a, b)` | `∀ a: Nat, b: Nat. le(Nat.mul(Nat.div(a, b), b), a)` | The quotient times the divisor never exceeds the dividend: (a / b) * b <= a. | next |
-| `mul_left_comm(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.mul(a, Nat.mul(b, c)) == Nat.mul(b, Nat.mul(a, c)) : Nat}` | Left commutativity of multiplication: a * (b * c) = b * (a * c). | next |
-| `mul_right_comm(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.mul(Nat.mul(a, b), c) == Nat.mul(Nat.mul(a, c), b) : Nat}` | Right commutativity of multiplication: (a * b) * c = (a * c) * b. | next |
-| `mul_mul_mul_comm(a, b, c, d)` | `∀ a: Nat, b: Nat, c: Nat, d: Nat. {Nat.mul(Nat.mul(a, b), Nat.mul(c, d)) == Nat.mul(Nat.mul(a, c), Nat.mul(b, d)) : Nat}` | Four-way regrouping of a product: (a * b) * (c * d) = (a * c) * (b * d). | next |
-| `zero_pow(n)` | `∀ -n: Nat. {Nat.pow(0n, 1n+n) == 0n : Nat}` | Zero to a positive power is zero: 0^(n+1) = 0. | next |
-| `mul_pow(a, b, n)` | `∀ +a: Nat, +b: Nat, n: Nat. {Nat.pow(Nat.mul(a, b), n) == Nat.mul(Nat.pow(a, n), Nat.pow(b, n)) : Nat}` | A power of a product is the product of the powers: (a * b)^n = a^n * b^n. | next |
-| `pow_mul(a, m, n)` | `∀ a: Nat, m: Nat, n: Nat. {Nat.pow(a, Nat.mul(m, n)) == Nat.pow(Nat.pow(a, m), n) : Nat}` | Exponents multiply under repeated powers: a^(m * n) = (a^m)^n. | next |
-| `one_le_pow(n, a)` | `∀ n: Nat, a: Nat. le(1n, Nat.pow(1n+a, n))` | A power of a positive base is at least one: 1 <= (1 + a)^n. | next |
-| `pow_pos(n, a)` | `∀ n: Nat, a: Nat. lt(0n, Nat.pow(1n+a, n))` | A power of a positive base is positive: 0 < (1 + a)^n. | next |
-| `le_add_left(n, m)` | `∀ n: Nat, m: Nat. le(n, Nat.add(m, n))` | Adding on the left never decreases a natural: n <= m + n. | next |
-| `add_sub_add_left(k, n, m)` | `∀ k: Nat, -n: Nat, -m: Nat. {Nat.sub(Nat.add(k, n), Nat.add(k, m)) == Nat.sub(n, m) : Nat}` | A common left summand cancels in a difference: (k + n) - (k + m) = n - m. | next |
-| `add_sub_add_right(n, k, m)` | `∀ n: Nat, k: Nat, m: Nat. {Nat.sub(Nat.add(n, k), Nat.add(m, k)) == Nat.sub(n, m) : Nat}` | A common right summand cancels in a difference: (n + k) - (m + k) = n - m. | next |
-| `add_sub_assoc(k, m, h, n)` | `∀ k: Nat, m: Nat, h: le(k, m), n: Nat. {Nat.sub(Nat.add(n, m), k) == Nat.add(n, Nat.sub(m, k)) : Nat}` | Subtracting a part of the right summand: k <= m implies (n + m) - k = n + (m - k). | next |
-| `sub_sub_self(n, m, h)` | `∀ n: Nat, m: Nat, h: le(m, n). {Nat.sub(n, Nat.sub(n, m)) == m : Nat}` | Subtracting a difference from its minuend: m <= n implies n - (n - m) = m. | next |
-| `sub_mul(n, m, k)` | `∀ n: Nat, m: Nat, k: Nat. {Nat.mul(Nat.sub(n, m), k) == Nat.sub(Nat.mul(n, k), Nat.mul(m, k)) : Nat}` | Multiplication distributes over subtraction on the right: (n - m) * k = n * k - m * k. | next |
-| `mul_sub(n, m, k)` | `∀ n: Nat, m: Nat, k: Nat. {Nat.mul(n, Nat.sub(m, k)) == Nat.sub(Nat.mul(n, m), Nat.mul(n, k)) : Nat}` | Multiplication distributes over subtraction on the left: n * (m - k) = n * m - n * k. | next |
-| `min_eq_left(a, b, h)` | `∀ a: Nat, b: Nat, h: le(a, b). {Nat.min(a, b) == a : Nat}` | The minimum is the smaller argument on the left: a <= b implies min a b = a. | next |
-| `min_eq_right(a, b, h)` | `∀ a: Nat, b: Nat, h: le(b, a). {Nat.min(a, b) == b : Nat}` | The minimum is the smaller argument on the right: b <= a implies min a b = b. | next |
-| `max_eq_left(a, b, h)` | `∀ a: Nat, b: Nat, h: le(b, a). {Nat.max(a, b) == a : Nat}` | The maximum is the larger argument on the left: b <= a implies max a b = a. | next |
-| `max_eq_right(a, b, h)` | `∀ a: Nat, b: Nat, h: le(a, b). {Nat.max(a, b) == b : Nat}` | The maximum is the larger argument on the right: a <= b implies max a b = b. | next |
-| `le_min(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.is_le(a, Nat.min(b, c)) == Bool.and(Nat.is_le(a, b), Nat.is_le(a, c)) : Bool}` | A number is at most the minimum exactly when it is at most both: a <= min b c tests as a <= b and a <= c. | next |
-| `max_le(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.is_le(Nat.max(a, b), c) == Bool.and(Nat.is_le(a, c), Nat.is_le(b, c)) : Bool}` | The maximum is at most c exactly when both arguments are: max a b <= c tests as a <= c and b <= c. | next |
-| `mul_le_mul_left(a, b, k, h)` | `∀ a: Nat, b: Nat, k: Nat, h: le(a, b). le(Nat.mul(k, a), Nat.mul(k, b))` | Multiplying on the left preserves the order: a <= b implies k * a <= k * b. | next |
-| `mul_le_mul(a, b, c, d, h1, h2)` | `∀ a: Nat, b: Nat, c: Nat, d: Nat, h1: le(a, c), h2: le(b, d). le(Nat.mul(a, b), Nat.mul(c, d))` | Multiplying two bounded factors stays bounded: a <= c and b <= d imply a * b <= c * d. | next |
+| `zero_div(b)` | `∀ b: Nat. {Nat.div(0n, b) == 0n : Nat}` | Zero divided by anything is zero: 0 / b = 0. | 0.6.0.0 |
+| `zero_mod(b)` | `∀ b: Nat. {Nat.mod(0n, b) == 0n : Nat}` | Zero modulo anything is zero: 0 % b = 0. | 0.6.0.0 |
+| `div_one(a)` | `∀ a: Nat. {Nat.div(a, 1n) == a : Nat}` | Dividing by one changes nothing: a / 1 = a. | 0.6.0.0 |
+| `mod_one(a)` | `∀ a: Nat. {Nat.mod(a, 1n) == 0n : Nat}` | Any natural modulo one is zero: a % 1 = 0. | 0.6.0.0 |
+| `mod_self(n)` | `∀ n: Nat. {Nat.mod(n, n) == 0n : Nat}` | A natural modulo itself is zero: n % n = 0. | 0.6.0.0 |
+| `div_self(b)` | `∀ b: Nat. {Nat.div(1n+b, 1n+b) == 1n : Nat}` | A positive natural divided by itself is one: (1 + b) / (1 + b) = 1. | 0.6.0.0 |
+| `mod_lt(a, b)` | `∀ a: Nat, b: Nat. lt(Nat.mod(a, 1n+b), 1n+b)` | A remainder is below its positive divisor: a % (1 + b) < 1 + b. | 0.6.0.0 |
+| `mod_le(a, b)` | `∀ a: Nat, b: Nat. le(Nat.mod(a, b), a)` | A remainder never exceeds the dividend: a % b <= a. | 0.6.0.0 |
+| `div_le_self(a, b)` | `∀ a: Nat, b: Nat. le(Nat.div(a, b), a)` | A quotient never exceeds the dividend: a / b <= a. | 0.6.0.0 |
+| `mod_eq_of_lt(a, b, h)` | `∀ a: Nat, b: Nat, h: lt(a, b). {Nat.mod(a, b) == a : Nat}` | A number below the divisor is its own remainder: a < b implies a % b = a. | 0.6.0.0 |
+| `mod_mod(a, n)` | `∀ a: Nat, n: Nat. {Nat.mod(Nat.mod(a, n), n) == Nat.mod(a, n) : Nat}` | Taking a remainder twice is taking it once: (a % n) % n = a % n. | 0.6.0.0 |
+| `add_mod_left(a, b)` | `∀ a: Nat, b: Nat. {Nat.mod(Nat.add(b, a), b) == Nat.mod(a, b) : Nat}` | Adding the divisor does not change the remainder: (b + a) % b = a % b. | 0.6.0.0 |
+| `mul_div_cancel(a, b)` | `∀ a: Nat, b: Nat. {Nat.div(Nat.mul(a, 1n+b), 1n+b) == a : Nat}` | Multiplying by a positive divisor then dividing by it cancels: (a * (1 + b)) / (1 + b) = a. | 0.6.0.0 |
+| `mul_div_cancel_left(a, b)` | `∀ a: Nat, b: Nat. {Nat.div(Nat.mul(1n+b, a), 1n+b) == a : Nat}` | Multiplying on the left by a positive divisor then dividing by it cancels: ((1 + b) * a) / (1 + b) = a. | 0.6.0.0 |
+| `mul_mod_left(a, b)` | `∀ a: Nat, b: Nat. {Nat.mod(Nat.mul(a, b), b) == 0n : Nat}` | A multiple of b leaves no remainder modulo b: (a * b) % b = 0. | 0.6.0.0 |
+| `mul_mod_right(a, b)` | `∀ a: Nat, b: Nat. {Nat.mod(Nat.mul(a, b), a) == 0n : Nat}` | A multiple of a leaves no remainder modulo a: (a * b) % a = 0. | 0.6.0.0 |
+| `mod_add_div(a, b)` | `∀ a: Nat, b: Nat. {Nat.add(Nat.mod(a, b), Nat.mul(b, Nat.div(a, b))) == a : Nat}` | The remainder plus the divisor times the quotient is the dividend: a % b + b * (a / b) = a. | 0.6.0.0 |
+| `div_mul_le_self(a, b)` | `∀ a: Nat, b: Nat. le(Nat.mul(Nat.div(a, b), b), a)` | The quotient times the divisor never exceeds the dividend: (a / b) * b <= a. | 0.6.0.0 |
+| `mul_left_comm(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.mul(a, Nat.mul(b, c)) == Nat.mul(b, Nat.mul(a, c)) : Nat}` | Left commutativity of multiplication: a * (b * c) = b * (a * c). | 0.6.0.0 |
+| `mul_right_comm(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.mul(Nat.mul(a, b), c) == Nat.mul(Nat.mul(a, c), b) : Nat}` | Right commutativity of multiplication: (a * b) * c = (a * c) * b. | 0.6.0.0 |
+| `mul_mul_mul_comm(a, b, c, d)` | `∀ a: Nat, b: Nat, c: Nat, d: Nat. {Nat.mul(Nat.mul(a, b), Nat.mul(c, d)) == Nat.mul(Nat.mul(a, c), Nat.mul(b, d)) : Nat}` | Four-way regrouping of a product: (a * b) * (c * d) = (a * c) * (b * d). | 0.6.0.0 |
+| `zero_pow(n)` | `∀ -n: Nat. {Nat.pow(0n, 1n+n) == 0n : Nat}` | Zero to a positive power is zero: 0^(n+1) = 0. | 0.6.0.0 |
+| `mul_pow(a, b, n)` | `∀ +a: Nat, +b: Nat, n: Nat. {Nat.pow(Nat.mul(a, b), n) == Nat.mul(Nat.pow(a, n), Nat.pow(b, n)) : Nat}` | A power of a product is the product of the powers: (a * b)^n = a^n * b^n. | 0.6.0.0 |
+| `pow_mul(a, m, n)` | `∀ a: Nat, m: Nat, n: Nat. {Nat.pow(a, Nat.mul(m, n)) == Nat.pow(Nat.pow(a, m), n) : Nat}` | Exponents multiply under repeated powers: a^(m * n) = (a^m)^n. | 0.6.0.0 |
+| `one_le_pow(n, a)` | `∀ n: Nat, a: Nat. le(1n, Nat.pow(1n+a, n))` | A power of a positive base is at least one: 1 <= (1 + a)^n. | 0.6.0.0 |
+| `pow_pos(n, a)` | `∀ n: Nat, a: Nat. lt(0n, Nat.pow(1n+a, n))` | A power of a positive base is positive: 0 < (1 + a)^n. | 0.6.0.0 |
+| `le_add_left(n, m)` | `∀ n: Nat, m: Nat. le(n, Nat.add(m, n))` | Adding on the left never decreases a natural: n <= m + n. | 0.6.0.0 |
+| `add_sub_add_left(k, n, m)` | `∀ k: Nat, -n: Nat, -m: Nat. {Nat.sub(Nat.add(k, n), Nat.add(k, m)) == Nat.sub(n, m) : Nat}` | A common left summand cancels in a difference: (k + n) - (k + m) = n - m. | 0.6.0.0 |
+| `add_sub_add_right(n, k, m)` | `∀ n: Nat, k: Nat, m: Nat. {Nat.sub(Nat.add(n, k), Nat.add(m, k)) == Nat.sub(n, m) : Nat}` | A common right summand cancels in a difference: (n + k) - (m + k) = n - m. | 0.6.0.0 |
+| `add_sub_assoc(k, m, h, n)` | `∀ k: Nat, m: Nat, h: le(k, m), n: Nat. {Nat.sub(Nat.add(n, m), k) == Nat.add(n, Nat.sub(m, k)) : Nat}` | Subtracting a part of the right summand: k <= m implies (n + m) - k = n + (m - k). | 0.6.0.0 |
+| `sub_sub_self(n, m, h)` | `∀ n: Nat, m: Nat, h: le(m, n). {Nat.sub(n, Nat.sub(n, m)) == m : Nat}` | Subtracting a difference from its minuend: m <= n implies n - (n - m) = m. | 0.6.0.0 |
+| `sub_mul(n, m, k)` | `∀ n: Nat, m: Nat, k: Nat. {Nat.mul(Nat.sub(n, m), k) == Nat.sub(Nat.mul(n, k), Nat.mul(m, k)) : Nat}` | Multiplication distributes over subtraction on the right: (n - m) * k = n * k - m * k. | 0.6.0.0 |
+| `mul_sub(n, m, k)` | `∀ n: Nat, m: Nat, k: Nat. {Nat.mul(n, Nat.sub(m, k)) == Nat.sub(Nat.mul(n, m), Nat.mul(n, k)) : Nat}` | Multiplication distributes over subtraction on the left: n * (m - k) = n * m - n * k. | 0.6.0.0 |
+| `min_eq_left(a, b, h)` | `∀ a: Nat, b: Nat, h: le(a, b). {Nat.min(a, b) == a : Nat}` | The minimum is the smaller argument on the left: a <= b implies min a b = a. | 0.6.0.0 |
+| `min_eq_right(a, b, h)` | `∀ a: Nat, b: Nat, h: le(b, a). {Nat.min(a, b) == b : Nat}` | The minimum is the smaller argument on the right: b <= a implies min a b = b. | 0.6.0.0 |
+| `max_eq_left(a, b, h)` | `∀ a: Nat, b: Nat, h: le(b, a). {Nat.max(a, b) == a : Nat}` | The maximum is the larger argument on the left: b <= a implies max a b = a. | 0.6.0.0 |
+| `max_eq_right(a, b, h)` | `∀ a: Nat, b: Nat, h: le(a, b). {Nat.max(a, b) == b : Nat}` | The maximum is the larger argument on the right: a <= b implies max a b = b. | 0.6.0.0 |
+| `le_min(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.is_le(a, Nat.min(b, c)) == Bool.and(Nat.is_le(a, b), Nat.is_le(a, c)) : Bool}` | A number is at most the minimum exactly when it is at most both: a <= min b c tests as a <= b and a <= c. | 0.6.0.0 |
+| `max_le(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.is_le(Nat.max(a, b), c) == Bool.and(Nat.is_le(a, c), Nat.is_le(b, c)) : Bool}` | The maximum is at most c exactly when both arguments are: max a b <= c tests as a <= c and b <= c. | 0.6.0.0 |
+| `mul_le_mul_left(a, b, k, h)` | `∀ a: Nat, b: Nat, k: Nat, h: le(a, b). le(Nat.mul(k, a), Nat.mul(k, b))` | Multiplying on the left preserves the order: a <= b implies k * a <= k * b. | 0.6.0.0 |
+| `mul_le_mul(a, b, c, d, h1, h2)` | `∀ a: Nat, b: Nat, c: Nat, d: Nat, h1: le(a, c), h2: le(b, d). le(Nat.mul(a, b), Nat.mul(c, d))` | Multiplying two bounded factors stays bounded: a <= c and b <= d imply a * b <= c * d. | 0.6.0.0 |
 | `add_zero_sym(x)` | `∀ x: Nat. {x == Nat.add(x, 0n) : Nat}` | Zero is a right identity for addition: x + 0 = x, reversed to rewrite toward the simple side. | 0.1.0.0 |
 | `zero_add_sym(x)` | `∀ -x: Nat. {x == Nat.add(0n, x) : Nat}` | Zero is a left identity for addition: 0 + x = x, reversed to rewrite toward the simple side. | 0.1.0.0 |
 | `add_succ_sym(n, m)` | `∀ n: Nat, -m: Nat. {1n+Nat.add(n, m) == Nat.add(n, 1n+m) : Nat}` | Adding a successor on the right: n + (m + 1) = (n + m) + 1, reversed to rewrite toward the simple side. | 0.1.0.0 |
@@ -537,36 +535,36 @@ import bend-mathlib@0.5.0.0/nat.bend as MNat
 | `min_le_iff_sym(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Bool.or(Nat.is_le(a, c), Nat.is_le(b, c)) == Nat.is_le(Nat.min(a, b), c) : Bool}` | The minimum is at most c exactly when one argument is: min a b <= c tests as a <= c or b <= c, reversed to rewrite toward the simple side. | 0.4.0.0 |
 | `lt_max_iff_sym(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Bool.or(Nat.is_lt(a, b), Nat.is_lt(a, c)) == Nat.is_lt(a, Nat.max(b, c)) : Bool}` | The maximum is above a exactly when one argument is: a < max b c tests as a < b or a < c, reversed to rewrite toward the simple side. | 0.4.0.0 |
 | `lt_sub_iff_add_lt_sym(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.is_lt(Nat.add(b, a), c) == Nat.is_lt(a, Nat.sub(c, b)) : Bool}` | Comparing against a difference is comparing the sum: a < c - b tests as b + a < c, reversed to rewrite toward the simple side. | 0.4.0.0 |
-| `zero_div_sym(b)` | `∀ b: Nat. {0n == Nat.div(0n, b) : Nat}` | Zero divided by anything is zero: 0 / b = 0, reversed to rewrite toward the simple side. | next |
-| `zero_mod_sym(b)` | `∀ b: Nat. {0n == Nat.mod(0n, b) : Nat}` | Zero modulo anything is zero: 0 % b = 0, reversed to rewrite toward the simple side. | next |
-| `div_one_sym(a)` | `∀ a: Nat. {a == Nat.div(a, 1n) : Nat}` | Dividing by one changes nothing: a / 1 = a, reversed to rewrite toward the simple side. | next |
-| `mod_one_sym(a)` | `∀ a: Nat. {0n == Nat.mod(a, 1n) : Nat}` | Any natural modulo one is zero: a % 1 = 0, reversed to rewrite toward the simple side. | next |
-| `mod_self_sym(n)` | `∀ n: Nat. {0n == Nat.mod(n, n) : Nat}` | A natural modulo itself is zero: n % n = 0, reversed to rewrite toward the simple side. | next |
-| `div_self_sym(b)` | `∀ b: Nat. {1n == Nat.div(1n+b, 1n+b) : Nat}` | A positive natural divided by itself is one: (1 + b) / (1 + b) = 1, reversed to rewrite toward the simple side. | next |
-| `mod_mod_sym(a, n)` | `∀ a: Nat, n: Nat. {Nat.mod(a, n) == Nat.mod(Nat.mod(a, n), n) : Nat}` | Taking a remainder twice is taking it once: (a % n) % n = a % n, reversed to rewrite toward the simple side. | next |
-| `add_mod_left_sym(a, b)` | `∀ a: Nat, b: Nat. {Nat.mod(a, b) == Nat.mod(Nat.add(b, a), b) : Nat}` | Adding the divisor does not change the remainder: (b + a) % b = a % b, reversed to rewrite toward the simple side. | next |
-| `mul_div_cancel_sym(a, b)` | `∀ a: Nat, b: Nat. {a == Nat.div(Nat.mul(a, 1n+b), 1n+b) : Nat}` | Multiplying by a positive divisor then dividing by it cancels: (a * (1 + b)) / (1 + b) = a, reversed to rewrite toward the simple side. | next |
-| `mul_div_cancel_left_sym(a, b)` | `∀ a: Nat, b: Nat. {a == Nat.div(Nat.mul(1n+b, a), 1n+b) : Nat}` | Multiplying on the left by a positive divisor then dividing by it cancels: ((1 + b) * a) / (1 + b) = a, reversed to rewrite toward the simple side. | next |
-| `mul_mod_left_sym(a, b)` | `∀ a: Nat, b: Nat. {0n == Nat.mod(Nat.mul(a, b), b) : Nat}` | A multiple of b leaves no remainder modulo b: (a * b) % b = 0, reversed to rewrite toward the simple side. | next |
-| `mul_mod_right_sym(a, b)` | `∀ a: Nat, b: Nat. {0n == Nat.mod(Nat.mul(a, b), a) : Nat}` | A multiple of a leaves no remainder modulo a: (a * b) % a = 0, reversed to rewrite toward the simple side. | next |
-| `mod_add_div_sym(a, b)` | `∀ a: Nat, b: Nat. {a == Nat.add(Nat.mod(a, b), Nat.mul(b, Nat.div(a, b))) : Nat}` | The remainder plus the divisor times the quotient is the dividend: a % b + b * (a / b) = a, reversed to rewrite toward the simple side. | next |
-| `mul_left_comm_sym(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.mul(b, Nat.mul(a, c)) == Nat.mul(a, Nat.mul(b, c)) : Nat}` | Left commutativity of multiplication: a * (b * c) = b * (a * c), reversed to rewrite toward the simple side. | next |
-| `mul_right_comm_sym(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.mul(Nat.mul(a, c), b) == Nat.mul(Nat.mul(a, b), c) : Nat}` | Right commutativity of multiplication: (a * b) * c = (a * c) * b, reversed to rewrite toward the simple side. | next |
-| `mul_mul_mul_comm_sym(a, b, c, d)` | `∀ a: Nat, b: Nat, c: Nat, d: Nat. {Nat.mul(Nat.mul(a, c), Nat.mul(b, d)) == Nat.mul(Nat.mul(a, b), Nat.mul(c, d)) : Nat}` | Four-way regrouping of a product: (a * b) * (c * d) = (a * c) * (b * d), reversed to rewrite toward the simple side. | next |
-| `zero_pow_sym(n)` | `∀ -n: Nat. {0n == Nat.pow(0n, 1n+n) : Nat}` | Zero to a positive power is zero: 0^(n+1) = 0, reversed to rewrite toward the simple side. | next |
-| `mul_pow_sym(a, b, n)` | `∀ +a: Nat, +b: Nat, n: Nat. {Nat.mul(Nat.pow(a, n), Nat.pow(b, n)) == Nat.pow(Nat.mul(a, b), n) : Nat}` | A power of a product is the product of the powers: (a * b)^n = a^n * b^n, reversed to rewrite toward the simple side. | next |
-| `pow_mul_sym(a, m, n)` | `∀ a: Nat, m: Nat, n: Nat. {Nat.pow(Nat.pow(a, m), n) == Nat.pow(a, Nat.mul(m, n)) : Nat}` | Exponents multiply under repeated powers: a^(m * n) = (a^m)^n, reversed to rewrite toward the simple side. | next |
-| `add_sub_add_left_sym(k, n, m)` | `∀ k: Nat, -n: Nat, -m: Nat. {Nat.sub(n, m) == Nat.sub(Nat.add(k, n), Nat.add(k, m)) : Nat}` | A common left summand cancels in a difference: (k + n) - (k + m) = n - m, reversed to rewrite toward the simple side. | next |
-| `add_sub_add_right_sym(n, k, m)` | `∀ n: Nat, k: Nat, m: Nat. {Nat.sub(n, m) == Nat.sub(Nat.add(n, k), Nat.add(m, k)) : Nat}` | A common right summand cancels in a difference: (n + k) - (m + k) = n - m, reversed to rewrite toward the simple side. | next |
-| `sub_mul_sym(n, m, k)` | `∀ n: Nat, m: Nat, k: Nat. {Nat.sub(Nat.mul(n, k), Nat.mul(m, k)) == Nat.mul(Nat.sub(n, m), k) : Nat}` | Multiplication distributes over subtraction on the right: (n - m) * k = n * k - m * k, reversed to rewrite toward the simple side. | next |
-| `mul_sub_sym(n, m, k)` | `∀ n: Nat, m: Nat, k: Nat. {Nat.sub(Nat.mul(n, m), Nat.mul(n, k)) == Nat.mul(n, Nat.sub(m, k)) : Nat}` | Multiplication distributes over subtraction on the left: n * (m - k) = n * m - n * k, reversed to rewrite toward the simple side. | next |
-| `le_min_sym(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Bool.and(Nat.is_le(a, b), Nat.is_le(a, c)) == Nat.is_le(a, Nat.min(b, c)) : Bool}` | A number is at most the minimum exactly when it is at most both: a <= min b c tests as a <= b and a <= c, reversed to rewrite toward the simple side. | next |
-| `max_le_sym(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Bool.and(Nat.is_le(a, c), Nat.is_le(b, c)) == Nat.is_le(Nat.max(a, b), c) : Bool}` | The maximum is at most c exactly when both arguments are: max a b <= c tests as a <= c and b <= c, reversed to rewrite toward the simple side. | next |
+| `zero_div_sym(b)` | `∀ b: Nat. {0n == Nat.div(0n, b) : Nat}` | Zero divided by anything is zero: 0 / b = 0, reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `zero_mod_sym(b)` | `∀ b: Nat. {0n == Nat.mod(0n, b) : Nat}` | Zero modulo anything is zero: 0 % b = 0, reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `div_one_sym(a)` | `∀ a: Nat. {a == Nat.div(a, 1n) : Nat}` | Dividing by one changes nothing: a / 1 = a, reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `mod_one_sym(a)` | `∀ a: Nat. {0n == Nat.mod(a, 1n) : Nat}` | Any natural modulo one is zero: a % 1 = 0, reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `mod_self_sym(n)` | `∀ n: Nat. {0n == Nat.mod(n, n) : Nat}` | A natural modulo itself is zero: n % n = 0, reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `div_self_sym(b)` | `∀ b: Nat. {1n == Nat.div(1n+b, 1n+b) : Nat}` | A positive natural divided by itself is one: (1 + b) / (1 + b) = 1, reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `mod_mod_sym(a, n)` | `∀ a: Nat, n: Nat. {Nat.mod(a, n) == Nat.mod(Nat.mod(a, n), n) : Nat}` | Taking a remainder twice is taking it once: (a % n) % n = a % n, reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `add_mod_left_sym(a, b)` | `∀ a: Nat, b: Nat. {Nat.mod(a, b) == Nat.mod(Nat.add(b, a), b) : Nat}` | Adding the divisor does not change the remainder: (b + a) % b = a % b, reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `mul_div_cancel_sym(a, b)` | `∀ a: Nat, b: Nat. {a == Nat.div(Nat.mul(a, 1n+b), 1n+b) : Nat}` | Multiplying by a positive divisor then dividing by it cancels: (a * (1 + b)) / (1 + b) = a, reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `mul_div_cancel_left_sym(a, b)` | `∀ a: Nat, b: Nat. {a == Nat.div(Nat.mul(1n+b, a), 1n+b) : Nat}` | Multiplying on the left by a positive divisor then dividing by it cancels: ((1 + b) * a) / (1 + b) = a, reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `mul_mod_left_sym(a, b)` | `∀ a: Nat, b: Nat. {0n == Nat.mod(Nat.mul(a, b), b) : Nat}` | A multiple of b leaves no remainder modulo b: (a * b) % b = 0, reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `mul_mod_right_sym(a, b)` | `∀ a: Nat, b: Nat. {0n == Nat.mod(Nat.mul(a, b), a) : Nat}` | A multiple of a leaves no remainder modulo a: (a * b) % a = 0, reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `mod_add_div_sym(a, b)` | `∀ a: Nat, b: Nat. {a == Nat.add(Nat.mod(a, b), Nat.mul(b, Nat.div(a, b))) : Nat}` | The remainder plus the divisor times the quotient is the dividend: a % b + b * (a / b) = a, reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `mul_left_comm_sym(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.mul(b, Nat.mul(a, c)) == Nat.mul(a, Nat.mul(b, c)) : Nat}` | Left commutativity of multiplication: a * (b * c) = b * (a * c), reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `mul_right_comm_sym(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.mul(Nat.mul(a, c), b) == Nat.mul(Nat.mul(a, b), c) : Nat}` | Right commutativity of multiplication: (a * b) * c = (a * c) * b, reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `mul_mul_mul_comm_sym(a, b, c, d)` | `∀ a: Nat, b: Nat, c: Nat, d: Nat. {Nat.mul(Nat.mul(a, c), Nat.mul(b, d)) == Nat.mul(Nat.mul(a, b), Nat.mul(c, d)) : Nat}` | Four-way regrouping of a product: (a * b) * (c * d) = (a * c) * (b * d), reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `zero_pow_sym(n)` | `∀ -n: Nat. {0n == Nat.pow(0n, 1n+n) : Nat}` | Zero to a positive power is zero: 0^(n+1) = 0, reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `mul_pow_sym(a, b, n)` | `∀ +a: Nat, +b: Nat, n: Nat. {Nat.mul(Nat.pow(a, n), Nat.pow(b, n)) == Nat.pow(Nat.mul(a, b), n) : Nat}` | A power of a product is the product of the powers: (a * b)^n = a^n * b^n, reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `pow_mul_sym(a, m, n)` | `∀ a: Nat, m: Nat, n: Nat. {Nat.pow(Nat.pow(a, m), n) == Nat.pow(a, Nat.mul(m, n)) : Nat}` | Exponents multiply under repeated powers: a^(m * n) = (a^m)^n, reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `add_sub_add_left_sym(k, n, m)` | `∀ k: Nat, -n: Nat, -m: Nat. {Nat.sub(n, m) == Nat.sub(Nat.add(k, n), Nat.add(k, m)) : Nat}` | A common left summand cancels in a difference: (k + n) - (k + m) = n - m, reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `add_sub_add_right_sym(n, k, m)` | `∀ n: Nat, k: Nat, m: Nat. {Nat.sub(n, m) == Nat.sub(Nat.add(n, k), Nat.add(m, k)) : Nat}` | A common right summand cancels in a difference: (n + k) - (m + k) = n - m, reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `sub_mul_sym(n, m, k)` | `∀ n: Nat, m: Nat, k: Nat. {Nat.sub(Nat.mul(n, k), Nat.mul(m, k)) == Nat.mul(Nat.sub(n, m), k) : Nat}` | Multiplication distributes over subtraction on the right: (n - m) * k = n * k - m * k, reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `mul_sub_sym(n, m, k)` | `∀ n: Nat, m: Nat, k: Nat. {Nat.sub(Nat.mul(n, m), Nat.mul(n, k)) == Nat.mul(n, Nat.sub(m, k)) : Nat}` | Multiplication distributes over subtraction on the left: n * (m - k) = n * m - n * k, reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `le_min_sym(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Bool.and(Nat.is_le(a, b), Nat.is_le(a, c)) == Nat.is_le(a, Nat.min(b, c)) : Bool}` | A number is at most the minimum exactly when it is at most both: a <= min b c tests as a <= b and a <= c, reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `max_le_sym(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Bool.and(Nat.is_le(a, c), Nat.is_le(b, c)) == Nat.is_le(Nat.max(a, b), c) : Bool}` | The maximum is at most c exactly when both arguments are: max a b <= c tests as a <= c and b <= c, reversed to rewrite toward the simple side. | 0.6.0.0 |
 
 ## order
 
 ```python
-import bend-mathlib@0.5.0.0/order.bend as MOrder
+import bend-mathlib@0.6.0.0/order.bend as MOrder
 ```
 
 | lemma | statement | meaning | since |
@@ -581,7 +579,7 @@ import bend-mathlib@0.5.0.0/order.bend as MOrder
 ## string
 
 ```python
-import bend-mathlib@0.5.0.0/string.bend as MString
+import bend-mathlib@0.6.0.0/string.bend as MString
 ```
 
 | lemma | statement | meaning | since |

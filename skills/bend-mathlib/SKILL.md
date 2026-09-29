@@ -13,13 +13,13 @@ statement is locked, so a newer version never changes one you use. Before you pr
 ## Import
 
 ```python
-import bend-mathlib@0.5.0.0/nat.bend as MNat
-import bend-mathlib@0.5.0.0/list.bend as MList
+import bend-mathlib@0.6.0.0/nat.bend as MNat
+import bend-mathlib@0.6.0.0/list.bend as MList
 ```
 
 Modules: `nat`, `bool`, `list`, `string`, `maybe`, `equal`, `order`, `algebra`, `perm`, `sort`.
 Pin by content hash if you want bytes that can never change:
-`import 0x676cb0b2ca8c3fdeee47023a54e3ac54/nat.bend as MNat`.
+`import 0x0eaaf505a355d14d67066b86c801e960/nat.bend as MNat`.
 
 ## Find a lemma
 
@@ -49,8 +49,8 @@ its left side, at the spot marked `_`. Use the `_sym` twin to rewrite the other 
 
 ```python
 import Base
-import bend-mathlib@0.5.0.0/nat.bend as MNat
-import bend-mathlib@0.5.0.0/list.bend as MList
+import bend-mathlib@0.6.0.0/nat.bend as MNat
+import bend-mathlib@0.6.0.0/list.bend as MList
 
 law rev_len:
   for +xs: List<&2, U32>
