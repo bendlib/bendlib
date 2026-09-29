@@ -229,6 +229,12 @@
       "sha256": "c7df919f985950fc6de72695766e0bbd689f3c89549d24301711f95cccad222b",
       "since": "0.1.0.0"
     },
+    "bool.and_eq_true": {
+      "kind": "law",
+      "text": "for a: Bool\nfor -b: Bool\nfor ha: {a == True{} : Bool}\nfor hb: {b == True{} : Bool}\n{Bool.and(a, b) == True{} : Bool}",
+      "sha256": "9e2140e9373f9b0ccdc1b3ba12d539f533af9f7aa510e78bb0fa8a6fbc204d29",
+      "since": null
+    },
     "bool.and_false": {
       "kind": "law",
       "text": "for a: Bool\n{Bool.and(a, False{}) == False{} : Bool}",
@@ -337,17 +343,47 @@
       "sha256": "45a4a46e6e1c71b7dc1151ea742193fbd7db19a3692bdc29988880cb797dd86a",
       "since": "0.1.0.0"
     },
+    "bool.eq_false_of_not_eq_true": {
+      "kind": "law",
+      "text": "for b: Bool\nfor h: {Bool.not(b) == True{} : Bool}\n{b == False{} : Bool}",
+      "sha256": "85536afb4915655ed6874e3351a37ac9d3512117d67ecd9a199282c1d3ab1d40",
+      "since": null
+    },
     "bool.eq_of_cmp_eq": {
       "kind": "law",
       "text": "for a: Bool\nfor b: Bool\nfor h: {Cmp.is_eq(Bool.cmp(a, b)) == True{} : Bool}\n{a == b : Bool}",
       "sha256": "39a62bfd21ce19b4ec41c48e15d978fe01a3e128b3d7690a9dc5d1c680038d7d",
       "since": "0.4.0.0"
     },
+    "bool.eq_true_of_and_left": {
+      "kind": "law",
+      "text": "for a: Bool\nfor -b: Bool\nfor h: {Bool.and(a, b) == True{} : Bool}\n{a == True{} : Bool}",
+      "sha256": "e2c3420838b7e77ac277b6978a59abf7ceacc3eaae173bad77c1d22dfe587847",
+      "since": null
+    },
+    "bool.eq_true_of_and_right": {
+      "kind": "law",
+      "text": "for a: Bool\nfor -b: Bool\nfor h: {Bool.and(a, b) == True{} : Bool}\n{b == True{} : Bool}",
+      "sha256": "722f9acae23ae58d3154dbccb05f4d6eca63222799010390b2aa3e2f77b4b035",
+      "since": null
+    },
     "bool.eq_true_of_ne_false": {
       "kind": "law",
       "text": "for a: Bool\nfor h: {a == False{} : Bool} -> Empty\n{a == True{} : Bool}",
       "sha256": "8502f3313224f7b1734981ab2c3223c74e2b3941d44105fc95b0d3f2f6a8547c",
       "since": "0.2.0.0"
+    },
+    "bool.eq_true_of_or_eq_false_left": {
+      "kind": "law",
+      "text": "for a: Bool\nfor -b: Bool\nfor h: {Bool.or(a, b) == True{} : Bool}\nfor ha: {a == False{} : Bool}\n{b == True{} : Bool}",
+      "sha256": "d90fc370e7106e4423a10aabb85b2b2b8a542b28a032c1742770a0c70363da48",
+      "since": null
+    },
+    "bool.eq_true_of_or_eq_false_right": {
+      "kind": "law",
+      "text": "for a: Bool\nfor -b: Bool\nfor h: {Bool.or(a, b) == True{} : Bool}\nfor hb: {b == False{} : Bool}\n{a == True{} : Bool}",
+      "sha256": "cd1dc0797b3afa8ec05a260fd5101201c70d7abc3fca5cef2dd27f63a45f121c",
+      "since": null
     },
     "bool.false_and": {
       "kind": "law",
@@ -360,6 +396,12 @@
       "text": "for -a: Bool\n{False{} == Bool.and(False{}, a) : Bool}",
       "sha256": "3daa22e332a364ba91ae02532c89ca7a691ea797b8331c0b67d5cb94391399e8",
       "since": "0.1.0.0"
+    },
+    "bool.false_ne_true": {
+      "kind": "law",
+      "text": "{False{} != True{} : Bool}",
+      "sha256": "d6412e2b5ae3413ecb88f2d231d752f72015910f82d1a7647c6cba5e675689c7",
+      "since": null
     },
     "bool.false_or": {
       "kind": "law",
