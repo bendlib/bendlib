@@ -402,9 +402,11 @@ modules from JS). Dogfooding where laws add value; TypeScript for plumbing.
 
 ### 7.1 Shipped
 Pinned toolchain and CI; `@bendlib/reader` (§2); bend-mathlib on the hub (RELEASES.md) with
-check/lint/twins/lock/index/release tools; lawcheck 0.2 (engine C, shrinking, premises, datatypes,
-template catalog, `mutate`, `--json`, `--native`, tag-triggered binaries); Bend Docs at
-https://bendlib.github.io/bendlib/. Not built: `devlib` (§3.5).
+check/lint/twins/lock/index/release tools and `devlib` (§3.5); a CI job holding mathlib to
+`bend --verdict`, the proven kernel (F35); lawcheck 0.3 (engine C, shrinking, premises, datatypes,
+template catalog, `mutate`, `--json`, `--native`, tag-triggered binaries, `install.sh`); Bend Docs
+at https://bendlib.github.io/bendlib/, with per-package checker status and a pointer from every law
+another package restates to its bend-mathlib lemma; an agent skill (`skills/bend-mathlib`).
 
 ### 7.2 Next — the work items are beads (`br ready`); this says why the order
 Lemma work first (each lemma removes a re-proof everywhere; the checker judges it), then lawcheck
