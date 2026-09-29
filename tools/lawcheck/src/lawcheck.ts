@@ -562,6 +562,13 @@ export function importablePath(p: string): boolean {
     && PLAIN_BEND.test(segs[segs.length - 1]!);
 }
 
+/** The hub import spec (`0x<hash>/path.bend`) of a file inside BEND_LIB, or null: bend imports it that way from any directory. */
+export function hubSpec(file: string, lib = process.env.BEND_LIB ?? path.join(os.homedir(), ".bend", "lib")): string | null {
+  if (!fs.existsSync(lib)) return null;
+  const rel = path.relative(fs.realpathSync(lib), fs.existsSync(file) ? fs.realpathSync(file) : file);
+  return /^0x[0-9a-f]{32}\//.test(rel) && !rel.split("/").includes("..") ? rel : null;
+}
+
 /** A directory whose path is all plain names; macOS's `os.tmpdir()` is not (PLAN F3). */
 export function scratchBase(): string {
   if (os.tmpdir().split("/").slice(1).every((s) => PLAIN_SEG.test(s))) return os.tmpdir();
@@ -901,8 +908,10 @@ export async function lawcheck(file: string, o: Options): Promise<Report> {
   const root = safeRoot(rootFor(abs, o.impl, tmp), tmp);
   const L = await load(root);
   validate(L);
-  const copies = importablePath(L.file) ? null : plainCopies(tmp, relativeClosure(L));
-  const pathFor = (p: string) => copies?.get(p) ?? p;
+  // a file inside BEND_LIB keeps its hub namespace, so its local imports resolve to the same modules (bend-hxq)
+  const hub = hubSpec(L.file);
+  const copies = importablePath(L.file) || hub !== null ? null : plainCopies(tmp, relativeClosure(L));
+  const pathFor = (p: string) => (p === L.file && hub !== null ? hub : copies?.get(p) ?? p);
   const own = decls(L, { scope: "own" });
   const allDecls = decls(L, { scope: "all" });
   const predicates = new Map<string, PredStmt | null>();

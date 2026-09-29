@@ -247,6 +247,17 @@ describe("random Nat bound, list length, Type predicates, function equations", (
   }, T);
 });
 
+describe("a file inside BEND_LIB", () => {
+  test("keeps its hub namespace, so its local import's types match (it saw root/list.Step)", async () => {
+    const lib = fs.mkdtempSync(path.join("/tmp", "lawcheck-hublib-"));
+    const pkg = path.join(lib, "0x0123456789abcdef0123456789abcdef");
+    fs.cpSync(path.join(FX, "hub_pkg"), pkg, { recursive: true });
+    const r = await runEnv({ BEND_LIB: lib }, path.join(pkg, "src", "main.bend"), "--json");
+    expect(r.stderr).toBe("");
+    expect(law(JSON.parse(r.stdout), "first_uncons").status).toBe("pass");
+  }, T);
+});
+
 describe("recursion through a list", () => {
   test("a rose tree is generated, with and without children, and shrinks (it overflowed the stack)", async () => {
     const { code, report } = await json(path.join(FX, "rose.bend"));
