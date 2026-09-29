@@ -447,10 +447,20 @@ function evalNatAt(s: string, peak: { v: bigint }): bigint | null {
   return v;
 }
 
-/** True only for a `Nat`-typed equation one of whose sides builds a value past the checker's stack bound. */
+/** True for a `Nat` equation building a value past the checker's stack bound, or a `Nat` comparison of two such values. */
 export function predictTooLarge(claim: string): boolean {
   const eq = splitEquation(claim);
-  if (eq === null || eq.type !== "Nat") return false;
+  if (eq === null) return false;
+  if (eq.type === "Bool") {
+    // a comparison walks both sides in lockstep, so it is out of reach only when the smaller one is
+    const cmp = /^Nat\.is_(?:le|lt|ge|gt|eq|ne)\(([\s\S]*)\)$/.exec(eq.lhs.trim());
+    if (cmp === null || !/^(True|False)\{\}$/.test(eq.rhs.trim())) return false;
+    const args = splitTopArgs(cmp[1]);
+    if (args.length !== 2) return false;
+    const a = evalNat(args[0]), b = evalNat(args[1]);
+    return a !== null && b !== null && a > OVERFLOW_NAT && b > OVERFLOW_NAT;
+  }
+  if (eq.type !== "Nat") return false;
   // the checker builds every argument in unary, so Nat.mul(Nat.pow(7n, 9n), 0n) is as costly as 7^9
   const pa = { v: 0n }, pb = { v: 0n };
   evalNat(eq.lhs, pa);
@@ -1167,7 +1177,11 @@ async function checkLaw(L: Loaded, d: Decl, li: number, o: Options, U: Universe,
     if (p.kind === "refutation") {
       failing = sat.map((inst) => ({ inst }));
     } else {
-      const claims = sat.map((inst) => texts(inst).claim);
+      // a predicate claim such as le(x, y) is sized by the equation it stands for
+      const claims = sat.map((inst) => {
+        const t = texts(inst);
+        return t.claimSlot === null ? t.claim : `{${t.claimSlot.lhs} == ${t.claimSlot.rhs} : ${t.claimSlot.type}}`;
+      });
       const live: Inst[] = [];
       let predicted = 0;
       for (let i = 0; i < sat.length; i++) {

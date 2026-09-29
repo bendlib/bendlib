@@ -340,6 +340,13 @@ describe("too-large instances and --max-nat", () => {
     expect(predictTooLarge("{Nat.pow(Nat.mul(7n, 0n), 9n) == Nat.mul(Nat.pow(7n, 9n), Nat.pow(0n, 9n)) : Nat}")).toBe(true);
     expect(predictTooLarge("{Nat.pow(Nat.mul(2n, 0n), 3n) == Nat.mul(Nat.pow(2n, 3n), Nat.pow(0n, 3n)) : Nat}")).toBe(false);
   });
+
+  test("predictTooLarge drops a comparison only when both sides are too large (the pow_le_pow_right instance that timed out)", () => {
+    expect(predictTooLarge("{Nat.is_le(Nat.pow(1n+7n, 6n), Nat.pow(1n+7n, 14n)) == True{} : Bool}")).toBe(true);
+    expect(predictTooLarge("{Nat.is_lt(Nat.pow(1n+7n, 6n), 5n) == True{} : Bool}")).toBe(false);
+    expect(predictTooLarge("{Nat.is_le(Nat.pow(2n, 3n), Nat.pow(2n, 5n)) == True{} : Bool}")).toBe(false);
+    expect(predictTooLarge("{Bool.not(Nat.is_le(Nat.pow(30n, 5n), Nat.pow(30n, 5n))) == False{} : Bool}")).toBe(false);
+  });
 });
 
 describe("imports and --impl", () => {
