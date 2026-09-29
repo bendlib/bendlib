@@ -5,7 +5,7 @@ import { posix } from "node:path";
 import type { DocDecl } from "./extract.ts";
 import type { Edge } from "./imports.ts";
 import { HUB, type NameRecord } from "./hub.ts";
-import { apiDiff, label, published, shortHash, versionKey, type Module, type Package, type Site } from "./model.ts";
+import { apiDiff, label, lawKey, mathlibIndex, published, shortHash, versionKey, type LemmaRef, type Module, type Package, type Site } from "./model.ts";
 import type { FileClass } from "./status.ts";
 
 export const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
@@ -215,7 +215,18 @@ export function statementHead(signature: string): string {
   return "";
 }
 
-function declHtml(p: Package, m: Module, d: DocDecl, ids: Map<DocDecl, string>, ctors: DocDecl[]): string {
+const mathlibOf = new WeakMap<Site, Map<string, LemmaRef>>();
+
+/** The bend-mathlib lemma a law of another package restates, if any. */
+function inMathlib(site: Site, p: Package, d: DocDecl): LemmaRef | null {
+  if (d.kind !== "law") return null;
+  let idx = mathlibOf.get(site);
+  if (idx === undefined) mathlibOf.set(site, idx = mathlibIndex(site));
+  const ref = idx.get(lawKey(d.signature));
+  return ref === undefined || site.groupOf.get(p.hash) === site.groupOf.get(ref.pkg.hash) ? null : ref;
+}
+
+function declHtml(site: Site, p: Package, m: Module, d: DocDecl, ids: Map<DocDecl, string>, ctors: DocDecl[]): string {
   const id = ids.get(d)!;
   const rawHref = `${HUB}/${p.hash}/${encPath(m.path)}`;
   const srcLink = m.source === null
@@ -237,6 +248,14 @@ function declHtml(p: Package, m: Module, d: DocDecl, ids: Map<DocDecl, string>, 
             : `<span class="pr pr-open">open</span><span class="muted">no def in the package proves it</span>`;
   }
   if (d.unsafe && d.kind !== "unsafe") marker += ` <span class="k k-unsafe">@unsafe</span>`;
+  const lib = inMathlib(site, p, d);
+  if (lib !== null) {
+    const at = modPage(lib.pkg.hash, lib.module);
+    const alias = aliasFor(lib.module);
+    const tm = lib.pkg.modules.find((x) => x.path === lib.module)!;
+    const tid = [...declIds(tm)].find(([x]) => x.kind === "law" && x.name === lib.name)?.[1] ?? "";
+    marker += `<p class="muted">Also proved in bend-mathlib as <a href="${esc(rel(modPage(p.hash, m.path), at))}#${esc(tid)}">${esc(lib.module.replace(/\.bend$/, ""))}.${esc(lib.name)}</a>: <code>import ${esc(label(lib.pkg))}/${esc(lib.module)} as ${alias}</code>, then <code>${alias}.${esc(lib.name)}</code>.</p>`;
+  }
   const head = d.statement ? statementHead(d.signature) : null;
   const stmt = head === null
     ? `<pre class="code sig">${esc(d.signature)}</pre>`
@@ -297,7 +316,7 @@ export function renderModule(site: Site, p: Package, m: Module): string {
     const ds = m.decls!.filter((d) => d.kind === k);
     if (ds.length === 0) return "";
     toc.push(`<a href="#g-${k}">${title} <span class="muted">${ds.length}</span></a>`);
-    return `<h2 id="g-${k}">${title}</h2>\n${ds.map((d) => declHtml(p, m, d, ids, k === "type" ? ctorsOf.get(d.name) ?? [] : [])).join("\n")}`;
+    return `<h2 id="g-${k}">${title}</h2>\n${ds.map((d) => declHtml(site, p, m, d, ids, k === "type" ? ctorsOf.get(d.name) ?? [] : [])).join("\n")}`;
   }).join("\n");
   const body = `${head}${imports}${toc.length ? `<nav class="toc" aria-label="Declaration kinds">${toc.join("")}</nav>` : `<p class="muted">This file declares nothing of its own.</p>`}${sections}`;
   return page({ path, title: `${m.path} · ${label(p)} · Bend Docs`, body, site });

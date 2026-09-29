@@ -2,7 +2,7 @@
 // may count as checking for its package.
 
 import { describe, expect, test } from "bun:test";
-import { apiDiff, defBody, fillerLine, finishPackage, hasHole, moduleHeader, type Module, type Package } from "../src/model.ts";
+import { apiDiff, defBody, fillerLine, finishPackage, hasHole, lawKey, moduleHeader, type Module, type Package } from "../src/model.ts";
 import type { DocDecl } from "../src/extract.ts";
 import { declIds, statementHead } from "../src/render.ts";
 import type { FileStatus } from "../src/status.ts";
@@ -153,5 +153,18 @@ describe("apiDiff", () => {
     const older = version([decl("keep", "def", "x"), decl("z", "effect", "e"), decl("u", "unsafe", "u")]);
     const newer = version([decl("keep", "def", "x"), decl("a", "def", "x"), decl("c", "template", "y")]);
     expect(apiDiff(older, newer)).toEqual({ added: ["m.bend/a", "m.bend/c"], removed: [], changed: [] });
+  });
+});
+
+describe("lawKey", () => {
+  test("binder names and quantities do not matter", () => {
+    expect(lawKey("@-x:Nat -> {Nat.add(0n, x) == x : Nat}")).toBe(lawKey("@n:Nat -> {Nat.add(0n, n) == n : Nat}"));
+  });
+  test("planted negative: a different statement, or swapped binders, is a different key", () => {
+    expect(lawKey("@x:Nat -> {Nat.add(x, 0n) == x : Nat}")).not.toBe(lawKey("@x:Nat -> {Nat.add(0n, x) == x : Nat}"));
+    expect(lawKey("@a:Nat -> @b:Nat -> {Nat.sub(a, b) == a : Nat}")).not.toBe(lawKey("@a:Nat -> @b:Nat -> {Nat.sub(b, a) == b : Nat}"));
+  });
+  test("a name that is a prefix of an identifier is not renamed inside it", () => {
+    expect(lawKey("@x:Nat -> {xs(x) == x : Nat}")).toBe("@v0:Nat -> {xs(v0) == v0 : Nat}");
   });
 });

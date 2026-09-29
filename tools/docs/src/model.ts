@@ -214,3 +214,30 @@ export function attachEdges(pkgs: Package[], edges: Edge[]): void {
     by.get(e.to)?.rdeps.push(e);
   }
 }
+
+/** A law's statement up to its binder names and quantities: `@-x:Nat -> {f(x) …}` and `@n:Nat -> {f(n) …}` agree. */
+export function lawKey(signature: string): string {
+  const names: string[] = [];
+  let s = signature.replace(/@[-+~]?([A-Za-z_][\w.]*)\s*:/g, (_, n: string) => { names.push(n); return `@${n}:`; });
+  names.forEach((n, i) => {
+    s = s.replace(new RegExp(`(?<![\\w.])${n.replace(/\./g, "\\.")}(?![\\w.])`, "g"), `v${i}`);
+  });
+  return s.replace(/\s+/g, " ").trim();
+}
+
+export type LemmaRef = { pkg: Package; module: string; name: string };
+
+/** Every proved law of the latest bend-mathlib, by lawKey; the library other packages can import instead of re-proving. */
+export function mathlibIndex(site: Site): Map<string, LemmaRef> {
+  const out = new Map<string, LemmaRef>();
+  const g = site.groups.find((x) => x.latest.names.some((n) => n.name === "bend-mathlib"));
+  if (g === undefined) return out;
+  for (const m of g.latest.modules) {
+    for (const d of m.decls ?? []) {
+      if (d.kind !== "law" || !d.proved || d.name.endsWith("_sym")) continue;
+      const k = lawKey(d.signature);
+      if (!out.has(k)) out.set(k, { pkg: g.latest, module: m.path, name: d.name });
+    }
+  }
+  return out;
+}
