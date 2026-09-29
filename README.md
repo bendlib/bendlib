@@ -67,6 +67,10 @@ changes your laws fail to notice. Details: [tools/lawcheck](tools/lawcheck).
   mathlib holds only definitions that stay compatible across its own versions.
 - **Zero `@unsafe`.** Every module must print exactly `ALL PROOFS CHECK` (and its `--verdict`
   hint line) on the pinned compiler.
+- **Checked by the proven kernel.** CI also runs `bend --verdict`, which re-checks every proof in
+  BendTT, the kernel whose soundness is proved in Lean: `nat`, `list`, `bool`, `string`, `maybe`,
+  `equal`, `perm` and the kernel package pass; `algebra`, `order` and `sort` wait on
+  [bendlang/bend#1182](https://github.com/bendlang/bend/issues/1182).
 - **Built for AI provers too.** Mathlib-standard names, one-line statements, generated
   `_sym` twins for the rewrite direction that simplifies.
 
