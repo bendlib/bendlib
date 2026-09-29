@@ -39,7 +39,7 @@ function usage(msg: string): never {
 }
 
 function parseArgs(argv: string[]): Args {
-  const a: Args = { limit: null, only: null, local: null, check: true, jobs: 8, timeout: DEFAULT_TIMEOUT, memMb: 4096, out: join(HERE, "dist"), cache: join(HERE, ".cache"), requireSandbox: false };
+  const a: Args = { limit: null, only: null, local: null, check: true, jobs: 8, timeout: DEFAULT_TIMEOUT, memMb: 16384, out: join(HERE, "dist"), cache: join(HERE, ".cache"), requireSandbox: false };
   let outSet = false;
   const num = (i: number) => {
     const n = Number(argv[i + 1]);
@@ -64,10 +64,12 @@ function parseArgs(argv: string[]): Args {
   return a;
 }
 
-/** A cached status is stale when absent, a timeout with more room now, or a pre-probe sandbox failure. */
+/** A cached status is stale when absent, a timeout with more room now, a memory-cap abort (the cap may have grown), or a pre-probe sandbox failure. */
 export function stale(c: FileStatus | undefined, timeout: number): boolean {
   return c === undefined
     || (c.class === "timeout" && c.seconds < timeout - 1)
+    || c.class === "limit"
+    || (c.class === "fails" && /^ASSERTION FAILED: MemoryExhaustion\b/.test(c.detail))
     || (c.class === "fails" && /^bwrap: /.test(c.detail));
 }
 

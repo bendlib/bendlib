@@ -28,7 +28,7 @@ const date = (ts: number) => new Date(ts).toISOString().slice(0, 10);
 
 const STATUS_TEXT: Record<FileClass, string> = {
   checks: "checks", unsafe: "relies on unsafe/foreign", open: "open laws/TODOs", fails: "fails", timeout: "timeout",
-  sandbox: "not checked",
+  limit: "not checked (memory cap)", sandbox: "not checked",
 };
 
 function statusBadge(c: FileClass | null, title = ""): string {

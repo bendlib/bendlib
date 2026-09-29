@@ -40,7 +40,7 @@ a.pill:hover{border:0;background:#d9cfea}
 .k-law{background:var(--pill);color:var(--vio)}.k-type{background:var(--okb);color:var(--grn)}
 .k-effect,.k-unsafe{background:var(--warnb);color:var(--ora)}
 .st-checks,.pr-yes{background:var(--okb);color:var(--grn)}
-.st-unsafe,.st-open,.pr-open{background:var(--warnb);color:var(--ora)}
+.st-unsafe,.st-open,.st-limit,.pr-open{background:var(--warnb);color:var(--ora)}
 .st-fails,.st-timeout{background:var(--badb);color:var(--red)}
 .st-none,.anon{background:var(--bg2);color:var(--b0);font-weight:400}
 .tablewrap{overflow-x:auto}

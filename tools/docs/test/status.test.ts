@@ -150,6 +150,24 @@ describe("sandboxProbe", () => {
   });
 });
 
+describe("memory cap", () => {
+  // verbatim: bend 2.0.34 on hub 0x636ea893…/jwt.bend under `ulimit -v 4194304`, exit 134
+  const CRASH = "ASSERTION FAILED: MemoryExhaustion: Crash intentionally because memory is exhausted.\nfailureMode != AllocationFailureMode::Assert\nvendor/WebKit/Source/JavaScriptCore/heap/LocalAllocator.cpp(150) : void *JSC::LocalAllocator::allocateSlowCase(JSC::Heap &, size_t, GCDeferralContext *, AllocationFailureMode)\n";
+  test("the checker aborting under the address-space cap is `limit`, not a verdict", () => {
+    const st = classify(CRASH, 134, false, 3);
+    expect(st.class).toBe("limit");
+    expect(worst(["checks", "limit"])).toBe("limit");
+  });
+  test("planted negative: an ordinary checker error is still `fails`", () => {
+    expect(classify("SOME PROOFS FAIL\nError:\n- expected : a defined name\n- observed : Nat.div.fin\n", 1, false, 1).class).toBe("fails");
+  });
+  test("a cached cap abort, old (`fails`) or new (`limit`), is re-checked", () => {
+    const at = (c: FileStatus["class"]): FileStatus => ({ class: c, summary: "", detail: CRASH, exitCode: 134, seconds: 3 });
+    expect(stale(at("fails"), 60)).toBe(true);
+    expect(stale(at("limit"), 60)).toBe(true);
+  });
+});
+
 describe("stale", () => {
   const s = (c: FileStatus["class"], detail = "", seconds = 0): FileStatus => ({ class: c, summary: "", detail, exitCode: 1, seconds });
   test("a pre-probe bwrap failure in the cache is re-checked", () => {

@@ -8,7 +8,7 @@ import { CLEAN, stripCommentsAndStrings } from "../../mathlib/lib.ts";
 
 export const BEND = process.env.BEND_CLI ?? join(homedir(), ".bend", "bin", "bend");
 
-export type FileClass = "checks" | "unsafe" | "open" | "fails" | "timeout" | "sandbox";
+export type FileClass = "checks" | "unsafe" | "open" | "fails" | "timeout" | "limit" | "sandbox";
 export type FileStatus = {
   class: FileClass;
   summary: string;       // one line for badges and tables
@@ -19,7 +19,7 @@ export type FileStatus = {
 };
 
 /** Packages take the worst class of their files, in this order. */
-export const SEVERITY: FileClass[] = ["checks", "unsafe", "open", "timeout", "fails"];
+export const SEVERITY: FileClass[] = ["checks", "unsafe", "open", "limit", "timeout", "fails"];
 
 export function worst(classes: FileClass[]): FileClass {
   return classes.reduce<FileClass>((w, c) => (SEVERITY.indexOf(c) > SEVERITY.indexOf(w) ? c : w), "checks");
@@ -43,6 +43,10 @@ export function classify(out: string, exitCode: number | null, timedOut: boolean
   const base = { exitCode, seconds };
   if (timedOut) return { ...base, class: "timeout", summary: `no answer within ${Math.round(seconds)} s`, detail: text.slice(0, 2000) };
   if (exitCode === 0 && text === CLEAN) return { ...base, class: "checks", summary: "ALL PROOFS CHECK", detail: "" };
+  // the checker's JS engine aborting under our address-space cap is no verdict on the file
+  if (exitCode !== 0 && /^ASSERTION FAILED: MemoryExhaustion\b/.test(text)) {
+    return { ...base, class: "limit", summary: "not checked: the checker ran out of memory under the cap", detail: text.slice(0, 2000) };
+  }
   const lines = text.split("\n");
   // bwrap failing before the checker starts is a sandbox failure, not a verdict on the file.
   if (exitCode !== 0 && /^bwrap: /.test((lines[0] ?? "").trim())) {
