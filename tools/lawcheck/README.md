@@ -4,7 +4,16 @@
 
 ## Install
 
-Download `lawcheck-<os>-<arch>` from the latest `lawcheck-v*` release at https://github.com/bendlib/bendlib/releases, `chmod +x`, and put it on PATH. It needs `bend` installed; the first run downloads the matching `bend.ts` (network). On macOS, clear the download quarantine: `xattr -d com.apple.quarantine ./lawcheck-darwin-*`.
+```sh
+curl -fsSL https://raw.githubusercontent.com/bendlib/bendlib/main/tools/lawcheck/install.sh | sh
+```
+
+It installs the binary for your OS and CPU from the newest `lawcheck-v*` release into `~/.local/bin`
+(`LAWCHECK_DIR` changes that, `LAWCHECK_VERSION` pins a release), after checking it against the
+release's `SHA256SUMS`. lawcheck needs `bend` installed; its first run downloads the matching
+`bend.ts` (network). Or download `lawcheck-<os>-<arch>` from
+https://github.com/bendlib/bendlib/releases yourself, `chmod +x` it and put it on PATH (on macOS,
+clear the quarantine: `xattr -d com.apple.quarantine ./lawcheck-darwin-*`).
 
 ```sh
 bun tools/lawcheck/cli.ts LAWS.bend                  # every law in the file, open or proved
@@ -60,7 +69,7 @@ bun tools/lawcheck/cli.ts mutate LAWS.bend --json          # machine output
 
 ```
 $ bun tools/lawcheck/cli.ts mutate tools/lawcheck/test/fixtures/mut_weak.bend
-lawcheck mutate 0.2.1 · tools/lawcheck/test/fixtures/mut_weak.bend (impl lib_ok.bend) · bend 2.0.34 · ≤50 instances/law
+lawcheck mutate 0.3.0 · tools/lawcheck/test/fixtures/mut_weak.bend (impl lib_ok.bend) · bend 2.0.34 · ≤50 instances/law
 size  1/4 valid mutants killed · 3 survived · 6 invalid
       survived  arm-copy  line 12  1n+size(r) → 0n
       survived  drop-succ  line 12  1n+size(r) → size(r)

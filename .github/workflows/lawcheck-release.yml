@@ -73,4 +73,4 @@ jobs:
         run: |
           gh release create "$GITHUB_REF_NAME" out/* \
             --title "lawcheck ${GITHUB_REF_NAME#lawcheck-v}" \
-            --notes "Standalone lawcheck binaries for ${GITHUB_REF_NAME}. Download \`lawcheck-<os>-<arch>\`, \`chmod +x\`, and put it on PATH. It needs \`bend\` installed; the first run downloads the matching \`bend.ts\`."
+            --notes "Standalone lawcheck binaries for ${GITHUB_REF_NAME}. Install: \`curl -fsSL https://raw.githubusercontent.com/bendlib/bendlib/main/tools/lawcheck/install.sh | sh\` (checks SHA256SUMS), or download \`lawcheck-<os>-<arch>\`, \`chmod +x\`, and put it on PATH. It needs \`bend\` installed; the first run downloads the matching \`bend.ts\`."
