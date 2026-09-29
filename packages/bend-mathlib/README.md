@@ -1,6 +1,6 @@
 # bend-mathlib
 
-Machine-checked lemmas for Bend 2, checked with `bend 2.0.32`.
+Machine-checked lemmas for Bend 2, checked with `bend 2.0.34`.
 
 Rewriting: `%e : P` replaces the right side of `e` with its left side, so `name` expands the simple
 side into the compound one and `name_sym` simplifies the compound side.
