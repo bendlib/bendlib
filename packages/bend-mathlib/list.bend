@@ -792,6 +792,523 @@ def sorted_tail(x, xs, h):
     case y <> t:
       internal_and_right(Nat.is_le(x, y), List.all(~&1, ~(Nat & Nat), ~(p => Nat.is_le(Pair.fst(Nat, Nat, p), Pair.snd(Nat, Nat, p))), List.zip(&2, Nat, &2, Nat, y <> t, t)), h)
 
+# Taking the length of the first part of an append gives the first part back.
+law take_left:
+  for -a: Quant
+  for -A: Kind(a)
+  for xs: List<a, A>
+  for ys: List<a, A>
+  {List.take(a, A, List.append(a, A, xs, ys), List.length(a, A, xs)) == xs : List<a, A>}
+
+def take_left(a, A, xs, ys):
+  match xs:
+    case Nil{}:
+      take_zero(a, A, ys)
+    case h <> t:
+      %take_left(a, A, t, ys) : {h <> List.take(a, A, List.append(a, A, t, ys), List.length(a, A, t)) == h <> _ : List<a, A>}
+      {==}
+
+# Dropping the length of the first part of an append gives the second part.
+law drop_left:
+  for -a: Quant
+  for -A: Kind(a)
+  for xs: List<a, A>
+  for ys: List<a, A>
+  {List.drop(a, A, List.append(a, A, xs, ys), List.length(a, A, xs)) == ys : List<a, A>}
+
+def drop_left(a, A, xs, ys):
+  match xs:
+    case Nil{}:
+      drop_zero(a, A, ys)
+    case h <> t:
+      drop_left(a, A, t, ys)
+
+# Taking past the first part of an append keeps it and takes the rest from the second part.
+law take_append:
+  for -a: Quant
+  for -A: Kind(a)
+  for xs: List<a, A>
+  for -ys: List<a, A>
+  for -n: Nat
+  {List.take(a, A, List.append(a, A, xs, ys), Nat.add(List.length(a, A, xs), n)) == List.append(a, A, xs, List.take(a, A, ys, n)) : List<a, A>}
+
+def take_append(a, A, xs, ys, n):
+  match xs:
+    case Nil{}:
+      {==}
+    case h <> t:
+      %take_append(a, A, t, ys, n) : {h <> List.take(a, A, List.append(a, A, t, ys), Nat.add(List.length(a, A, t), n)) == h <> _ : List<a, A>}
+      {==}
+
+# Dropping past the first part of an append drops the rest from the second part.
+law drop_append:
+  for -a: Quant
+  for -A: Kind(a)
+  for xs: List<a, A>
+  for -ys: List<a, A>
+  for -n: Nat
+  {List.drop(a, A, List.append(a, A, xs, ys), Nat.add(List.length(a, A, xs), n)) == List.drop(a, A, ys, n) : List<a, A>}
+
+def drop_append(a, A, xs, ys, n):
+  match xs:
+    case Nil{}:
+      {==}
+    case h <> t:
+      drop_append(a, A, t, ys, n)
+
+# Taking at most the length of the first part of an append only sees the first part.
+law take_append_of_le_length:
+  for -a: Quant
+  for -A: Kind(a)
+  for xs: List<a, A>
+  for ys: List<a, A>
+  for n: Nat
+  for h: MNat.le(n, List.length(a, A, xs))
+  {List.take(a, A, List.append(a, A, xs, ys), n) == List.take(a, A, xs, n) : List<a, A>}
+
+def take_append_of_le_length(a, A, xs, ys, n, h):
+  match xs n:
+    case Nil{} 0n:
+      take_zero(a, A, ys)
+    case Nil{} 1n+p:
+      Empty.absurd({List.take(a, A, ys, 1n+p) == Nil{} : List<a, A>}, MNat.internal_false_ne_true(h))
+    case x <> t 0n:
+      {==}
+    case x <> t 1n+p:
+      %take_append_of_le_length(a, A, t, ys, p, h) : {x <> List.take(a, A, List.append(a, A, t, ys), p) == x <> _ : List<a, A>}
+      {==}
+
+# Dropping at most the length of the first part of an append drops only from the first part.
+law drop_append_of_le_length:
+  for -a: Quant
+  for -A: Kind(a)
+  for xs: List<a, A>
+  for ys: List<a, A>
+  for n: Nat
+  for h: MNat.le(n, List.length(a, A, xs))
+  {List.drop(a, A, List.append(a, A, xs, ys), n) == List.append(a, A, List.drop(a, A, xs, n), ys) : List<a, A>}
+
+def drop_append_of_le_length(a, A, xs, ys, n, h):
+  match xs n:
+    case Nil{} 0n:
+      drop_zero(a, A, ys)
+    case Nil{} 1n+p:
+      Empty.absurd({List.drop(a, A, ys, 1n+p) == ys : List<a, A>}, MNat.internal_false_ne_true(h))
+    case x <> t 0n:
+      {==}
+    case x <> t 1n+p:
+      drop_append_of_le_length(a, A, t, ys, p, h)
+
+# Mapping commutes with taking: map f (take n xs) = take n (map f xs).
+law map_take:
+  for ~A: Type
+  for ~B: Type
+  for ~f: A -> B
+  for xs: List<A>
+  for n: Nat
+  {List.map(~A, ~B, ~f, List.take(&1, A, xs, n)) == List.take(&1, B, List.map(~A, ~B, ~f, xs), n) : List<B>}
+
+def map_take(A, B, f, xs, n):
+  match xs n:
+    case Nil{} _:
+      {==}
+    case h <> t 0n:
+      {==}
+    case h <> t 1n+p:
+      %map_take(~A, ~B, ~f, t, p) : {f(h) <> List.map(~A, ~B, ~f, List.take(&1, A, t, p)) == f(h) <> _ : List<B>}
+      {==}
+
+# Mapping commutes with dropping: map f (drop n xs) = drop n (map f xs).
+law map_drop:
+  for ~A: Type
+  for ~B: Type
+  for ~f: A -> B
+  for xs: List<A>
+  for n: Nat
+  {List.map(~A, ~B, ~f, List.drop(&1, A, xs, n)) == List.drop(&1, B, List.map(~A, ~B, ~f, xs), n) : List<B>}
+
+def map_drop(A, B, f, xs, n):
+  match xs n:
+    case Nil{} _:
+      {==}
+    case h <> t 0n:
+      {==}
+    case h <> t 1n+p:
+      map_drop(~A, ~B, ~f, t, p)
+
+# Taking m from n copies of x gives min(m, n) copies of x.
+law take_replicate:
+  for -A: Data
+  for n: Nat
+  for m: Nat
+  for -x: A
+  {List.take(&2, A, List.replicate(A, n, x), m) == List.replicate(A, Nat.min(m, n), x) : List<&2, A>}
+
+def take_replicate(A, n, m, x):
+  match n m:
+    case 0n _:
+      %MNat.min_zero_sym(m) : {Nil{} == List.replicate(A, _, x) : List<&2, A>}
+      {==}
+    case 1n+p 0n:
+      {==}
+    case 1n+p 1n+q:
+      %take_replicate(A, p, q, x) : {x <> List.take(&2, A, List.replicate(A, p, x), q) == x <> _ : List<&2, A>}
+      {==}
+
+# Dropping m from n copies of x gives n - m copies of x.
+law drop_replicate:
+  for -A: Data
+  for n: Nat
+  for m: Nat
+  for -x: A
+  {List.drop(&2, A, List.replicate(A, n, x), m) == List.replicate(A, Nat.sub(n, m), x) : List<&2, A>}
+
+def drop_replicate(A, n, m, x):
+  match n m:
+    case 0n _:
+      {==}
+    case 1n+p 0n:
+      {==}
+    case 1n+p 1n+q:
+      drop_replicate(A, p, q, x)
+
+# Taking n elements gives at most n of them.
+law length_take_le:
+  for -a: Quant
+  for -A: Kind(a)
+  for xs: List<a, A>
+  for n: Nat
+  MNat.le(List.length(a, A, List.take(a, A, xs, n)), n)
+
+def length_take_le(a, A, xs, n):
+  match xs n:
+    case Nil{} _:
+      MNat.zero_le(n)
+    case h <> t 0n:
+      {==}
+    case h <> t 1n+p:
+      MNat.succ_le_succ(List.length(a, A, List.take(a, A, t, p)), p, length_take_le(a, A, t, p))
+
+# The tail is one shorter than the list, or empty: length (tail xs) = length xs - 1.
+law length_tail:
+  for -a: Quant
+  for -A: Kind(a)
+  for xs: List<a, A>
+  {List.length(a, A, List.tail(a, A, xs)) == Nat.sub(List.length(a, A, xs), 1n) : Nat}
+
+def length_tail(a, A, xs):
+  match xs:
+    case Nil{}:
+      {==}
+    case h <> t:
+      MNat.sub_zero_sym(List.length(a, A, t))
+
+# Mapping the identity gives the list back.
+law map_id:
+  for ~A: Type
+  for xs: List<A>
+  {List.map(~A, ~A, ~(x => x), xs) == xs : List<A>}
+
+def map_id(A, xs):
+  match xs:
+    case Nil{}:
+      {==}
+    case h <> t:
+      %map_id(~A, t) : {h <> List.map(~A, ~A, ~(x => x), t) == h <> _ : List<A>}
+      {==}
+
+# A right fold over a map folds with the mapped function: foldr g z (map f xs) = foldr (g . f) z xs.
+law foldr_map:
+  for ~A: Type
+  for ~B: Type
+  for ~C: Type
+  for ~f: A -> B
+  for ~g: B -> C -> C
+  for xs: List<A>
+  for -z: C
+  {List.foldr(~&1, ~B, ~C, ~g, List.map(~A, ~B, ~f, xs), z) == List.foldr(~&1, ~A, ~C, ~(x => y => g(f(x), y)), xs, z) : C}
+
+def foldr_map(A, B, C, f, g, xs, z):
+  match xs:
+    case Nil{}:
+      {==}
+    case h <> t:
+      %foldr_map(~A, ~B, ~C, ~f, ~g, t, z) : {g(f(h), List.foldr(~&1, ~B, ~C, ~g, List.map(~A, ~B, ~f, t), z)) == g(f(h), _) : C}
+      {==}
+
+# A left fold over a map folds with the mapped function: foldl g z (map f xs) = foldl (fun acc x => g acc (f x)) z xs.
+law foldl_map:
+  for ~A: Type
+  for ~B: Type
+  for ~C: Type
+  for ~f: A -> B
+  for ~g: C -> B -> C
+  for xs: List<A>
+  for -z: C
+  {List.foldl(~&1, ~B, ~C, ~g, List.map(~A, ~B, ~f, xs), z) == List.foldl(~&1, ~A, ~C, ~(x => y => g(x, f(y))), xs, z) : C}
+
+def foldl_map(A, B, C, f, g, xs, z):
+  match xs:
+    case Nil{}:
+      {==}
+    case h <> t:
+      foldl_map(~A, ~B, ~C, ~f, ~g, t, g(z, f(h)))
+
+# Replicating m + n times appends m copies to n copies.
+law replicate_add:
+  for -A: Data
+  for m: Nat
+  for -n: Nat
+  for -x: A
+  {List.replicate(A, Nat.add(m, n), x) == List.append(&2, A, List.replicate(A, m, x), List.replicate(A, n, x)) : List<&2, A>}
+
+def replicate_add(A, m, n, x):
+  match m:
+    case 0n:
+      {==}
+    case 1n+p:
+      %replicate_add(A, p, n, x) : {x <> List.replicate(A, Nat.add(p, n), x) == x <> _ : List<&2, A>}
+      {==}
+
+def internal_replicate_append_nil(-A: Data, n: Nat, -x: A) -> {List.append(&2, A, List.replicate(A, n, x), Nil{}) == List.replicate(A, n, x) : List<&2, A>}:
+  match n:
+    case 0n:
+      {==}
+    case 1n+p:
+      %internal_replicate_append_nil(A, p, x) : {x <> List.append(&2, A, List.replicate(A, p, x), Nil{}) == x <> _ : List<&2, A>}
+      {==}
+
+def internal_replicate_append_cons(-A: Data, n: Nat, -x: A, -acc: List<&2, A>) -> {List.append(&2, A, List.replicate(A, n, x), x <> acc) == x <> List.append(&2, A, List.replicate(A, n, x), acc) : List<&2, A>}:
+  match n:
+    case 0n:
+      {==}
+    case 1n+p:
+      %internal_replicate_append_cons(A, p, x, acc) : {x <> List.append(&2, A, List.replicate(A, p, x), x <> acc) == x <> _ : List<&2, A>}
+      {==}
+
+def internal_reverse_go_replicate(-A: Data, n: Nat, -x: A, -acc: List<&2, A>) -> {List.reverse.go(&2, A, List.replicate(A, n, x), acc) == List.append(&2, A, List.replicate(A, n, x), acc) : List<&2, A>}:
+  match n:
+    case 0n:
+      {==}
+    case 1n+p:
+      +p = p
+      Equal.trans(List<&2, A>, List.reverse.go(&2, A, List.replicate(A, p, x), x <> acc), List.append(&2, A, List.replicate(A, p, x), x <> acc), x <> List.append(&2, A, List.replicate(A, p, x), acc), internal_reverse_go_replicate(A, p, x, x <> acc), internal_replicate_append_cons(A, p, x, acc))
+
+# Reversing n copies of x gives them back.
+law reverse_replicate:
+  for -A: Data
+  for n: Nat
+  for -x: A
+  {List.reverse(&2, A, List.replicate(A, n, x)) == List.replicate(A, n, x) : List<&2, A>}
+
+def reverse_replicate(A, n, x):
+  +n = n
+  Equal.trans(List<&2, A>, List.reverse(&2, A, List.replicate(A, n, x)), List.append(&2, A, List.replicate(A, n, x), Nil{}), List.replicate(A, n, x), internal_reverse_go_replicate(A, n, x, Nil{}), internal_replicate_append_nil(A, n, x))
+
+# Filtering with an always-true predicate gives the list back.
+law filter_true:
+  for ~A: Data
+  for xs: List<&2, A>
+  {List.filter(~A, ~(x => True{}), xs) == xs : List<&2, A>}
+
+def filter_true(A, xs):
+  match xs:
+    case Nil{}:
+      {==}
+    case h <> t:
+      %filter_true(~A, t) : {h <> List.filter(~A, ~(x => True{}), t) == h <> _ : List<&2, A>}
+      {==}
+
+# Filtering with an always-false predicate gives the empty list.
+law filter_false:
+  for ~A: Data
+  for xs: List<&2, A>
+  {List.filter(~A, ~(x => False{}), xs) == Nil{} : List<&2, A>}
+
+def filter_false(A, xs):
+  match xs:
+    case Nil{}:
+      {==}
+    case h <> t:
+      filter_false(~A, t)
+
+def internal_filter_put_filter(~A: Data, ~p: A -> Bool, +h: A, r: List<&2, A>, b: Bool) -> {List.filter(~A, ~p, List.filter.put(A, h, r, b)) == List.filter.put(A, h, List.filter(~A, ~p, r), Bool.and(p(h), b)) : List<&2, A>}:
+  match b:
+    case False{}:
+      %MBool.and_false_sym(p(h)) : {List.filter(~A, ~p, r) == List.filter.put(A, h, List.filter(~A, ~p, r), _) : List<&2, A>}
+      {==}
+    case True{}:
+      %MBool.and_true_sym(p(h)) : {List.filter(~A, ~p, h <> r) == List.filter.put(A, h, List.filter(~A, ~p, r), _) : List<&2, A>}
+      {==}
+
+# Filtering twice is filtering by both predicates: filter p (filter q xs) = filter (p and q) xs.
+law filter_filter:
+  for ~A: Data
+  for ~p: A -> Bool
+  for ~q: A -> Bool
+  for xs: List<&2, A>
+  {List.filter(~A, ~p, List.filter(~A, ~q, xs)) == List.filter(~A, ~(+x => Bool.and(p(x), q(x))), xs) : List<&2, A>}
+
+def filter_filter(A, p, q, xs):
+  match xs:
+    case Nil{}:
+      {==}
+    case +h <> t:
+      +t = t
+      %filter_filter(~A, ~p, ~q, t) : {List.filter(~A, ~p, List.filter.put(A, h, List.filter(~A, ~q, t), q(h))) == List.filter.put(A, h, _, Bool.and(p(h), q(h))) : List<&2, A>}
+      internal_filter_put_filter(~A, ~p, h, List.filter(~A, ~q, t), q(h))
+
+def internal_all_filter_put(~A: Data, ~q: A -> Bool, -h: A, r: List<&2, A>, b: Bool) -> {List.all(~&2, ~A, ~q, List.filter.put(A, h, r, b)) == Bool.and(Bool.or(Bool.not(b), q(h)), List.all(~&2, ~A, ~q, r)) : Bool}:
+  match b:
+    case False{}:
+      {==}
+    case True{}:
+      {==}
+
+# All over a filter checks q only where p holds: all q (filter p xs) = all (not p or q) xs.
+law all_filter:
+  for ~A: Data
+  for ~p: A -> Bool
+  for ~q: A -> Bool
+  for xs: List<&2, A>
+  {List.all(~&2, ~A, ~q, List.filter(~A, ~p, xs)) == List.all(~&2, ~A, ~(+x => Bool.or(Bool.not(p(x)), q(x))), xs) : Bool}
+
+def all_filter(A, p, q, xs):
+  match xs:
+    case Nil{}:
+      {==}
+    case +h <> t:
+      +t = t
+      %all_filter(~A, ~p, ~q, t) : {List.all(~&2, ~A, ~q, List.filter.put(A, h, List.filter(~A, ~p, t), p(h))) == Bool.and(Bool.or(Bool.not(p(h)), q(h)), _) : Bool}
+      internal_all_filter_put(~A, ~q, h, List.filter(~A, ~p, t), p(h))
+
+def internal_any_filter_put(~A: Data, ~q: A -> Bool, -h: A, r: List<&2, A>, b: Bool) -> {List.any(~&2, ~A, ~q, List.filter.put(A, h, r, b)) == Bool.or(Bool.and(b, q(h)), List.any(~&2, ~A, ~q, r)) : Bool}:
+  match b:
+    case False{}:
+      {==}
+    case True{}:
+      {==}
+
+# Any over a filter looks for q only where p holds: any q (filter p xs) = any (p and q) xs.
+law any_filter:
+  for ~A: Data
+  for ~p: A -> Bool
+  for ~q: A -> Bool
+  for xs: List<&2, A>
+  {List.any(~&2, ~A, ~q, List.filter(~A, ~p, xs)) == List.any(~&2, ~A, ~(+x => Bool.and(p(x), q(x))), xs) : Bool}
+
+def any_filter(A, p, q, xs):
+  match xs:
+    case Nil{}:
+      {==}
+    case +h <> t:
+      +t = t
+      %any_filter(~A, ~p, ~q, t) : {List.any(~&2, ~A, ~q, List.filter.put(A, h, List.filter(~A, ~p, t), p(h))) == Bool.or(Bool.and(p(h), q(h)), _) : Bool}
+      internal_any_filter_put(~A, ~q, h, List.filter(~A, ~p, t), p(h))
+
+# All over a map checks the composed predicate: all p (map f xs) = all (p . f) xs.
+law all_map:
+  for ~A: Type
+  for ~B: Type
+  for ~f: A -> B
+  for ~p: B -> Bool
+  for xs: List<A>
+  {List.all(~&1, ~B, ~p, List.map(~A, ~B, ~f, xs)) == List.all(~&1, ~A, ~(x => p(f(x))), xs) : Bool}
+
+def all_map(A, B, f, p, xs):
+  match xs:
+    case Nil{}:
+      {==}
+    case h <> t:
+      %all_map(~A, ~B, ~f, ~p, t) : {Bool.and(p(f(h)), List.all(~&1, ~B, ~p, List.map(~A, ~B, ~f, t))) == Bool.and(p(f(h)), _) : Bool}
+      {==}
+
+# Any over a map checks the composed predicate: any p (map f xs) = any (p . f) xs.
+law any_map:
+  for ~A: Type
+  for ~B: Type
+  for ~f: A -> B
+  for ~p: B -> Bool
+  for xs: List<A>
+  {List.any(~&1, ~B, ~p, List.map(~A, ~B, ~f, xs)) == List.any(~&1, ~A, ~(x => p(f(x))), xs) : Bool}
+
+def any_map(A, B, f, p, xs):
+  match xs:
+    case Nil{}:
+      {==}
+    case h <> t:
+      %any_map(~A, ~B, ~f, ~p, t) : {Bool.or(p(f(h)), List.any(~&1, ~B, ~p, List.map(~A, ~B, ~f, t))) == Bool.or(p(f(h)), _) : Bool}
+      {==}
+
+def internal_all_reverse_go(~a: Quant, ~A: Kind(a), ~f: A -> Bool, xs: List<a, A>, -acc: List<a, A>, c: Bool, e: {List.all(~a, ~A, ~f, acc) == c : Bool}) -> {List.all(~a, ~A, ~f, List.reverse.go(a, A, xs, acc)) == Bool.and(c, List.all(~a, ~A, ~f, xs)) : Bool}:
+  match xs c:
+    case Nil{} True{}:
+      e
+    case Nil{} False{}:
+      e
+    case h <> t True{}:
+      +v = f(h)
+      internal_all_reverse_go(~a, ~A, ~f, t, h <> acc, v, Equal.trans(Bool, Bool.and(v, List.all(~a, ~A, ~f, acc)), Bool.and(v, True{}), v, Equal.cong(Bool, Bool, k => Bool.and(v, k), List.all(~a, ~A, ~f, acc), True{}, e), MBool.and_true(v)))
+    case h <> t False{}:
+      internal_all_reverse_go(~a, ~A, ~f, t, h <> acc, False{}, Equal.trans(Bool, Bool.and(f(h), List.all(~a, ~A, ~f, acc)), Bool.and(f(h), False{}), False{}, Equal.cong(Bool, Bool, k => Bool.and(f(h), k), List.all(~a, ~A, ~f, acc), False{}, e), MBool.and_false(f(h))))
+
+# Reversing does not change whether all elements satisfy a predicate.
+law all_reverse:
+  for ~a: Quant
+  for ~A: Kind(a)
+  for ~f: A -> Bool
+  for xs: List<a, A>
+  {List.all(~a, ~A, ~f, List.reverse(a, A, xs)) == List.all(~a, ~A, ~f, xs) : Bool}
+
+def all_reverse(a, A, f, xs):
+  internal_all_reverse_go(~a, ~A, ~f, xs, Nil{}, True{}, {==})
+
+def internal_any_reverse_go(~a: Quant, ~A: Kind(a), ~f: A -> Bool, xs: List<a, A>, -acc: List<a, A>, c: Bool, e: {List.any(~a, ~A, ~f, acc) == c : Bool}) -> {List.any(~a, ~A, ~f, List.reverse.go(a, A, xs, acc)) == Bool.or(c, List.any(~a, ~A, ~f, xs)) : Bool}:
+  match xs c:
+    case Nil{} True{}:
+      e
+    case Nil{} False{}:
+      e
+    case h <> t True{}:
+      internal_any_reverse_go(~a, ~A, ~f, t, h <> acc, True{}, Equal.trans(Bool, Bool.or(f(h), List.any(~a, ~A, ~f, acc)), Bool.or(f(h), True{}), True{}, Equal.cong(Bool, Bool, k => Bool.or(f(h), k), List.any(~a, ~A, ~f, acc), True{}, e), MBool.or_true(f(h))))
+    case h <> t False{}:
+      +v = f(h)
+      internal_any_reverse_go(~a, ~A, ~f, t, h <> acc, v, Equal.trans(Bool, Bool.or(v, List.any(~a, ~A, ~f, acc)), Bool.or(v, False{}), v, Equal.cong(Bool, Bool, k => Bool.or(v, k), List.any(~a, ~A, ~f, acc), False{}, e), MBool.or_false(v)))
+
+# Reversing does not change whether some element satisfies a predicate.
+law any_reverse:
+  for ~a: Quant
+  for ~A: Kind(a)
+  for ~f: A -> Bool
+  for xs: List<a, A>
+  {List.any(~a, ~A, ~f, List.reverse(a, A, xs)) == List.any(~a, ~A, ~f, xs) : Bool}
+
+def any_reverse(a, A, f, xs):
+  internal_any_reverse_go(~a, ~A, ~f, xs, Nil{}, False{}, {==})
+
+def internal_contains_reverse_go(~A: Data, ~eq: A -> A -> Bool, xs: List<&2, A>, -acc: List<&2, A>, +x: A, c: Bool, e: {List.contains(~A, ~eq, acc, x) == c : Bool}) -> {List.contains(~A, ~eq, List.reverse.go(&2, A, xs, acc), x) == Bool.or(c, List.contains(~A, ~eq, xs, x)) : Bool}:
+  match xs c:
+    case Nil{} True{}:
+      e
+    case Nil{} False{}:
+      e
+    case h <> t True{}:
+      internal_contains_reverse_go(~A, ~eq, t, h <> acc, x, True{}, Equal.trans(Bool, Bool.or(eq(h, x), List.contains(~A, ~eq, acc, x)), Bool.or(eq(h, x), True{}), True{}, Equal.cong(Bool, Bool, k => Bool.or(eq(h, x), k), List.contains(~A, ~eq, acc, x), True{}, e), MBool.or_true(eq(h, x))))
+    case h <> t False{}:
+      +v = eq(h, x)
+      internal_contains_reverse_go(~A, ~eq, t, h <> acc, x, v, Equal.trans(Bool, Bool.or(v, List.contains(~A, ~eq, acc, x)), Bool.or(v, False{}), v, Equal.cong(Bool, Bool, k => Bool.or(v, k), List.contains(~A, ~eq, acc, x), False{}, e), MBool.or_false(v)))
+
+# Reversing does not change whether a list contains x.
+law contains_reverse:
+  for ~A: Data
+  for ~eq: A -> A -> Bool
+  for xs: List<&2, A>
+  for +x: A
+  {List.contains(~A, ~eq, List.reverse(&2, A, xs), x) == List.contains(~A, ~eq, xs, x) : Bool}
+
+def contains_reverse(A, eq, xs, x):
+  internal_contains_reverse_go(~A, ~eq, xs, Nil{}, x, False{}, {==})
+
 # --- generated: _sym twins (tools/mathlib/twins.ts), do not edit ---
 
 # The empty list is a right identity for append: xs ++ [] = xs, reversed to rewrite toward the simple side.
@@ -1216,3 +1733,297 @@ law length_filter_le_sym:
 
 def length_filter_le_sym(A, f, xs):
   Equal.sym(Bool, Nat.is_le(List.length(&2, A, List.filter(~A, ~f, xs)), List.length(&2, A, xs)), True{}, length_filter_le(~A, ~f, xs))
+
+# Taking the length of the first part of an append gives the first part back, reversed to rewrite toward the simple side.
+law take_left_sym:
+  for -a: Quant
+  for -A: Kind(a)
+  for xs: List<a, A>
+  for ys: List<a, A>
+  {xs == List.take(a, A, List.append(a, A, xs, ys), List.length(a, A, xs)) : List<a, A>}
+
+def take_left_sym(a, A, xs, ys):
+  Equal.sym(List<a, A>, List.take(a, A, List.append(a, A, xs, ys), List.length(a, A, xs)), xs, take_left(a, A, xs, ys))
+
+# Dropping the length of the first part of an append gives the second part, reversed to rewrite toward the simple side.
+law drop_left_sym:
+  for -a: Quant
+  for -A: Kind(a)
+  for xs: List<a, A>
+  for ys: List<a, A>
+  {ys == List.drop(a, A, List.append(a, A, xs, ys), List.length(a, A, xs)) : List<a, A>}
+
+def drop_left_sym(a, A, xs, ys):
+  Equal.sym(List<a, A>, List.drop(a, A, List.append(a, A, xs, ys), List.length(a, A, xs)), ys, drop_left(a, A, xs, ys))
+
+# Taking past the first part of an append keeps it and takes the rest from the second part, reversed to rewrite toward the simple side.
+law take_append_sym:
+  for -a: Quant
+  for -A: Kind(a)
+  for xs: List<a, A>
+  for -ys: List<a, A>
+  for -n: Nat
+  {List.append(a, A, xs, List.take(a, A, ys, n)) == List.take(a, A, List.append(a, A, xs, ys), Nat.add(List.length(a, A, xs), n)) : List<a, A>}
+
+def take_append_sym(a, A, xs, ys, n):
+  Equal.sym(List<a, A>, List.take(a, A, List.append(a, A, xs, ys), Nat.add(List.length(a, A, xs), n)), List.append(a, A, xs, List.take(a, A, ys, n)), take_append(a, A, xs, ys, n))
+
+# Dropping past the first part of an append drops the rest from the second part, reversed to rewrite toward the simple side.
+law drop_append_sym:
+  for -a: Quant
+  for -A: Kind(a)
+  for xs: List<a, A>
+  for -ys: List<a, A>
+  for -n: Nat
+  {List.drop(a, A, ys, n) == List.drop(a, A, List.append(a, A, xs, ys), Nat.add(List.length(a, A, xs), n)) : List<a, A>}
+
+def drop_append_sym(a, A, xs, ys, n):
+  Equal.sym(List<a, A>, List.drop(a, A, List.append(a, A, xs, ys), Nat.add(List.length(a, A, xs), n)), List.drop(a, A, ys, n), drop_append(a, A, xs, ys, n))
+
+# Taking at most the length of the first part of an append only sees the first part, reversed to rewrite toward the simple side.
+law take_append_of_le_length_sym:
+  for -a: Quant
+  for -A: Kind(a)
+  for xs: List<a, A>
+  for ys: List<a, A>
+  for n: Nat
+  for h: MNat.le(n, List.length(a, A, xs))
+  {List.take(a, A, xs, n) == List.take(a, A, List.append(a, A, xs, ys), n) : List<a, A>}
+
+def take_append_of_le_length_sym(a, A, xs, ys, n, h):
+  Equal.sym(List<a, A>, List.take(a, A, List.append(a, A, xs, ys), n), List.take(a, A, xs, n), take_append_of_le_length(a, A, xs, ys, n, h))
+
+# Dropping at most the length of the first part of an append drops only from the first part, reversed to rewrite toward the simple side.
+law drop_append_of_le_length_sym:
+  for -a: Quant
+  for -A: Kind(a)
+  for xs: List<a, A>
+  for ys: List<a, A>
+  for n: Nat
+  for h: MNat.le(n, List.length(a, A, xs))
+  {List.append(a, A, List.drop(a, A, xs, n), ys) == List.drop(a, A, List.append(a, A, xs, ys), n) : List<a, A>}
+
+def drop_append_of_le_length_sym(a, A, xs, ys, n, h):
+  Equal.sym(List<a, A>, List.drop(a, A, List.append(a, A, xs, ys), n), List.append(a, A, List.drop(a, A, xs, n), ys), drop_append_of_le_length(a, A, xs, ys, n, h))
+
+# Mapping commutes with taking: map f (take n xs) = take n (map f xs), reversed to rewrite toward the simple side.
+law map_take_sym:
+  for ~A: Type
+  for ~B: Type
+  for ~f: A -> B
+  for xs: List<A>
+  for n: Nat
+  {List.take(&1, B, List.map(~A, ~B, ~f, xs), n) == List.map(~A, ~B, ~f, List.take(&1, A, xs, n)) : List<B>}
+
+def map_take_sym(A, B, f, xs, n):
+  Equal.sym(List<B>, List.map(~A, ~B, ~f, List.take(&1, A, xs, n)), List.take(&1, B, List.map(~A, ~B, ~f, xs), n), map_take(~A, ~B, ~f, xs, n))
+
+# Mapping commutes with dropping: map f (drop n xs) = drop n (map f xs), reversed to rewrite toward the simple side.
+law map_drop_sym:
+  for ~A: Type
+  for ~B: Type
+  for ~f: A -> B
+  for xs: List<A>
+  for n: Nat
+  {List.drop(&1, B, List.map(~A, ~B, ~f, xs), n) == List.map(~A, ~B, ~f, List.drop(&1, A, xs, n)) : List<B>}
+
+def map_drop_sym(A, B, f, xs, n):
+  Equal.sym(List<B>, List.map(~A, ~B, ~f, List.drop(&1, A, xs, n)), List.drop(&1, B, List.map(~A, ~B, ~f, xs), n), map_drop(~A, ~B, ~f, xs, n))
+
+# Taking m from n copies of x gives min(m, n) copies of x, reversed to rewrite toward the simple side.
+law take_replicate_sym:
+  for -A: Data
+  for n: Nat
+  for m: Nat
+  for -x: A
+  {List.replicate(A, Nat.min(m, n), x) == List.take(&2, A, List.replicate(A, n, x), m) : List<&2, A>}
+
+def take_replicate_sym(A, n, m, x):
+  Equal.sym(List<&2, A>, List.take(&2, A, List.replicate(A, n, x), m), List.replicate(A, Nat.min(m, n), x), take_replicate(A, n, m, x))
+
+# Dropping m from n copies of x gives n - m copies of x, reversed to rewrite toward the simple side.
+law drop_replicate_sym:
+  for -A: Data
+  for n: Nat
+  for m: Nat
+  for -x: A
+  {List.replicate(A, Nat.sub(n, m), x) == List.drop(&2, A, List.replicate(A, n, x), m) : List<&2, A>}
+
+def drop_replicate_sym(A, n, m, x):
+  Equal.sym(List<&2, A>, List.drop(&2, A, List.replicate(A, n, x), m), List.replicate(A, Nat.sub(n, m), x), drop_replicate(A, n, m, x))
+
+# The tail is one shorter than the list, or empty: length (tail xs) = length xs - 1, reversed to rewrite toward the simple side.
+law length_tail_sym:
+  for -a: Quant
+  for -A: Kind(a)
+  for xs: List<a, A>
+  {Nat.sub(List.length(a, A, xs), 1n) == List.length(a, A, List.tail(a, A, xs)) : Nat}
+
+def length_tail_sym(a, A, xs):
+  Equal.sym(Nat, List.length(a, A, List.tail(a, A, xs)), Nat.sub(List.length(a, A, xs), 1n), length_tail(a, A, xs))
+
+# Mapping the identity gives the list back, reversed to rewrite toward the simple side.
+law map_id_sym:
+  for ~A: Type
+  for xs: List<A>
+  {xs == List.map(~A, ~A, ~(x => x), xs) : List<A>}
+
+def map_id_sym(A, xs):
+  Equal.sym(List<A>, List.map(~A, ~A, ~(x => x), xs), xs, map_id(~A, xs))
+
+# A right fold over a map folds with the mapped function: foldr g z (map f xs) = foldr (g . f) z xs, reversed to rewrite toward the simple side.
+law foldr_map_sym:
+  for ~A: Type
+  for ~B: Type
+  for ~C: Type
+  for ~f: A -> B
+  for ~g: B -> C -> C
+  for xs: List<A>
+  for -z: C
+  {List.foldr(~&1, ~A, ~C, ~(x => y => g(f(x), y)), xs, z) == List.foldr(~&1, ~B, ~C, ~g, List.map(~A, ~B, ~f, xs), z) : C}
+
+def foldr_map_sym(A, B, C, f, g, xs, z):
+  Equal.sym(C, List.foldr(~&1, ~B, ~C, ~g, List.map(~A, ~B, ~f, xs), z), List.foldr(~&1, ~A, ~C, ~(x => y => g(f(x), y)), xs, z), foldr_map(~A, ~B, ~C, ~f, ~g, xs, z))
+
+# A left fold over a map folds with the mapped function: foldl g z (map f xs) = foldl (fun acc x => g acc (f x)) z xs, reversed to rewrite toward the simple side.
+law foldl_map_sym:
+  for ~A: Type
+  for ~B: Type
+  for ~C: Type
+  for ~f: A -> B
+  for ~g: C -> B -> C
+  for xs: List<A>
+  for -z: C
+  {List.foldl(~&1, ~A, ~C, ~(x => y => g(x, f(y))), xs, z) == List.foldl(~&1, ~B, ~C, ~g, List.map(~A, ~B, ~f, xs), z) : C}
+
+def foldl_map_sym(A, B, C, f, g, xs, z):
+  Equal.sym(C, List.foldl(~&1, ~B, ~C, ~g, List.map(~A, ~B, ~f, xs), z), List.foldl(~&1, ~A, ~C, ~(x => y => g(x, f(y))), xs, z), foldl_map(~A, ~B, ~C, ~f, ~g, xs, z))
+
+# Replicating m + n times appends m copies to n copies, reversed to rewrite toward the simple side.
+law replicate_add_sym:
+  for -A: Data
+  for m: Nat
+  for -n: Nat
+  for -x: A
+  {List.append(&2, A, List.replicate(A, m, x), List.replicate(A, n, x)) == List.replicate(A, Nat.add(m, n), x) : List<&2, A>}
+
+def replicate_add_sym(A, m, n, x):
+  Equal.sym(List<&2, A>, List.replicate(A, Nat.add(m, n), x), List.append(&2, A, List.replicate(A, m, x), List.replicate(A, n, x)), replicate_add(A, m, n, x))
+
+# Reversing n copies of x gives them back, reversed to rewrite toward the simple side.
+law reverse_replicate_sym:
+  for -A: Data
+  for n: Nat
+  for -x: A
+  {List.replicate(A, n, x) == List.reverse(&2, A, List.replicate(A, n, x)) : List<&2, A>}
+
+def reverse_replicate_sym(A, n, x):
+  Equal.sym(List<&2, A>, List.reverse(&2, A, List.replicate(A, n, x)), List.replicate(A, n, x), reverse_replicate(A, n, x))
+
+# Filtering with an always-true predicate gives the list back, reversed to rewrite toward the simple side.
+law filter_true_sym:
+  for ~A: Data
+  for xs: List<&2, A>
+  {xs == List.filter(~A, ~(x => True{}), xs) : List<&2, A>}
+
+def filter_true_sym(A, xs):
+  Equal.sym(List<&2, A>, List.filter(~A, ~(x => True{}), xs), xs, filter_true(~A, xs))
+
+# Filtering with an always-false predicate gives the empty list, reversed to rewrite toward the simple side.
+law filter_false_sym:
+  for ~A: Data
+  for xs: List<&2, A>
+  {Nil{} == List.filter(~A, ~(x => False{}), xs) : List<&2, A>}
+
+def filter_false_sym(A, xs):
+  Equal.sym(List<&2, A>, List.filter(~A, ~(x => False{}), xs), Nil{}, filter_false(~A, xs))
+
+# Filtering twice is filtering by both predicates: filter p (filter q xs) = filter (p and q) xs, reversed to rewrite toward the simple side.
+law filter_filter_sym:
+  for ~A: Data
+  for ~p: A -> Bool
+  for ~q: A -> Bool
+  for xs: List<&2, A>
+  {List.filter(~A, ~(+x => Bool.and(p(x), q(x))), xs) == List.filter(~A, ~p, List.filter(~A, ~q, xs)) : List<&2, A>}
+
+def filter_filter_sym(A, p, q, xs):
+  Equal.sym(List<&2, A>, List.filter(~A, ~p, List.filter(~A, ~q, xs)), List.filter(~A, ~(+x => Bool.and(p(x), q(x))), xs), filter_filter(~A, ~p, ~q, xs))
+
+# All over a filter checks q only where p holds: all q (filter p xs) = all (not p or q) xs, reversed to rewrite toward the simple side.
+law all_filter_sym:
+  for ~A: Data
+  for ~p: A -> Bool
+  for ~q: A -> Bool
+  for xs: List<&2, A>
+  {List.all(~&2, ~A, ~(+x => Bool.or(Bool.not(p(x)), q(x))), xs) == List.all(~&2, ~A, ~q, List.filter(~A, ~p, xs)) : Bool}
+
+def all_filter_sym(A, p, q, xs):
+  Equal.sym(Bool, List.all(~&2, ~A, ~q, List.filter(~A, ~p, xs)), List.all(~&2, ~A, ~(+x => Bool.or(Bool.not(p(x)), q(x))), xs), all_filter(~A, ~p, ~q, xs))
+
+# Any over a filter looks for q only where p holds: any q (filter p xs) = any (p and q) xs, reversed to rewrite toward the simple side.
+law any_filter_sym:
+  for ~A: Data
+  for ~p: A -> Bool
+  for ~q: A -> Bool
+  for xs: List<&2, A>
+  {List.any(~&2, ~A, ~(+x => Bool.and(p(x), q(x))), xs) == List.any(~&2, ~A, ~q, List.filter(~A, ~p, xs)) : Bool}
+
+def any_filter_sym(A, p, q, xs):
+  Equal.sym(Bool, List.any(~&2, ~A, ~q, List.filter(~A, ~p, xs)), List.any(~&2, ~A, ~(+x => Bool.and(p(x), q(x))), xs), any_filter(~A, ~p, ~q, xs))
+
+# All over a map checks the composed predicate: all p (map f xs) = all (p . f) xs, reversed to rewrite toward the simple side.
+law all_map_sym:
+  for ~A: Type
+  for ~B: Type
+  for ~f: A -> B
+  for ~p: B -> Bool
+  for xs: List<A>
+  {List.all(~&1, ~A, ~(x => p(f(x))), xs) == List.all(~&1, ~B, ~p, List.map(~A, ~B, ~f, xs)) : Bool}
+
+def all_map_sym(A, B, f, p, xs):
+  Equal.sym(Bool, List.all(~&1, ~B, ~p, List.map(~A, ~B, ~f, xs)), List.all(~&1, ~A, ~(x => p(f(x))), xs), all_map(~A, ~B, ~f, ~p, xs))
+
+# Any over a map checks the composed predicate: any p (map f xs) = any (p . f) xs, reversed to rewrite toward the simple side.
+law any_map_sym:
+  for ~A: Type
+  for ~B: Type
+  for ~f: A -> B
+  for ~p: B -> Bool
+  for xs: List<A>
+  {List.any(~&1, ~A, ~(x => p(f(x))), xs) == List.any(~&1, ~B, ~p, List.map(~A, ~B, ~f, xs)) : Bool}
+
+def any_map_sym(A, B, f, p, xs):
+  Equal.sym(Bool, List.any(~&1, ~B, ~p, List.map(~A, ~B, ~f, xs)), List.any(~&1, ~A, ~(x => p(f(x))), xs), any_map(~A, ~B, ~f, ~p, xs))
+
+# Reversing does not change whether all elements satisfy a predicate, reversed to rewrite toward the simple side.
+law all_reverse_sym:
+  for ~a: Quant
+  for ~A: Kind(a)
+  for ~f: A -> Bool
+  for xs: List<a, A>
+  {List.all(~a, ~A, ~f, xs) == List.all(~a, ~A, ~f, List.reverse(a, A, xs)) : Bool}
+
+def all_reverse_sym(a, A, f, xs):
+  Equal.sym(Bool, List.all(~a, ~A, ~f, List.reverse(a, A, xs)), List.all(~a, ~A, ~f, xs), all_reverse(~a, ~A, ~f, xs))
+
+# Reversing does not change whether some element satisfies a predicate, reversed to rewrite toward the simple side.
+law any_reverse_sym:
+  for ~a: Quant
+  for ~A: Kind(a)
+  for ~f: A -> Bool
+  for xs: List<a, A>
+  {List.any(~a, ~A, ~f, xs) == List.any(~a, ~A, ~f, List.reverse(a, A, xs)) : Bool}
+
+def any_reverse_sym(a, A, f, xs):
+  Equal.sym(Bool, List.any(~a, ~A, ~f, List.reverse(a, A, xs)), List.any(~a, ~A, ~f, xs), any_reverse(~a, ~A, ~f, xs))
+
+# Reversing does not change whether a list contains x, reversed to rewrite toward the simple side.
+law contains_reverse_sym:
+  for ~A: Data
+  for ~eq: A -> A -> Bool
+  for xs: List<&2, A>
+  for +x: A
+  {List.contains(~A, ~eq, xs, x) == List.contains(~A, ~eq, List.reverse(&2, A, xs), x) : Bool}
+
+def contains_reverse_sym(A, eq, xs, x):
+  Equal.sym(Bool, List.contains(~A, ~eq, List.reverse(&2, A, xs), x), List.contains(~A, ~eq, xs, x), contains_reverse(~A, ~eq, xs, x))
