@@ -116,11 +116,13 @@ export class Universe {
       case "u32": return { v: "u32", n: r() < 0.5 ? pick(r, [0, 1, 2, 3, 255, 256, 65535, 2147483648, U32_MAX]) : Math.floor(r() * 2 ** 32) };
       case "char": return { v: "char", c: pick(r, ["a", "b", "c", "d", "e"]) };
       case "str": return { v: "str", s: range(int(r, 0, size)).map(() => pick(r, ["a", "b", "c"])).join("") };
-      case "list": return { v: "list", items: range(int(r, 0, Math.max(size + 2, 8))).map(() => this.random((ty as any).args[1], size, r, budget - 1)) };
+      // out of budget a list is empty, so a type that recurses only through a list (a rose tree) ends
+      case "list": return { v: "list", items: range(budget <= 0 ? 0 : int(r, 0, Math.max(size + 2, 8))).map(() => this.random((ty as any).args[1], size, r, budget - 1)) };
       case "pair": return { v: "pair", a: this.random((ty as any).args[0], size, r, budget), b: this.random((ty as any).args[1], size, r, budget) };
     }
     const { adt, ctors } = this.adt(ty);
-    const rec = (c: Ctor) => c.fields.some((f) => f.t === "app" && f.head === adt.name);
+    const names = (t: Ty): boolean => t.t === "app" && (t.head === adt.name || t.args.some(names));
+    const rec = (c: Ctor) => c.fields.some(names);
     let choices = ctors;
     if (budget <= 0) {
       const base = ctors.filter((c) => !rec(c));

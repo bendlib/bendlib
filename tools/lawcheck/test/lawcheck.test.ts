@@ -247,6 +247,16 @@ describe("random Nat bound, list length, Type predicates, function equations", (
   }, T);
 });
 
+describe("recursion through a list", () => {
+  test("a rose tree is generated, with and without children, and shrinks (it overflowed the stack)", async () => {
+    const { code, report } = await json(path.join(FX, "rose.bend"));
+    expect(code).toBe(1);
+    expect(law(report, "val_refl").status).toBe("pass");
+    expect(binds(law(report, "val_zero"))).toEqual({ t: "Node{1n, []}" });
+    expect(binds(law(report, "leaf"))).toEqual({ t: "Node{0n, [Node{0n, []}]}" });
+  }, T);
+});
+
 describe("unsafe verdict", () => {
   test("a checker verdict that relies on unsafe code is not a clean pass", async () => {
     const { code, report } = await json(path.join(FX, "unsafe_pass.bend"), "--max-instances", "3");
