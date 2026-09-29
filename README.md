@@ -3,6 +3,12 @@
 The foundation library for [Bend 2](https://github.com/bendlang/bend): machine-checked facts you
 import instead of re-proving, and tools that keep laws honest.
 
+[Docs for every BendHub package](https://bendlib.github.io/bendlib/) ·
+[lemma index](packages/bend-mathlib/README.md) ·
+[lawcheck](tools/lawcheck) ·
+[agent skill](skills/bend-mathlib/SKILL.md) ·
+[good first lemmas](https://github.com/bendlib/bendlib/issues?q=is%3Aopen+label%3A%22good+first+lemma%22)
+
 | Part | What | Status |
 |---|---|---|
 | [`bend-mathlib`](packages/bend-mathlib) | 242 published lemmas (+160 generated `_sym` twins) about `Nat`, `Bool`, `List`, `String`, equality — generic, proved, zero `@unsafe` | **0.5.0.0 on BendHub** |
@@ -32,6 +38,29 @@ Proving with an AI agent? Give it [skills/bend-mathlib/SKILL.md](skills/bend-mat
 agent to find, import and rewrite with these lemmas instead of re-proving them.
 By hash (content-pinned): `import 0x676cb0b2ca8c3fdeee47023a54e3ac54/nat.bend as MNat`.
 
+## Check a law before you prove it
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/bendlib/bendlib/main/tools/lawcheck/install.sh | sh
+lawcheck LAWS.bend
+```
+
+lawcheck evaluates every law on many small inputs with the bend checker and shrinks what fails,
+so a false statement costs seconds instead of a proof attempt:
+
+```text
+✓ ins_length  50 instances, 0 failures (sizes ≤ 3)
+✗ ins_sorted  counterexample (shrunk); 9/36 instances failed, premises held in 36/50
+             x = 0n
+             xs = [1n]
+             premise  {is_sorted([1n]) == True{} : Bool}  (holds)
+             lhs  is_sorted(ins(0n, [1n])) = False{}
+             rhs  True{} = True{}
+```
+
+`lawcheck mutate` goes the other way: it breaks your implementation on purpose and reports the
+changes your laws fail to notice. Details: [tools/lawcheck](tools/lawcheck).
+
 ## Principles
 
 - **Never breaks dependents.** Published statements are append-only (`PUBLIC_API.lock`), and
@@ -42,6 +71,14 @@ By hash (content-pinned): `import 0x676cb0b2ca8c3fdeee47023a54e3ac54/nat.bend as
   `_sym` twins for the rewrite direction that simplifies.
 
 The architecture and its evidence are in [PLAN.md](PLAN.md) and [research/experiments](research/experiments).
+
+## Contribute
+
+A lemma you needed in your own proofs is the best contribution: open a PR that adds it (the
+layout and the gate are below), or pick one of the
+[good first lemmas](https://github.com/bendlib/bendlib/issues?q=is%3Aopen+label%3A%22good+first+lemma%22).
+Thanks to [@nohzafk](https://github.com/nohzafk) for the String module, the Nat.div lemmas, and
+the move to bend 2.0.34.
 
 ## Develop
 
