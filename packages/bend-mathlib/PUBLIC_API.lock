@@ -2545,6 +2545,18 @@
       "sha256": "48b03e0bc1c574ef561f1b415840ad84622ecd2e59a15a1c5f3a76a02858183e",
       "since": "0.1.0.0"
     },
+    "nat.mul_pow": {
+      "kind": "law",
+      "text": "for +a: Nat\nfor +b: Nat\nfor n: Nat\n{Nat.pow(Nat.mul(a, b), n) == Nat.mul(Nat.pow(a, n), Nat.pow(b, n)) : Nat}",
+      "sha256": "488bf2c9035466513fb48597a616000b67211500df5c7c8be9fe1f5985ebf1c0",
+      "since": null
+    },
+    "nat.mul_pow_sym": {
+      "kind": "law",
+      "text": "for +a: Nat\nfor +b: Nat\nfor n: Nat\n{Nat.mul(Nat.pow(a, n), Nat.pow(b, n)) == Nat.pow(Nat.mul(a, b), n) : Nat}",
+      "sha256": "821dee0bbead6459843780471d8fe72c66178ae654f458d8b4fbb556aa4b0f32",
+      "since": null
+    },
     "nat.mul_right_comm": {
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\nfor c: Nat\n{Nat.mul(Nat.mul(a, b), c) == Nat.mul(Nat.mul(a, c), b) : Nat}",

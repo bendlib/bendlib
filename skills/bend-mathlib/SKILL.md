@@ -5,7 +5,7 @@ description: Use when writing or proving Bend 2 laws (a `law` and its proof `def
 
 # bend-mathlib
 
-bend-mathlib is a BendHub package of machine-checked lemmas for Bend 2: 242 lemmas about `Nat`,
+bend-mathlib is a BendHub package of machine-checked lemmas for Bend 2: 310 lemmas about `Nat`,
 `Bool`, `List`, `String`, `Maybe` and equality, plus abstract order/algebra theorems. Every
 statement is locked, so a newer version never changes one you use. Before you prove a basic fact
 (`add_comm`, `append_assoc`, `reverse_reverse`, `le_trans`, `take_append_drop` …), import it.

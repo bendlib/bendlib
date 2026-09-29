@@ -2195,12 +2195,19 @@ law zero_pow:
 def zero_pow(n):
   {==}
 
-def internal_mul_pow(+a: Nat, +b: Nat, n: Nat) -> {Nat.pow(Nat.mul(a, b), n) == Nat.mul(Nat.pow(a, n), Nat.pow(b, n)) : Nat}:
+# A power of a product is the product of the powers: (a * b)^n = a^n * b^n.
+law mul_pow:
+  for +a: Nat
+  for +b: Nat
+  for n: Nat
+  {Nat.pow(Nat.mul(a, b), n) == Nat.mul(Nat.pow(a, n), Nat.pow(b, n)) : Nat}
+
+def mul_pow(a, b, n):
   match n:
     case 0n:
       {==}
     case 1n++p:
-      %Equal.sym(Nat, Nat.pow(Nat.mul(a, b), p), Nat.mul(Nat.pow(a, p), Nat.pow(b, p)), internal_mul_pow(a, b, p)) : {Nat.mul(Nat.mul(a, b), _) == Nat.mul(Nat.mul(a, Nat.pow(a, p)), Nat.mul(b, Nat.pow(b, p))) : Nat}
+      %Equal.sym(Nat, Nat.pow(Nat.mul(a, b), p), Nat.mul(Nat.pow(a, p), Nat.pow(b, p)), mul_pow(a, b, p)) : {Nat.mul(Nat.mul(a, b), _) == Nat.mul(Nat.mul(a, Nat.pow(a, p)), Nat.mul(b, Nat.pow(b, p))) : Nat}
       mul_mul_mul_comm(a, b, Nat.pow(a, p), Nat.pow(b, p))
 
 # Exponents multiply under repeated powers: a^(m * n) = (a^m)^n.
@@ -2217,7 +2224,7 @@ def pow_mul(a, m, n):
     case 1n++p:
       +a = a
       +n = n
-      %Equal.sym(Nat, Nat.pow(Nat.mul(a, Nat.pow(a, p)), n), Nat.mul(Nat.pow(a, n), Nat.pow(Nat.pow(a, p), n)), internal_mul_pow(a, Nat.pow(a, p), n)) : {Nat.pow(a, Nat.add(n, Nat.mul(p, n))) == _ : Nat}
+      %Equal.sym(Nat, Nat.pow(Nat.mul(a, Nat.pow(a, p)), n), Nat.mul(Nat.pow(a, n), Nat.pow(Nat.pow(a, p), n)), mul_pow(a, Nat.pow(a, p), n)) : {Nat.pow(a, Nat.add(n, Nat.mul(p, n))) == _ : Nat}
       %pow_mul(a, p, n) : {Nat.pow(a, Nat.add(n, Nat.mul(p, n))) == Nat.mul(Nat.pow(a, n), _) : Nat}
       pow_add(a, n, Nat.mul(p, n))
 
@@ -3195,6 +3202,16 @@ law zero_pow_sym:
 
 def zero_pow_sym(n):
   Equal.sym(Nat, Nat.pow(0n, 1n+n), 0n, zero_pow(n))
+
+# A power of a product is the product of the powers: (a * b)^n = a^n * b^n, reversed to rewrite toward the simple side.
+law mul_pow_sym:
+  for +a: Nat
+  for +b: Nat
+  for n: Nat
+  {Nat.mul(Nat.pow(a, n), Nat.pow(b, n)) == Nat.pow(Nat.mul(a, b), n) : Nat}
+
+def mul_pow_sym(a, b, n):
+  Equal.sym(Nat, Nat.pow(Nat.mul(a, b), n), Nat.mul(Nat.pow(a, n), Nat.pow(b, n)), mul_pow(a, b, n))
 
 # Exponents multiply under repeated powers: a^(m * n) = (a^m)^n, reversed to rewrite toward the simple side.
 law pow_mul_sym:
