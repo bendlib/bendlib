@@ -5,6 +5,8 @@ Machine-checked lemmas for Bend 2, checked with `bend 2.0.34`.
 Rewriting: `%e : P` replaces the right side of `e` with its left side, so `name` expands the simple
 side into the compound one and `name_sym` simplifies the compound side.
 
+Rows marked `next` are proved in this repository but not yet published: the import lines above do not contain them yet.
+
 ## algebra
 
 ```python
@@ -383,6 +385,46 @@ import bend-mathlib@0.5.0.0/nat.bend as MNat
 | `lt_sub_iff_add_lt(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.is_lt(a, Nat.sub(c, b)) == Nat.is_lt(Nat.add(b, a), c) : Bool}` | Comparing against a difference is comparing the sum: a < c - b tests as b + a < c. | 0.4.0.0 |
 | `le_of_add_eq(a, k, b, e)` | `∀ a: Nat, k: Nat, -b: Nat, e: {Nat.add(a, k) == b : Nat}. le(a, b)` | A witnessed difference gives the order: a + k = b implies a <= b. | 0.4.0.0 |
 | `mul_le_mul_right(a, b, k, h)` | `∀ +a: Nat, +b: Nat, +k: Nat, h: le(a, b). le(Nat.mul(a, k), Nat.mul(b, k))` | Multiplying on the right preserves the order: a <= b implies a * k <= b * k. | 0.4.0.0 |
+| `zero_div(b)` | `∀ b: Nat. {Nat.div(0n, b) == 0n : Nat}` | Zero divided by anything is zero: 0 / b = 0. | next |
+| `zero_mod(b)` | `∀ b: Nat. {Nat.mod(0n, b) == 0n : Nat}` | Zero modulo anything is zero: 0 % b = 0. | next |
+| `div_one(a)` | `∀ a: Nat. {Nat.div(a, 1n) == a : Nat}` | Dividing by one changes nothing: a / 1 = a. | next |
+| `mod_one(a)` | `∀ a: Nat. {Nat.mod(a, 1n) == 0n : Nat}` | Any natural modulo one is zero: a % 1 = 0. | next |
+| `mod_self(n)` | `∀ n: Nat. {Nat.mod(n, n) == 0n : Nat}` | A natural modulo itself is zero: n % n = 0. | next |
+| `div_self(b)` | `∀ b: Nat. {Nat.div(1n+b, 1n+b) == 1n : Nat}` | A positive natural divided by itself is one: (1 + b) / (1 + b) = 1. | next |
+| `mod_lt(a, b)` | `∀ a: Nat, b: Nat. lt(Nat.mod(a, 1n+b), 1n+b)` | A remainder is below its positive divisor: a % (1 + b) < 1 + b. | next |
+| `mod_le(a, b)` | `∀ a: Nat, b: Nat. le(Nat.mod(a, b), a)` | A remainder never exceeds the dividend: a % b <= a. | next |
+| `div_le_self(a, b)` | `∀ a: Nat, b: Nat. le(Nat.div(a, b), a)` | A quotient never exceeds the dividend: a / b <= a. | next |
+| `mod_eq_of_lt(a, b, h)` | `∀ a: Nat, b: Nat, h: lt(a, b). {Nat.mod(a, b) == a : Nat}` | A number below the divisor is its own remainder: a < b implies a % b = a. | next |
+| `mod_mod(a, n)` | `∀ a: Nat, n: Nat. {Nat.mod(Nat.mod(a, n), n) == Nat.mod(a, n) : Nat}` | Taking a remainder twice is taking it once: (a % n) % n = a % n. | next |
+| `add_mod_left(a, b)` | `∀ a: Nat, b: Nat. {Nat.mod(Nat.add(b, a), b) == Nat.mod(a, b) : Nat}` | Adding the divisor does not change the remainder: (b + a) % b = a % b. | next |
+| `mul_div_cancel(a, b)` | `∀ a: Nat, b: Nat. {Nat.div(Nat.mul(a, 1n+b), 1n+b) == a : Nat}` | Multiplying by a positive divisor then dividing by it cancels: (a * (1 + b)) / (1 + b) = a. | next |
+| `mul_div_cancel_left(a, b)` | `∀ a: Nat, b: Nat. {Nat.div(Nat.mul(1n+b, a), 1n+b) == a : Nat}` | Multiplying on the left by a positive divisor then dividing by it cancels: ((1 + b) * a) / (1 + b) = a. | next |
+| `mul_mod_left(a, b)` | `∀ a: Nat, b: Nat. {Nat.mod(Nat.mul(a, b), b) == 0n : Nat}` | A multiple of b leaves no remainder modulo b: (a * b) % b = 0. | next |
+| `mul_mod_right(a, b)` | `∀ a: Nat, b: Nat. {Nat.mod(Nat.mul(a, b), a) == 0n : Nat}` | A multiple of a leaves no remainder modulo a: (a * b) % a = 0. | next |
+| `mod_add_div(a, b)` | `∀ a: Nat, b: Nat. {Nat.add(Nat.mod(a, b), Nat.mul(b, Nat.div(a, b))) == a : Nat}` | The remainder plus the divisor times the quotient is the dividend: a % b + b * (a / b) = a. | next |
+| `div_mul_le_self(a, b)` | `∀ a: Nat, b: Nat. le(Nat.mul(Nat.div(a, b), b), a)` | The quotient times the divisor never exceeds the dividend: (a / b) * b <= a. | next |
+| `mul_left_comm(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.mul(a, Nat.mul(b, c)) == Nat.mul(b, Nat.mul(a, c)) : Nat}` | Left commutativity of multiplication: a * (b * c) = b * (a * c). | next |
+| `mul_right_comm(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.mul(Nat.mul(a, b), c) == Nat.mul(Nat.mul(a, c), b) : Nat}` | Right commutativity of multiplication: (a * b) * c = (a * c) * b. | next |
+| `mul_mul_mul_comm(a, b, c, d)` | `∀ a: Nat, b: Nat, c: Nat, d: Nat. {Nat.mul(Nat.mul(a, b), Nat.mul(c, d)) == Nat.mul(Nat.mul(a, c), Nat.mul(b, d)) : Nat}` | Four-way regrouping of a product: (a * b) * (c * d) = (a * c) * (b * d). | next |
+| `zero_pow(n)` | `∀ -n: Nat. {Nat.pow(0n, 1n+n) == 0n : Nat}` | Zero to a positive power is zero: 0^(n+1) = 0. | next |
+| `pow_mul(a, m, n)` | `∀ a: Nat, m: Nat, n: Nat. {Nat.pow(a, Nat.mul(m, n)) == Nat.pow(Nat.pow(a, m), n) : Nat}` | Exponents multiply under repeated powers: a^(m * n) = (a^m)^n. | next |
+| `one_le_pow(n, a)` | `∀ n: Nat, a: Nat. le(1n, Nat.pow(1n+a, n))` | A power of a positive base is at least one: 1 <= (1 + a)^n. | next |
+| `pow_pos(n, a)` | `∀ n: Nat, a: Nat. lt(0n, Nat.pow(1n+a, n))` | A power of a positive base is positive: 0 < (1 + a)^n. | next |
+| `le_add_left(n, m)` | `∀ n: Nat, m: Nat. le(n, Nat.add(m, n))` | Adding on the left never decreases a natural: n <= m + n. | next |
+| `add_sub_add_left(k, n, m)` | `∀ k: Nat, -n: Nat, -m: Nat. {Nat.sub(Nat.add(k, n), Nat.add(k, m)) == Nat.sub(n, m) : Nat}` | A common left summand cancels in a difference: (k + n) - (k + m) = n - m. | next |
+| `add_sub_add_right(n, k, m)` | `∀ n: Nat, k: Nat, m: Nat. {Nat.sub(Nat.add(n, k), Nat.add(m, k)) == Nat.sub(n, m) : Nat}` | A common right summand cancels in a difference: (n + k) - (m + k) = n - m. | next |
+| `add_sub_assoc(k, m, h, n)` | `∀ k: Nat, m: Nat, h: le(k, m), n: Nat. {Nat.sub(Nat.add(n, m), k) == Nat.add(n, Nat.sub(m, k)) : Nat}` | Subtracting a part of the right summand: k <= m implies (n + m) - k = n + (m - k). | next |
+| `sub_sub_self(n, m, h)` | `∀ n: Nat, m: Nat, h: le(m, n). {Nat.sub(n, Nat.sub(n, m)) == m : Nat}` | Subtracting a difference from its minuend: m <= n implies n - (n - m) = m. | next |
+| `sub_mul(n, m, k)` | `∀ n: Nat, m: Nat, k: Nat. {Nat.mul(Nat.sub(n, m), k) == Nat.sub(Nat.mul(n, k), Nat.mul(m, k)) : Nat}` | Multiplication distributes over subtraction on the right: (n - m) * k = n * k - m * k. | next |
+| `mul_sub(n, m, k)` | `∀ n: Nat, m: Nat, k: Nat. {Nat.mul(n, Nat.sub(m, k)) == Nat.sub(Nat.mul(n, m), Nat.mul(n, k)) : Nat}` | Multiplication distributes over subtraction on the left: n * (m - k) = n * m - n * k. | next |
+| `min_eq_left(a, b, h)` | `∀ a: Nat, b: Nat, h: le(a, b). {Nat.min(a, b) == a : Nat}` | The minimum is the smaller argument on the left: a <= b implies min a b = a. | next |
+| `min_eq_right(a, b, h)` | `∀ a: Nat, b: Nat, h: le(b, a). {Nat.min(a, b) == b : Nat}` | The minimum is the smaller argument on the right: b <= a implies min a b = b. | next |
+| `max_eq_left(a, b, h)` | `∀ a: Nat, b: Nat, h: le(b, a). {Nat.max(a, b) == a : Nat}` | The maximum is the larger argument on the left: b <= a implies max a b = a. | next |
+| `max_eq_right(a, b, h)` | `∀ a: Nat, b: Nat, h: le(a, b). {Nat.max(a, b) == b : Nat}` | The maximum is the larger argument on the right: a <= b implies max a b = b. | next |
+| `le_min(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.is_le(a, Nat.min(b, c)) == Bool.and(Nat.is_le(a, b), Nat.is_le(a, c)) : Bool}` | A number is at most the minimum exactly when it is at most both: a <= min b c tests as a <= b and a <= c. | next |
+| `max_le(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.is_le(Nat.max(a, b), c) == Bool.and(Nat.is_le(a, c), Nat.is_le(b, c)) : Bool}` | The maximum is at most c exactly when both arguments are: max a b <= c tests as a <= c and b <= c. | next |
+| `mul_le_mul_left(a, b, k, h)` | `∀ a: Nat, b: Nat, k: Nat, h: le(a, b). le(Nat.mul(k, a), Nat.mul(k, b))` | Multiplying on the left preserves the order: a <= b implies k * a <= k * b. | next |
+| `mul_le_mul(a, b, c, d, h1, h2)` | `∀ a: Nat, b: Nat, c: Nat, d: Nat, h1: le(a, c), h2: le(b, d). le(Nat.mul(a, b), Nat.mul(c, d))` | Multiplying two bounded factors stays bounded: a <= c and b <= d imply a * b <= c * d. | next |
 | `add_zero_sym(x)` | `∀ x: Nat. {x == Nat.add(x, 0n) : Nat}` | Zero is a right identity for addition: x + 0 = x, reversed to rewrite toward the simple side. | 0.1.0.0 |
 | `zero_add_sym(x)` | `∀ -x: Nat. {x == Nat.add(0n, x) : Nat}` | Zero is a left identity for addition: 0 + x = x, reversed to rewrite toward the simple side. | 0.1.0.0 |
 | `add_succ_sym(n, m)` | `∀ n: Nat, -m: Nat. {1n+Nat.add(n, m) == Nat.add(n, 1n+m) : Nat}` | Adding a successor on the right: n + (m + 1) = (n + m) + 1, reversed to rewrite toward the simple side. | 0.1.0.0 |
@@ -441,6 +483,30 @@ import bend-mathlib@0.5.0.0/nat.bend as MNat
 | `min_le_iff_sym(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Bool.or(Nat.is_le(a, c), Nat.is_le(b, c)) == Nat.is_le(Nat.min(a, b), c) : Bool}` | The minimum is at most c exactly when one argument is: min a b <= c tests as a <= c or b <= c, reversed to rewrite toward the simple side. | 0.4.0.0 |
 | `lt_max_iff_sym(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Bool.or(Nat.is_lt(a, b), Nat.is_lt(a, c)) == Nat.is_lt(a, Nat.max(b, c)) : Bool}` | The maximum is above a exactly when one argument is: a < max b c tests as a < b or a < c, reversed to rewrite toward the simple side. | 0.4.0.0 |
 | `lt_sub_iff_add_lt_sym(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.is_lt(Nat.add(b, a), c) == Nat.is_lt(a, Nat.sub(c, b)) : Bool}` | Comparing against a difference is comparing the sum: a < c - b tests as b + a < c, reversed to rewrite toward the simple side. | 0.4.0.0 |
+| `zero_div_sym(b)` | `∀ b: Nat. {0n == Nat.div(0n, b) : Nat}` | Zero divided by anything is zero: 0 / b = 0, reversed to rewrite toward the simple side. | next |
+| `zero_mod_sym(b)` | `∀ b: Nat. {0n == Nat.mod(0n, b) : Nat}` | Zero modulo anything is zero: 0 % b = 0, reversed to rewrite toward the simple side. | next |
+| `div_one_sym(a)` | `∀ a: Nat. {a == Nat.div(a, 1n) : Nat}` | Dividing by one changes nothing: a / 1 = a, reversed to rewrite toward the simple side. | next |
+| `mod_one_sym(a)` | `∀ a: Nat. {0n == Nat.mod(a, 1n) : Nat}` | Any natural modulo one is zero: a % 1 = 0, reversed to rewrite toward the simple side. | next |
+| `mod_self_sym(n)` | `∀ n: Nat. {0n == Nat.mod(n, n) : Nat}` | A natural modulo itself is zero: n % n = 0, reversed to rewrite toward the simple side. | next |
+| `div_self_sym(b)` | `∀ b: Nat. {1n == Nat.div(1n+b, 1n+b) : Nat}` | A positive natural divided by itself is one: (1 + b) / (1 + b) = 1, reversed to rewrite toward the simple side. | next |
+| `mod_mod_sym(a, n)` | `∀ a: Nat, n: Nat. {Nat.mod(a, n) == Nat.mod(Nat.mod(a, n), n) : Nat}` | Taking a remainder twice is taking it once: (a % n) % n = a % n, reversed to rewrite toward the simple side. | next |
+| `add_mod_left_sym(a, b)` | `∀ a: Nat, b: Nat. {Nat.mod(a, b) == Nat.mod(Nat.add(b, a), b) : Nat}` | Adding the divisor does not change the remainder: (b + a) % b = a % b, reversed to rewrite toward the simple side. | next |
+| `mul_div_cancel_sym(a, b)` | `∀ a: Nat, b: Nat. {a == Nat.div(Nat.mul(a, 1n+b), 1n+b) : Nat}` | Multiplying by a positive divisor then dividing by it cancels: (a * (1 + b)) / (1 + b) = a, reversed to rewrite toward the simple side. | next |
+| `mul_div_cancel_left_sym(a, b)` | `∀ a: Nat, b: Nat. {a == Nat.div(Nat.mul(1n+b, a), 1n+b) : Nat}` | Multiplying on the left by a positive divisor then dividing by it cancels: ((1 + b) * a) / (1 + b) = a, reversed to rewrite toward the simple side. | next |
+| `mul_mod_left_sym(a, b)` | `∀ a: Nat, b: Nat. {0n == Nat.mod(Nat.mul(a, b), b) : Nat}` | A multiple of b leaves no remainder modulo b: (a * b) % b = 0, reversed to rewrite toward the simple side. | next |
+| `mul_mod_right_sym(a, b)` | `∀ a: Nat, b: Nat. {0n == Nat.mod(Nat.mul(a, b), a) : Nat}` | A multiple of a leaves no remainder modulo a: (a * b) % a = 0, reversed to rewrite toward the simple side. | next |
+| `mod_add_div_sym(a, b)` | `∀ a: Nat, b: Nat. {a == Nat.add(Nat.mod(a, b), Nat.mul(b, Nat.div(a, b))) : Nat}` | The remainder plus the divisor times the quotient is the dividend: a % b + b * (a / b) = a, reversed to rewrite toward the simple side. | next |
+| `mul_left_comm_sym(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.mul(b, Nat.mul(a, c)) == Nat.mul(a, Nat.mul(b, c)) : Nat}` | Left commutativity of multiplication: a * (b * c) = b * (a * c), reversed to rewrite toward the simple side. | next |
+| `mul_right_comm_sym(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.mul(Nat.mul(a, c), b) == Nat.mul(Nat.mul(a, b), c) : Nat}` | Right commutativity of multiplication: (a * b) * c = (a * c) * b, reversed to rewrite toward the simple side. | next |
+| `mul_mul_mul_comm_sym(a, b, c, d)` | `∀ a: Nat, b: Nat, c: Nat, d: Nat. {Nat.mul(Nat.mul(a, c), Nat.mul(b, d)) == Nat.mul(Nat.mul(a, b), Nat.mul(c, d)) : Nat}` | Four-way regrouping of a product: (a * b) * (c * d) = (a * c) * (b * d), reversed to rewrite toward the simple side. | next |
+| `zero_pow_sym(n)` | `∀ -n: Nat. {0n == Nat.pow(0n, 1n+n) : Nat}` | Zero to a positive power is zero: 0^(n+1) = 0, reversed to rewrite toward the simple side. | next |
+| `pow_mul_sym(a, m, n)` | `∀ a: Nat, m: Nat, n: Nat. {Nat.pow(Nat.pow(a, m), n) == Nat.pow(a, Nat.mul(m, n)) : Nat}` | Exponents multiply under repeated powers: a^(m * n) = (a^m)^n, reversed to rewrite toward the simple side. | next |
+| `add_sub_add_left_sym(k, n, m)` | `∀ k: Nat, -n: Nat, -m: Nat. {Nat.sub(n, m) == Nat.sub(Nat.add(k, n), Nat.add(k, m)) : Nat}` | A common left summand cancels in a difference: (k + n) - (k + m) = n - m, reversed to rewrite toward the simple side. | next |
+| `add_sub_add_right_sym(n, k, m)` | `∀ n: Nat, k: Nat, m: Nat. {Nat.sub(n, m) == Nat.sub(Nat.add(n, k), Nat.add(m, k)) : Nat}` | A common right summand cancels in a difference: (n + k) - (m + k) = n - m, reversed to rewrite toward the simple side. | next |
+| `sub_mul_sym(n, m, k)` | `∀ n: Nat, m: Nat, k: Nat. {Nat.sub(Nat.mul(n, k), Nat.mul(m, k)) == Nat.mul(Nat.sub(n, m), k) : Nat}` | Multiplication distributes over subtraction on the right: (n - m) * k = n * k - m * k, reversed to rewrite toward the simple side. | next |
+| `mul_sub_sym(n, m, k)` | `∀ n: Nat, m: Nat, k: Nat. {Nat.sub(Nat.mul(n, m), Nat.mul(n, k)) == Nat.mul(n, Nat.sub(m, k)) : Nat}` | Multiplication distributes over subtraction on the left: n * (m - k) = n * m - n * k, reversed to rewrite toward the simple side. | next |
+| `le_min_sym(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Bool.and(Nat.is_le(a, b), Nat.is_le(a, c)) == Nat.is_le(a, Nat.min(b, c)) : Bool}` | A number is at most the minimum exactly when it is at most both: a <= min b c tests as a <= b and a <= c, reversed to rewrite toward the simple side. | next |
+| `max_le_sym(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Bool.and(Nat.is_le(a, c), Nat.is_le(b, c)) == Nat.is_le(Nat.max(a, b), c) : Bool}` | The maximum is at most c exactly when both arguments are: max a b <= c tests as a <= c and b <= c, reversed to rewrite toward the simple side. | next |
 
 ## order
 
@@ -491,4 +557,4 @@ import bend-mathlib@0.5.0.0/string.bend as MString
 | `cmp_refl_sym(s)` | `∀ s: String. {((s, s), EQ{}) == String.cmp(s, s) : (String & String) & Cmp}` | Comparing a string with itself gives EQ and hands both back, reversed to rewrite toward the simple side. | 0.4.0.0 |
 | `eq_refl_sym(s)` | `∀ s: String. {True{} == String.eq(s, s) : Bool}` | Every string is equal to itself under String.eq, reversed to rewrite toward the simple side. | 0.4.0.0 |
 
-242 lemmas + 160 generated _sym twins, 6 predicates. Generated by `tools/mathlib/index.ts`.
+282 lemmas + 184 generated _sym twins, 6 predicates. Generated by `tools/mathlib/index.ts`.

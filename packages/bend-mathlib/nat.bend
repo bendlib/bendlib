@@ -1844,6 +1844,686 @@ def mul_le_mul_right(a, b, k, h):
   %add_comm(Nat.mul(a, k), Nat.mul(Nat.sub(b, a), k)) : {Nat.is_le(Nat.mul(a, k), _) == True{} : Bool}
   le_add_right(Nat.mul(a, k), Nat.mul(Nat.sub(b, a), k))
 
+# Zero divided by anything is zero: 0 / b = 0.
+law zero_div:
+  for b: Nat
+  {Nat.div(0n, b) == 0n : Nat}
+
+def zero_div(b):
+  match b:
+    case 0n:
+      {==}
+    case 1n+p:
+      {==}
+
+# Zero modulo anything is zero: 0 % b = 0.
+law zero_mod:
+  for b: Nat
+  {Nat.mod(0n, b) == 0n : Nat}
+
+def zero_mod(b):
+  match b:
+    case 0n:
+      {==}
+    case 1n+p:
+      {==}
+
+def internal_div_go_one(a: Nat, +d: Nat) -> {(Nat.add(a, d), 0n) == Nat.divmod.go(a, 0n, d, 0n) : Nat & Nat}:
+  match a:
+    case 0n:
+      {==}
+    case 1n++p:
+      %add_succ(p, d) : {(_, 0n) == Nat.divmod.go(p, 0n, 1n+d, 0n) : Nat & Nat}
+      internal_div_go_one(p, 1n+d)
+
+# Dividing by one changes nothing: a / 1 = a.
+law div_one:
+  for a: Nat
+  {Nat.div(a, 1n) == a : Nat}
+
+def div_one(a):
+  +a = a
+  %internal_div_go_one(a, 0n) : {Pair.fst(Nat, Nat, _) == a : Nat}
+  add_zero(a)
+
+# Any natural modulo one is zero: a % 1 = 0.
+law mod_one:
+  for a: Nat
+  {Nat.mod(a, 1n) == 0n : Nat}
+
+def mod_one(a):
+  +a = a
+  %internal_div_go_one(a, 0n) : {Pair.snd(Nat, Nat, _) == 0n : Nat}
+  {==}
+
+def internal_div_go_self(m: Nat, -d: Nat, -r: Nat) -> {(1n+d, 0n) == Nat.divmod.go(1n+m, m, d, r) : Nat & Nat}:
+  match m:
+    case 0n:
+      {==}
+    case 1n+p:
+      internal_div_go_self(p, d, 1n+r)
+
+# A natural modulo itself is zero: n % n = 0.
+law mod_self:
+  for n: Nat
+  {Nat.mod(n, n) == 0n : Nat}
+
+def mod_self(n):
+  match n:
+    case 0n:
+      {==}
+    case 1n++p:
+      %internal_div_go_self(p, 0n, 0n) : {Pair.snd(Nat, Nat, _) == 0n : Nat}
+      {==}
+
+# A positive natural divided by itself is one: (1 + b) / (1 + b) = 1.
+law div_self:
+  for b: Nat
+  {Nat.div(1n+b, 1n+b) == 1n : Nat}
+
+def div_self(b):
+  +b = b
+  %internal_div_go_self(b, 0n, 0n) : {Pair.fst(Nat, Nat, _) == 1n : Nat}
+  {==}
+
+def internal_mod_go_le(n: Nat, m: Nat, -d: Nat, +r: Nat) -> le(Pair.snd(Nat, Nat, Nat.divmod.go(n, m, d, r)), Nat.add(r, m)):
+  match n m:
+    case 0n k:
+      le_add_right(r, k)
+    case 1n++np 0n:
+      %internal_div_add_zero_r(r) : le(Pair.snd(Nat, Nat, Nat.divmod.go(np, r, 1n+d, 0n)), _)
+      internal_mod_go_le(np, r, 1n+d, 0n)
+    case 1n++np 1n++mp:
+      %Equal.sym(Nat, Nat.add(r, 1n+mp), 1n+Nat.add(r, mp), add_succ(r, mp)) : le(Pair.snd(Nat, Nat, Nat.divmod.go(np, mp, d, 1n+r)), _)
+      internal_mod_go_le(np, mp, d, 1n+r)
+
+# A remainder is below its positive divisor: a % (1 + b) < 1 + b.
+law mod_lt:
+  for a: Nat
+  for b: Nat
+  lt(Nat.mod(a, 1n+b), 1n+b)
+
+def mod_lt(a, b):
+  +a = a
+  +b = b
+  %Equal.sym(Bool, Nat.is_lt(Nat.mod(a, 1n+b), 1n+b), Nat.is_le(1n+Nat.mod(a, 1n+b), 1n+b), is_lt_eq_succ_le(Nat.mod(a, 1n+b), 1n+b)) : {_ == True{} : Bool}
+  internal_mod_go_le(a, b, 0n, 0n)
+
+# A remainder never exceeds the dividend: a % b <= a.
+law mod_le:
+  for a: Nat
+  for b: Nat
+  le(Nat.mod(a, b), a)
+
+def mod_le(a, b):
+  match b:
+    case 0n:
+      le_refl(a)
+    case 1n++bp:
+      +a = a
+      +bp = bp
+      le_of_add_eq(Nat.mod(a, 1n+bp), Nat.mul(Nat.div(a, 1n+bp), 1n+bp), a, Equal.trans(Nat, Nat.add(Nat.mod(a, 1n+bp), Nat.mul(Nat.div(a, 1n+bp), 1n+bp)), Nat.add(Nat.mul(Nat.div(a, 1n+bp), 1n+bp), Nat.mod(a, 1n+bp)), a, add_comm(Nat.mod(a, 1n+bp), Nat.mul(Nat.div(a, 1n+bp), 1n+bp)), div_mod_eq(a, bp)))
+
+def internal_div_le_self_eq(+q: Nat, +bp: Nat, +m: Nat, -a: Nat, e: {Nat.add(Nat.mul(q, 1n+bp), m) == a : Nat}) -> {Nat.add(q, Nat.add(Nat.mul(bp, q), m)) == a : Nat}:
+  %e : {Nat.add(q, Nat.add(Nat.mul(bp, q), m)) == _ : Nat}
+  %mul_comm(1n+bp, q) : {Nat.add(q, Nat.add(Nat.mul(bp, q), m)) == Nat.add(_, m) : Nat}
+  Equal.sym(Nat, Nat.add(Nat.add(q, Nat.mul(bp, q)), m), Nat.add(q, Nat.add(Nat.mul(bp, q), m)), add_assoc(q, Nat.mul(bp, q), m))
+
+# A quotient never exceeds the dividend: a / b <= a.
+law div_le_self:
+  for a: Nat
+  for b: Nat
+  le(Nat.div(a, b), a)
+
+def div_le_self(a, b):
+  match b:
+    case 0n:
+      zero_le(a)
+    case 1n++bp:
+      +a = a
+      +bp = bp
+      le_of_add_eq(Nat.div(a, 1n+bp), Nat.add(Nat.mul(bp, Nat.div(a, 1n+bp)), Nat.mod(a, 1n+bp)), a, internal_div_le_self_eq(Nat.div(a, 1n+bp), bp, Nat.mod(a, 1n+bp), a, div_mod_eq(a, bp)))
+
+def internal_mod_go_small(n: Nat, -k: Nat, -d: Nat, +r: Nat) -> {Pair.snd(Nat, Nat, Nat.divmod.go(n, Nat.add(n, k), d, r)) == Nat.add(n, r) : Nat}:
+  match n:
+    case 0n:
+      {==}
+    case 1n++np:
+      %add_succ(np, r) : {Pair.snd(Nat, Nat, Nat.divmod.go(np, Nat.add(np, k), d, 1n+r)) == _ : Nat}
+      internal_mod_go_small(np, k, d, 1n+r)
+
+def internal_mod_eq_of_wit(+a: Nat, +b: Nat, w: &k:Nat -> {Nat.add(a, k) == b : Nat}) -> {Nat.mod(a, 1n+b) == a : Nat}:
+  match w:
+    case (+k, e):
+      %e : {Nat.mod(a, 1n+_) == a : Nat}
+      Equal.trans(Nat, Nat.mod(a, 1n+Nat.add(a, k)), Nat.add(a, 0n), a, internal_mod_go_small(a, k, 0n, 0n), add_zero(a))
+
+# A number below the divisor is its own remainder: a < b implies a % b = a.
+law mod_eq_of_lt:
+  for a: Nat
+  for b: Nat
+  for h: lt(a, b)
+  {Nat.mod(a, b) == a : Nat}
+
+def mod_eq_of_lt(a, b, h):
+  match b:
+    case 0n:
+      +a = a
+      Empty.absurd({Nat.mod(a, 0n) == a : Nat}, lt_zero(a)(h))
+    case 1n++bp:
+      +a = a
+      +bp = bp
+      internal_mod_eq_of_wit(a, bp, internal_div_le_wit(a, bp, Equal.trans(Bool, Nat.is_le(1n+a, 1n+bp), Nat.is_lt(a, 1n+bp), True{}, Equal.sym(Bool, Nat.is_lt(a, 1n+bp), Nat.is_le(1n+a, 1n+bp), is_lt_eq_succ_le(a, 1n+bp)), h)))
+
+# Taking a remainder twice is taking it once: (a % n) % n = a % n.
+law mod_mod:
+  for a: Nat
+  for n: Nat
+  {Nat.mod(Nat.mod(a, n), n) == Nat.mod(a, n) : Nat}
+
+def mod_mod(a, n):
+  match n:
+    case 0n:
+      {==}
+    case 1n++b:
+      +a = a
+      +b = b
+      mod_eq_of_lt(Nat.mod(a, 1n+b), 1n+b, mod_lt(a, b))
+
+def internal_mod_go_d(n: Nat, m: Nat, -d: Nat, -e: Nat, r: Nat) -> {Pair.snd(Nat, Nat, Nat.divmod.go(n, m, d, r)) == Pair.snd(Nat, Nat, Nat.divmod.go(n, m, e, r)) : Nat}:
+  match n m:
+    case 0n _:
+      {==}
+    case 1n+np 0n:
+      internal_mod_go_d(np, r, 1n+d, 1n+e, 0n)
+    case 1n+np 1n+mp:
+      internal_mod_go_d(np, mp, d, e, 1n+r)
+
+# Adding the divisor does not change the remainder: (b + a) % b = a % b.
+law add_mod_left:
+  for a: Nat
+  for b: Nat
+  {Nat.mod(Nat.add(b, a), b) == Nat.mod(a, b) : Nat}
+
+def add_mod_left(a, b):
+  match b:
+    case 0n:
+      {==}
+    case 1n++bp:
+      +a = a
+      %internal_div_go_run(bp, a, 0n, 0n) : {Pair.snd(Nat, Nat, _) == Nat.mod(a, 1n+bp) : Nat}
+      %internal_div_add_zero_r(bp) : {Pair.snd(Nat, Nat, Nat.divmod.go(a, _, 1n, 0n)) == Nat.mod(a, 1n+bp) : Nat}
+      internal_mod_go_d(a, bp, 1n, 0n, 0n)
+
+# Multiplying by a positive divisor then dividing by it cancels: (a * (1 + b)) / (1 + b) = a.
+law mul_div_cancel:
+  for a: Nat
+  for b: Nat
+  {Nat.div(Nat.mul(a, 1n+b), 1n+b) == a : Nat}
+
+def mul_div_cancel(a, b):
+  match a:
+    case 0n:
+      {==}
+    case 1n++p:
+      +b = b
+      %Equal.sym(Nat, Nat.div(Nat.add(1n+b, Nat.mul(p, 1n+b)), 1n+b), 1n+Nat.div(Nat.mul(p, 1n+b), 1n+b), add_div_left(Nat.mul(p, 1n+b), b)) : {_ == 1n+p : Nat}
+      %mul_div_cancel(p, b) : {1n+Nat.div(Nat.mul(p, 1n+b), 1n+b) == 1n+_ : Nat}
+      {==}
+
+# Multiplying on the left by a positive divisor then dividing by it cancels: ((1 + b) * a) / (1 + b) = a.
+law mul_div_cancel_left:
+  for a: Nat
+  for b: Nat
+  {Nat.div(Nat.mul(1n+b, a), 1n+b) == a : Nat}
+
+def mul_div_cancel_left(a, b):
+  +a = a
+  +b = b
+  %mul_comm(a, 1n+b) : {Nat.div(_, 1n+b) == a : Nat}
+  mul_div_cancel(a, b)
+
+# A multiple of b leaves no remainder modulo b: (a * b) % b = 0.
+law mul_mod_left:
+  for a: Nat
+  for b: Nat
+  {Nat.mod(Nat.mul(a, b), b) == 0n : Nat}
+
+def mul_mod_left(a, b):
+  match a b:
+    case _ 0n:
+      mul_zero(a)
+    case 0n 1n+bp:
+      {==}
+    case 1n++p 1n++bp:
+      Equal.trans(Nat, Nat.mod(Nat.add(1n+bp, Nat.mul(p, 1n+bp)), 1n+bp), Nat.mod(Nat.mul(p, 1n+bp), 1n+bp), 0n, add_mod_left(Nat.mul(p, 1n+bp), 1n+bp), mul_mod_left(p, 1n+bp))
+
+# A multiple of a leaves no remainder modulo a: (a * b) % a = 0.
+law mul_mod_right:
+  for a: Nat
+  for b: Nat
+  {Nat.mod(Nat.mul(a, b), a) == 0n : Nat}
+
+def mul_mod_right(a, b):
+  +a = a
+  +b = b
+  %mul_comm(b, a) : {Nat.mod(_, a) == 0n : Nat}
+  mul_mod_left(b, a)
+
+# The remainder plus the divisor times the quotient is the dividend: a % b + b * (a / b) = a.
+law mod_add_div:
+  for a: Nat
+  for b: Nat
+  {Nat.add(Nat.mod(a, b), Nat.mul(b, Nat.div(a, b))) == a : Nat}
+
+def mod_add_div(a, b):
+  match b:
+    case 0n:
+      add_zero(a)
+    case 1n++bp:
+      +a = a
+      %add_comm(Nat.mul(1n+bp, Nat.div(a, 1n+bp)), Nat.mod(a, 1n+bp)) : {_ == a : Nat}
+      %mul_comm(Nat.div(a, 1n+bp), 1n+bp) : {Nat.add(_, Nat.mod(a, 1n+bp)) == a : Nat}
+      div_mod_eq(a, bp)
+
+# The quotient times the divisor never exceeds the dividend: (a / b) * b <= a.
+law div_mul_le_self:
+  for a: Nat
+  for b: Nat
+  le(Nat.mul(Nat.div(a, b), b), a)
+
+def div_mul_le_self(a, b):
+  match b:
+    case 0n:
+      zero_le(a)
+    case 1n++bp:
+      +a = a
+      le_of_add_eq(Nat.mul(Nat.div(a, 1n+bp), 1n+bp), Nat.mod(a, 1n+bp), a, div_mod_eq(a, bp))
+
+# Left commutativity of multiplication: a * (b * c) = b * (a * c).
+law mul_left_comm:
+  for a: Nat
+  for b: Nat
+  for c: Nat
+  {Nat.mul(a, Nat.mul(b, c)) == Nat.mul(b, Nat.mul(a, c)) : Nat}
+
+def mul_left_comm(a, b, c):
+  +a = a
+  +b = b
+  +c = c
+  %mul_assoc(a, b, c) : {_ == Nat.mul(b, Nat.mul(a, c)) : Nat}
+  %mul_comm(b, a) : {Nat.mul(_, c) == Nat.mul(b, Nat.mul(a, c)) : Nat}
+  mul_assoc(b, a, c)
+
+# Right commutativity of multiplication: (a * b) * c = (a * c) * b.
+law mul_right_comm:
+  for a: Nat
+  for b: Nat
+  for c: Nat
+  {Nat.mul(Nat.mul(a, b), c) == Nat.mul(Nat.mul(a, c), b) : Nat}
+
+def mul_right_comm(a, b, c):
+  +a = a
+  +b = b
+  +c = c
+  %Equal.sym(Nat, Nat.mul(Nat.mul(a, c), b), Nat.mul(a, Nat.mul(c, b)), mul_assoc(a, c, b)) : {Nat.mul(Nat.mul(a, b), c) == _ : Nat}
+  %mul_comm(b, c) : {Nat.mul(Nat.mul(a, b), c) == Nat.mul(a, _) : Nat}
+  mul_assoc(a, b, c)
+
+# Four-way regrouping of a product: (a * b) * (c * d) = (a * c) * (b * d).
+law mul_mul_mul_comm:
+  for a: Nat
+  for b: Nat
+  for c: Nat
+  for d: Nat
+  {Nat.mul(Nat.mul(a, b), Nat.mul(c, d)) == Nat.mul(Nat.mul(a, c), Nat.mul(b, d)) : Nat}
+
+def mul_mul_mul_comm(a, b, c, d):
+  +a = a
+  +b = b
+  +c = c
+  +d = d
+  %Equal.sym(Nat, Nat.mul(Nat.mul(a, c), Nat.mul(b, d)), Nat.mul(a, Nat.mul(c, Nat.mul(b, d))), mul_assoc(a, c, Nat.mul(b, d))) : {Nat.mul(Nat.mul(a, b), Nat.mul(c, d)) == _ : Nat}
+  %mul_left_comm(b, c, d) : {Nat.mul(Nat.mul(a, b), Nat.mul(c, d)) == Nat.mul(a, _) : Nat}
+  mul_assoc(a, b, Nat.mul(c, d))
+
+# Zero to a positive power is zero: 0^(n+1) = 0.
+law zero_pow:
+  for -n: Nat
+  {Nat.pow(0n, 1n+n) == 0n : Nat}
+
+def zero_pow(n):
+  {==}
+
+def internal_mul_pow(+a: Nat, +b: Nat, n: Nat) -> {Nat.pow(Nat.mul(a, b), n) == Nat.mul(Nat.pow(a, n), Nat.pow(b, n)) : Nat}:
+  match n:
+    case 0n:
+      {==}
+    case 1n++p:
+      %Equal.sym(Nat, Nat.pow(Nat.mul(a, b), p), Nat.mul(Nat.pow(a, p), Nat.pow(b, p)), internal_mul_pow(a, b, p)) : {Nat.mul(Nat.mul(a, b), _) == Nat.mul(Nat.mul(a, Nat.pow(a, p)), Nat.mul(b, Nat.pow(b, p))) : Nat}
+      mul_mul_mul_comm(a, b, Nat.pow(a, p), Nat.pow(b, p))
+
+# Exponents multiply under repeated powers: a^(m * n) = (a^m)^n.
+law pow_mul:
+  for a: Nat
+  for m: Nat
+  for n: Nat
+  {Nat.pow(a, Nat.mul(m, n)) == Nat.pow(Nat.pow(a, m), n) : Nat}
+
+def pow_mul(a, m, n):
+  match m:
+    case 0n:
+      Equal.sym(Nat, Nat.pow(1n, n), 1n, one_pow(n))
+    case 1n++p:
+      +a = a
+      +n = n
+      %Equal.sym(Nat, Nat.pow(Nat.mul(a, Nat.pow(a, p)), n), Nat.mul(Nat.pow(a, n), Nat.pow(Nat.pow(a, p), n)), internal_mul_pow(a, Nat.pow(a, p), n)) : {Nat.pow(a, Nat.add(n, Nat.mul(p, n))) == _ : Nat}
+      %pow_mul(a, p, n) : {Nat.pow(a, Nat.add(n, Nat.mul(p, n))) == Nat.mul(Nat.pow(a, n), _) : Nat}
+      pow_add(a, n, Nat.mul(p, n))
+
+# A power of a positive base is at least one: 1 <= (1 + a)^n.
+law one_le_pow:
+  for n: Nat
+  for a: Nat
+  le(1n, Nat.pow(1n+a, n))
+
+def one_le_pow(n, a):
+  match n:
+    case 0n:
+      {==}
+    case 1n++p:
+      +a = a
+      le_trans(1n, Nat.pow(1n+a, p), Nat.add(Nat.pow(1n+a, p), Nat.mul(a, Nat.pow(1n+a, p))), one_le_pow(p, a), le_add_right(Nat.pow(1n+a, p), Nat.mul(a, Nat.pow(1n+a, p))))
+
+# A power of a positive base is positive: 0 < (1 + a)^n.
+law pow_pos:
+  for n: Nat
+  for a: Nat
+  lt(0n, Nat.pow(1n+a, n))
+
+def pow_pos(n, a):
+  +n = n
+  +a = a
+  %Equal.sym(Bool, Nat.is_lt(0n, Nat.pow(1n+a, n)), Nat.is_le(1n, Nat.pow(1n+a, n)), is_lt_eq_succ_le(0n, Nat.pow(1n+a, n))) : {_ == True{} : Bool}
+  one_le_pow(n, a)
+
+# Adding on the left never decreases a natural: n <= m + n.
+law le_add_left:
+  for n: Nat
+  for m: Nat
+  le(n, Nat.add(m, n))
+
+def le_add_left(n, m):
+  match m:
+    case 0n:
+      le_refl(n)
+    case 1n++p:
+      +n = n
+      le_trans(n, Nat.add(p, n), 1n+Nat.add(p, n), le_add_left(n, p), le_succ(Nat.add(p, n)))
+
+# A common left summand cancels in a difference: (k + n) - (k + m) = n - m.
+law add_sub_add_left:
+  for k: Nat
+  for -n: Nat
+  for -m: Nat
+  {Nat.sub(Nat.add(k, n), Nat.add(k, m)) == Nat.sub(n, m) : Nat}
+
+def add_sub_add_left(k, n, m):
+  match k:
+    case 0n:
+      {==}
+    case 1n+p:
+      add_sub_add_left(p, n, m)
+
+# A common right summand cancels in a difference: (n + k) - (m + k) = n - m.
+law add_sub_add_right:
+  for n: Nat
+  for k: Nat
+  for m: Nat
+  {Nat.sub(Nat.add(n, k), Nat.add(m, k)) == Nat.sub(n, m) : Nat}
+
+def add_sub_add_right(n, k, m):
+  +n = n
+  +k = k
+  +m = m
+  %add_comm(k, n) : {Nat.sub(_, Nat.add(m, k)) == Nat.sub(n, m) : Nat}
+  %add_comm(k, m) : {Nat.sub(Nat.add(k, n), _) == Nat.sub(n, m) : Nat}
+  add_sub_add_left(k, n, m)
+
+# Subtracting a part of the right summand: k <= m implies (n + m) - k = n + (m - k).
+law add_sub_assoc:
+  for k: Nat
+  for m: Nat
+  for h: le(k, m)
+  for n: Nat
+  {Nat.sub(Nat.add(n, m), k) == Nat.add(n, Nat.sub(m, k)) : Nat}
+
+def add_sub_assoc(k, m, h, n):
+  +k = k
+  +m = m
+  +n = n
+  %sub_add_cancel(m, k, h) : {Nat.sub(Nat.add(n, _), k) == Nat.add(n, Nat.sub(m, k)) : Nat}
+  %add_assoc(n, Nat.sub(m, k), k) : {Nat.sub(_, k) == Nat.add(n, Nat.sub(m, k)) : Nat}
+  add_sub_cancel(Nat.add(n, Nat.sub(m, k)), k)
+
+# Subtracting a difference from its minuend: m <= n implies n - (n - m) = m.
+law sub_sub_self:
+  for n: Nat
+  for m: Nat
+  for h: le(m, n)
+  {Nat.sub(n, Nat.sub(n, m)) == m : Nat}
+
+def sub_sub_self(n, m, h):
+  match n m:
+    case 0n 0n:
+      {==}
+    case 0n 1n+q:
+      Empty.absurd({Nat.sub(0n, Nat.sub(0n, 1n+q)) == 1n+q : Nat}, internal_false_ne_true(h))
+    case 1n+p 0n:
+      sub_self(p)
+    case 1n++p 1n++q:
+      Equal.trans(Nat, Nat.sub(1n+p, Nat.sub(p, q)), 1n+Nat.sub(p, Nat.sub(p, q)), 1n+q, succ_sub(p, Nat.sub(p, q), sub_le(p, q)), Equal.cong(Nat, Nat, x => 1n+x, Nat.sub(p, Nat.sub(p, q)), q, sub_sub_self(p, q, h)))
+
+# Multiplication distributes over subtraction on the right: (n - m) * k = n * k - m * k.
+law sub_mul:
+  for n: Nat
+  for m: Nat
+  for k: Nat
+  {Nat.mul(Nat.sub(n, m), k) == Nat.sub(Nat.mul(n, k), Nat.mul(m, k)) : Nat}
+
+def sub_mul(n, m, k):
+  match n m:
+    case 0n _:
+      {==}
+    case 1n++p 0n:
+      +k = k
+      Equal.sym(Nat, Nat.sub(Nat.mul(1n+p, k), 0n), Nat.mul(1n+p, k), sub_zero(Nat.mul(1n+p, k)))
+    case 1n++p 1n++q:
+      +k = k
+      %Equal.sym(Nat, Nat.sub(Nat.add(k, Nat.mul(p, k)), Nat.add(k, Nat.mul(q, k))), Nat.sub(Nat.mul(p, k), Nat.mul(q, k)), add_sub_add_left(k, Nat.mul(p, k), Nat.mul(q, k))) : {Nat.mul(Nat.sub(p, q), k) == _ : Nat}
+      sub_mul(p, q, k)
+
+# Multiplication distributes over subtraction on the left: n * (m - k) = n * m - n * k.
+law mul_sub:
+  for n: Nat
+  for m: Nat
+  for k: Nat
+  {Nat.mul(n, Nat.sub(m, k)) == Nat.sub(Nat.mul(n, m), Nat.mul(n, k)) : Nat}
+
+def mul_sub(n, m, k):
+  +n = n
+  +m = m
+  +k = k
+  %mul_comm(Nat.sub(m, k), n) : {_ == Nat.sub(Nat.mul(n, m), Nat.mul(n, k)) : Nat}
+  %mul_comm(m, n) : {Nat.mul(Nat.sub(m, k), n) == Nat.sub(_, Nat.mul(n, k)) : Nat}
+  %mul_comm(k, n) : {Nat.mul(Nat.sub(m, k), n) == Nat.sub(Nat.mul(m, n), _) : Nat}
+  sub_mul(m, k, n)
+
+# The minimum is the smaller argument on the left: a <= b implies min a b = a.
+law min_eq_left:
+  for a: Nat
+  for b: Nat
+  for h: le(a, b)
+  {Nat.min(a, b) == a : Nat}
+
+def min_eq_left(a, b, h):
+  match a b:
+    case 0n _:
+      {==}
+    case 1n+p 0n:
+      Empty.absurd({Nat.min(1n+p, 0n) == 1n+p : Nat}, internal_false_ne_true(h))
+    case 1n++p 1n+q:
+      %min_eq_left(p, q, h) : {1n+Nat.min(p, q) == 1n+_ : Nat}
+      {==}
+
+# The minimum is the smaller argument on the right: b <= a implies min a b = b.
+law min_eq_right:
+  for a: Nat
+  for b: Nat
+  for h: le(b, a)
+  {Nat.min(a, b) == b : Nat}
+
+def min_eq_right(a, b, h):
+  match a b:
+    case 0n 0n:
+      {==}
+    case 0n 1n+q:
+      Empty.absurd({Nat.min(0n, 1n+q) == 1n+q : Nat}, internal_false_ne_true(h))
+    case 1n+p 0n:
+      {==}
+    case 1n+p 1n++q:
+      %min_eq_right(p, q, h) : {1n+Nat.min(p, q) == 1n+_ : Nat}
+      {==}
+
+# The maximum is the larger argument on the left: b <= a implies max a b = a.
+law max_eq_left:
+  for a: Nat
+  for b: Nat
+  for h: le(b, a)
+  {Nat.max(a, b) == a : Nat}
+
+def max_eq_left(a, b, h):
+  match a b:
+    case 0n 0n:
+      {==}
+    case 0n 1n+q:
+      Empty.absurd({Nat.max(0n, 1n+q) == 0n : Nat}, internal_false_ne_true(h))
+    case 1n+p 0n:
+      {==}
+    case 1n++p 1n+q:
+      %max_eq_left(p, q, h) : {1n+Nat.max(p, q) == 1n+_ : Nat}
+      {==}
+
+# The maximum is the larger argument on the right: a <= b implies max a b = b.
+law max_eq_right:
+  for a: Nat
+  for b: Nat
+  for h: le(a, b)
+  {Nat.max(a, b) == b : Nat}
+
+def max_eq_right(a, b, h):
+  match a b:
+    case 0n _:
+      {==}
+    case 1n+p 0n:
+      Empty.absurd({Nat.max(1n+p, 0n) == 0n : Nat}, internal_false_ne_true(h))
+    case 1n+p 1n++q:
+      %max_eq_right(p, q, h) : {1n+Nat.max(p, q) == 1n+_ : Nat}
+      {==}
+
+def internal_and_false_sym(x: Bool) -> {False{} == Bool.and(x, False{}) : Bool}:
+  match x:
+    case False{}:
+      {==}
+    case True{}:
+      {==}
+
+def internal_and_true_sym(x: Bool) -> {x == Bool.and(x, True{}) : Bool}:
+  match x:
+    case False{}:
+      {==}
+    case True{}:
+      {==}
+
+# A number is at most the minimum exactly when it is at most both: a <= min b c tests as a <= b and a <= c.
+law le_min:
+  for a: Nat
+  for b: Nat
+  for c: Nat
+  {Nat.is_le(a, Nat.min(b, c)) == Bool.and(Nat.is_le(a, b), Nat.is_le(a, c)) : Bool}
+
+def le_min(a, b, c):
+  match a b c:
+    case 0n 0n 0n:
+      {==}
+    case 0n 0n 1n+r:
+      {==}
+    case 0n 1n+q 0n:
+      {==}
+    case 0n 1n+q 1n+r:
+      {==}
+    case 1n+p 0n _:
+      {==}
+    case 1n+p 1n+q 0n:
+      internal_and_false_sym(Nat.is_le(p, q))
+    case 1n+p 1n+q 1n+r:
+      le_min(p, q, r)
+
+# The maximum is at most c exactly when both arguments are: max a b <= c tests as a <= c and b <= c.
+law max_le:
+  for a: Nat
+  for b: Nat
+  for c: Nat
+  {Nat.is_le(Nat.max(a, b), c) == Bool.and(Nat.is_le(a, c), Nat.is_le(b, c)) : Bool}
+
+def max_le(a, b, c):
+  match a b c:
+    case 0n _ 0n:
+      {==}
+    case 0n _ 1n+r:
+      {==}
+    case 1n+p 0n 0n:
+      {==}
+    case 1n+p 0n 1n+r:
+      internal_and_true_sym(Nat.is_le(p, r))
+    case 1n+p 1n+q 0n:
+      {==}
+    case 1n+p 1n+q 1n+r:
+      max_le(p, q, r)
+
+# Multiplying on the left preserves the order: a <= b implies k * a <= k * b.
+law mul_le_mul_left:
+  for a: Nat
+  for b: Nat
+  for k: Nat
+  for h: le(a, b)
+  le(Nat.mul(k, a), Nat.mul(k, b))
+
+def mul_le_mul_left(a, b, k, h):
+  +a = a
+  +b = b
+  +k = k
+  %mul_comm(a, k) : le(_, Nat.mul(k, b))
+  %mul_comm(b, k) : le(Nat.mul(a, k), _)
+  mul_le_mul_right(a, b, k, h)
+
+# Multiplying two bounded factors stays bounded: a <= c and b <= d imply a * b <= c * d.
+law mul_le_mul:
+  for a: Nat
+  for b: Nat
+  for c: Nat
+  for d: Nat
+  for h1: le(a, c)
+  for h2: le(b, d)
+  le(Nat.mul(a, b), Nat.mul(c, d))
+
+def mul_le_mul(a, b, c, d, h1, h2):
+  +a = a
+  +b = b
+  +c = c
+  +d = d
+  le_trans(Nat.mul(a, b), Nat.mul(c, b), Nat.mul(c, d), mul_le_mul_right(a, c, b, h1), mul_le_mul_left(b, d, c, h2))
+
 # --- generated: _sym twins (tools/mathlib/twins.ts), do not edit ---
 
 # Zero is a right identity for addition: x + 0 = x, reversed to rewrite toward the simple side.
@@ -2365,3 +3045,223 @@ law lt_sub_iff_add_lt_sym:
 
 def lt_sub_iff_add_lt_sym(a, b, c):
   Equal.sym(Bool, Nat.is_lt(a, Nat.sub(c, b)), Nat.is_lt(Nat.add(b, a), c), lt_sub_iff_add_lt(a, b, c))
+
+# Zero divided by anything is zero: 0 / b = 0, reversed to rewrite toward the simple side.
+law zero_div_sym:
+  for b: Nat
+  {0n == Nat.div(0n, b) : Nat}
+
+def zero_div_sym(b):
+  Equal.sym(Nat, Nat.div(0n, b), 0n, zero_div(b))
+
+# Zero modulo anything is zero: 0 % b = 0, reversed to rewrite toward the simple side.
+law zero_mod_sym:
+  for b: Nat
+  {0n == Nat.mod(0n, b) : Nat}
+
+def zero_mod_sym(b):
+  Equal.sym(Nat, Nat.mod(0n, b), 0n, zero_mod(b))
+
+# Dividing by one changes nothing: a / 1 = a, reversed to rewrite toward the simple side.
+law div_one_sym:
+  for a: Nat
+  {a == Nat.div(a, 1n) : Nat}
+
+def div_one_sym(a):
+  Equal.sym(Nat, Nat.div(a, 1n), a, div_one(a))
+
+# Any natural modulo one is zero: a % 1 = 0, reversed to rewrite toward the simple side.
+law mod_one_sym:
+  for a: Nat
+  {0n == Nat.mod(a, 1n) : Nat}
+
+def mod_one_sym(a):
+  Equal.sym(Nat, Nat.mod(a, 1n), 0n, mod_one(a))
+
+# A natural modulo itself is zero: n % n = 0, reversed to rewrite toward the simple side.
+law mod_self_sym:
+  for n: Nat
+  {0n == Nat.mod(n, n) : Nat}
+
+def mod_self_sym(n):
+  Equal.sym(Nat, Nat.mod(n, n), 0n, mod_self(n))
+
+# A positive natural divided by itself is one: (1 + b) / (1 + b) = 1, reversed to rewrite toward the simple side.
+law div_self_sym:
+  for b: Nat
+  {1n == Nat.div(1n+b, 1n+b) : Nat}
+
+def div_self_sym(b):
+  Equal.sym(Nat, Nat.div(1n+b, 1n+b), 1n, div_self(b))
+
+# Taking a remainder twice is taking it once: (a % n) % n = a % n, reversed to rewrite toward the simple side.
+law mod_mod_sym:
+  for a: Nat
+  for n: Nat
+  {Nat.mod(a, n) == Nat.mod(Nat.mod(a, n), n) : Nat}
+
+def mod_mod_sym(a, n):
+  Equal.sym(Nat, Nat.mod(Nat.mod(a, n), n), Nat.mod(a, n), mod_mod(a, n))
+
+# Adding the divisor does not change the remainder: (b + a) % b = a % b, reversed to rewrite toward the simple side.
+law add_mod_left_sym:
+  for a: Nat
+  for b: Nat
+  {Nat.mod(a, b) == Nat.mod(Nat.add(b, a), b) : Nat}
+
+def add_mod_left_sym(a, b):
+  Equal.sym(Nat, Nat.mod(Nat.add(b, a), b), Nat.mod(a, b), add_mod_left(a, b))
+
+# Multiplying by a positive divisor then dividing by it cancels: (a * (1 + b)) / (1 + b) = a, reversed to rewrite toward the simple side.
+law mul_div_cancel_sym:
+  for a: Nat
+  for b: Nat
+  {a == Nat.div(Nat.mul(a, 1n+b), 1n+b) : Nat}
+
+def mul_div_cancel_sym(a, b):
+  Equal.sym(Nat, Nat.div(Nat.mul(a, 1n+b), 1n+b), a, mul_div_cancel(a, b))
+
+# Multiplying on the left by a positive divisor then dividing by it cancels: ((1 + b) * a) / (1 + b) = a, reversed to rewrite toward the simple side.
+law mul_div_cancel_left_sym:
+  for a: Nat
+  for b: Nat
+  {a == Nat.div(Nat.mul(1n+b, a), 1n+b) : Nat}
+
+def mul_div_cancel_left_sym(a, b):
+  Equal.sym(Nat, Nat.div(Nat.mul(1n+b, a), 1n+b), a, mul_div_cancel_left(a, b))
+
+# A multiple of b leaves no remainder modulo b: (a * b) % b = 0, reversed to rewrite toward the simple side.
+law mul_mod_left_sym:
+  for a: Nat
+  for b: Nat
+  {0n == Nat.mod(Nat.mul(a, b), b) : Nat}
+
+def mul_mod_left_sym(a, b):
+  Equal.sym(Nat, Nat.mod(Nat.mul(a, b), b), 0n, mul_mod_left(a, b))
+
+# A multiple of a leaves no remainder modulo a: (a * b) % a = 0, reversed to rewrite toward the simple side.
+law mul_mod_right_sym:
+  for a: Nat
+  for b: Nat
+  {0n == Nat.mod(Nat.mul(a, b), a) : Nat}
+
+def mul_mod_right_sym(a, b):
+  Equal.sym(Nat, Nat.mod(Nat.mul(a, b), a), 0n, mul_mod_right(a, b))
+
+# The remainder plus the divisor times the quotient is the dividend: a % b + b * (a / b) = a, reversed to rewrite toward the simple side.
+law mod_add_div_sym:
+  for a: Nat
+  for b: Nat
+  {a == Nat.add(Nat.mod(a, b), Nat.mul(b, Nat.div(a, b))) : Nat}
+
+def mod_add_div_sym(a, b):
+  Equal.sym(Nat, Nat.add(Nat.mod(a, b), Nat.mul(b, Nat.div(a, b))), a, mod_add_div(a, b))
+
+# Left commutativity of multiplication: a * (b * c) = b * (a * c), reversed to rewrite toward the simple side.
+law mul_left_comm_sym:
+  for a: Nat
+  for b: Nat
+  for c: Nat
+  {Nat.mul(b, Nat.mul(a, c)) == Nat.mul(a, Nat.mul(b, c)) : Nat}
+
+def mul_left_comm_sym(a, b, c):
+  Equal.sym(Nat, Nat.mul(a, Nat.mul(b, c)), Nat.mul(b, Nat.mul(a, c)), mul_left_comm(a, b, c))
+
+# Right commutativity of multiplication: (a * b) * c = (a * c) * b, reversed to rewrite toward the simple side.
+law mul_right_comm_sym:
+  for a: Nat
+  for b: Nat
+  for c: Nat
+  {Nat.mul(Nat.mul(a, c), b) == Nat.mul(Nat.mul(a, b), c) : Nat}
+
+def mul_right_comm_sym(a, b, c):
+  Equal.sym(Nat, Nat.mul(Nat.mul(a, b), c), Nat.mul(Nat.mul(a, c), b), mul_right_comm(a, b, c))
+
+# Four-way regrouping of a product: (a * b) * (c * d) = (a * c) * (b * d), reversed to rewrite toward the simple side.
+law mul_mul_mul_comm_sym:
+  for a: Nat
+  for b: Nat
+  for c: Nat
+  for d: Nat
+  {Nat.mul(Nat.mul(a, c), Nat.mul(b, d)) == Nat.mul(Nat.mul(a, b), Nat.mul(c, d)) : Nat}
+
+def mul_mul_mul_comm_sym(a, b, c, d):
+  Equal.sym(Nat, Nat.mul(Nat.mul(a, b), Nat.mul(c, d)), Nat.mul(Nat.mul(a, c), Nat.mul(b, d)), mul_mul_mul_comm(a, b, c, d))
+
+# Zero to a positive power is zero: 0^(n+1) = 0, reversed to rewrite toward the simple side.
+law zero_pow_sym:
+  for -n: Nat
+  {0n == Nat.pow(0n, 1n+n) : Nat}
+
+def zero_pow_sym(n):
+  Equal.sym(Nat, Nat.pow(0n, 1n+n), 0n, zero_pow(n))
+
+# Exponents multiply under repeated powers: a^(m * n) = (a^m)^n, reversed to rewrite toward the simple side.
+law pow_mul_sym:
+  for a: Nat
+  for m: Nat
+  for n: Nat
+  {Nat.pow(Nat.pow(a, m), n) == Nat.pow(a, Nat.mul(m, n)) : Nat}
+
+def pow_mul_sym(a, m, n):
+  Equal.sym(Nat, Nat.pow(a, Nat.mul(m, n)), Nat.pow(Nat.pow(a, m), n), pow_mul(a, m, n))
+
+# A common left summand cancels in a difference: (k + n) - (k + m) = n - m, reversed to rewrite toward the simple side.
+law add_sub_add_left_sym:
+  for k: Nat
+  for -n: Nat
+  for -m: Nat
+  {Nat.sub(n, m) == Nat.sub(Nat.add(k, n), Nat.add(k, m)) : Nat}
+
+def add_sub_add_left_sym(k, n, m):
+  Equal.sym(Nat, Nat.sub(Nat.add(k, n), Nat.add(k, m)), Nat.sub(n, m), add_sub_add_left(k, n, m))
+
+# A common right summand cancels in a difference: (n + k) - (m + k) = n - m, reversed to rewrite toward the simple side.
+law add_sub_add_right_sym:
+  for n: Nat
+  for k: Nat
+  for m: Nat
+  {Nat.sub(n, m) == Nat.sub(Nat.add(n, k), Nat.add(m, k)) : Nat}
+
+def add_sub_add_right_sym(n, k, m):
+  Equal.sym(Nat, Nat.sub(Nat.add(n, k), Nat.add(m, k)), Nat.sub(n, m), add_sub_add_right(n, k, m))
+
+# Multiplication distributes over subtraction on the right: (n - m) * k = n * k - m * k, reversed to rewrite toward the simple side.
+law sub_mul_sym:
+  for n: Nat
+  for m: Nat
+  for k: Nat
+  {Nat.sub(Nat.mul(n, k), Nat.mul(m, k)) == Nat.mul(Nat.sub(n, m), k) : Nat}
+
+def sub_mul_sym(n, m, k):
+  Equal.sym(Nat, Nat.mul(Nat.sub(n, m), k), Nat.sub(Nat.mul(n, k), Nat.mul(m, k)), sub_mul(n, m, k))
+
+# Multiplication distributes over subtraction on the left: n * (m - k) = n * m - n * k, reversed to rewrite toward the simple side.
+law mul_sub_sym:
+  for n: Nat
+  for m: Nat
+  for k: Nat
+  {Nat.sub(Nat.mul(n, m), Nat.mul(n, k)) == Nat.mul(n, Nat.sub(m, k)) : Nat}
+
+def mul_sub_sym(n, m, k):
+  Equal.sym(Nat, Nat.mul(n, Nat.sub(m, k)), Nat.sub(Nat.mul(n, m), Nat.mul(n, k)), mul_sub(n, m, k))
+
+# A number is at most the minimum exactly when it is at most both: a <= min b c tests as a <= b and a <= c, reversed to rewrite toward the simple side.
+law le_min_sym:
+  for a: Nat
+  for b: Nat
+  for c: Nat
+  {Bool.and(Nat.is_le(a, b), Nat.is_le(a, c)) == Nat.is_le(a, Nat.min(b, c)) : Bool}
+
+def le_min_sym(a, b, c):
+  Equal.sym(Bool, Nat.is_le(a, Nat.min(b, c)), Bool.and(Nat.is_le(a, b), Nat.is_le(a, c)), le_min(a, b, c))
+
+# The maximum is at most c exactly when both arguments are: max a b <= c tests as a <= c and b <= c, reversed to rewrite toward the simple side.
+law max_le_sym:
+  for a: Nat
+  for b: Nat
+  for c: Nat
+  {Bool.and(Nat.is_le(a, c), Nat.is_le(b, c)) == Nat.is_le(Nat.max(a, b), c) : Bool}
+
+def max_le_sym(a, b, c):
+  Equal.sym(Bool, Nat.is_le(Nat.max(a, b), c), Bool.and(Nat.is_le(a, c), Nat.is_le(b, c)), max_le(a, b, c))
