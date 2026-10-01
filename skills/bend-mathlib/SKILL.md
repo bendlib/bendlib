@@ -6,9 +6,10 @@ description: Use when writing or proving Bend 2 laws (a `law` and its proof `def
 # bend-mathlib
 
 bend-mathlib is a BendHub package of machine-checked lemmas for Bend 2: 421 lemmas about `Nat`,
-`Bool`, `List`, `String`, `Maybe` and equality, plus abstract order/algebra theorems. Every
-statement is locked, so a newer version never changes one you use. Before you prove a basic fact
-(`add_comm`, `append_assoc`, `reverse_reverse`, `le_trans`, `take_append_drop` …), import it.
+`Bool`, `List`, `String`, `Maybe`, equality, abstract orders and associative/commutative
+operations, plus permutation and sorting theorems. Every statement is locked, so a newer version
+never changes one you use. Before you prove a basic fact (`add_comm`, `append_assoc`,
+`reverse_reverse`, `le_trans`, `take_append_drop` …), import it.
 
 ## Import
 
@@ -17,14 +18,18 @@ import bend-mathlib@0.7.0.0/nat.bend as MNat
 import bend-mathlib@0.7.0.0/list.bend as MList
 ```
 
-Modules: `nat`, `bool`, `list`, `string`, `maybe`, `equal`, `order`, `algebra`, `perm`, `sort`.
+Modules: `nat`, `bool`, `list`, `string`, `maybe`, `equal`, `order`, `algebra` (laws), `perm`
+(permutations, `insert_by`/`isort_by`/`merge_by`/`sort_by`) and `sort` (those sorts return sorted
+lists).
 Pin by content hash if you want bytes that can never change:
 `import 0x63d5fd78a2a52f082c7824372390170c/nat.bend as MNat`.
 
 ## Find a lemma
 
-- Every lemma with its statement, one per line (grep it):
+- Every law with its statement, one per line as `module<TAB>name<TAB>statement` (grep it):
   `curl -s https://bendlib.github.io/bendlib/lemmas.txt | grep '^bend-mathlib' | grep 'Nat.add'`
+- The `perm` and `sort` theorems are typed defs, not laws, so that list omits them; read their
+  signatures in the source: https://github.com/bendlib/bendlib/tree/main/packages/bend-mathlib
 - Browse or search by shape (`Nat.add(_, 0n)`): https://bendlib.github.io/bendlib/search.html
 - Names follow Lean's mathlib (`add_comm`, `mul_add`, `append_assoc`, `le_trans`, `take_append_drop`).
 - Each equation has a generated `_sym` twin with the sides swapped: `add_zero` states
@@ -33,12 +38,15 @@ Pin by content hash if you want bytes that can never change:
 ## Call a lemma
 
 A lemma is a def; pass its arguments in the order of its `for` binders, erased ones (`-x`) too.
-List and other generic lemmas take the quantity and element type first:
+List and other generic lemmas take the quantity and element type first. Template parameters
+(`~A`, `~le`) are passed with a `~`. (`MPerm` and `MSort` are `perm.bend` and `sort.bend`,
+imported like the two above.)
 
 ```python
 MNat.add_comm(a, b)                       # {Nat.add(a, b) == Nat.add(b, a) : Nat}
 MList.reverse_reverse(&2, U32, xs)        # {List.reverse(&2, U32, List.reverse(&2, U32, xs)) == xs : List<&2, U32>}
-MNat.le_trans(a, b, c, h_ab, h_bc)        # premises are passed as proofs
+MNat.le_trans(a, b, c, h_ab, h_bc)        # premises are proofs: h_ab : MNat.le(a, b), which is {Nat.is_le(a, b) == True{} : Bool}
+MSort.sort_by_sorted_nat(xs)              # MList.sorted_by(~Nat, ~Nat.is_le, MPerm.sort_by(~Nat, ~Nat.is_le, xs))
 ```
 
 ## Rewrite with a lemma
@@ -70,11 +78,15 @@ def rev_len(xs, ys):
 
 A false law wastes the whole proof attempt. lawcheck evaluates the law on many small inputs with
 the bend checker and prints a shrunk counterexample if one exists
-(https://github.com/bendlib/bendlib/tree/main/tools/lawcheck):
+(https://github.com/bendlib/bendlib/tree/main/tools/lawcheck). Install it once (Linux and macOS,
+into `~/.local/bin`), then check:
 
 ```sh
-bun tools/lawcheck/cli.ts my_laws.bend --law rev_len   # ✓ = no counterexample, ✗ = false: fix the statement
+curl -fsSL https://raw.githubusercontent.com/bendlib/bendlib/main/tools/lawcheck/install.sh | sh
+lawcheck my_laws.bend --law rev_len   # ✗ = false: fix the statement; ✓ = no counterexample found
 ```
+
+A ✓ is evidence, not a proof: the law still needs its proof `def`.
 
 ## When a lemma is missing
 
