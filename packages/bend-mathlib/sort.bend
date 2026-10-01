@@ -59,6 +59,7 @@ def internal_insert_step(~A: Data, ~le: A -> A -> Bool, ~le_total: @x: A -> @y: 
     case False{}:
       internal_sorted_cons_ins(~A, ~le, ~le_total, t, y, x, le_total(x, y, e), h)
 
+# Inserting into a sorted list keeps it sorted, for a total comparator.
 def insert_by_sorted(~A: Data, ~le: A -> A -> Bool, ~le_total: @x: A -> @y: A -> {le(x, y) == False{} : Bool} -> {le(y, x) == True{} : Bool}, +x: A, +xs: List<&2, A>, +h: MList.sorted_by(~A, ~le, xs)) -> MList.sorted_by(~A, ~le, MPerm.insert_by(~A, ~le, x, xs)):
   match xs:
     case Nil{}:
@@ -74,6 +75,7 @@ def isort_by_sorted(~A: Data, ~le: A -> A -> Bool, ~le_total: @x: A -> @y: A -> 
     case +x <> t:
       insert_by_sorted(~A, ~le, ~le_total, x, MPerm.isort_by(~A, ~le, t), isort_by_sorted(~A, ~le, ~le_total, t))
 
+# Insertion sort returns a sorted Nat list.
 def isort_by_sorted_nat(+xs: List<&2, Nat>) -> MList.sorted_by(~Nat, ~Nat.is_le, MPerm.isort_by(~Nat, ~Nat.is_le, xs)):
   isort_by_sorted(~Nat, ~Nat.is_le, ~internal_le_flip_nat, xs)
 
@@ -144,6 +146,7 @@ def merge_by_sorted(~A: Data, ~le: A -> A -> Bool, ~le_trans: @x: A -> @y: A -> 
     case +x <> +xt +y <> +yt:
       internal_merge_sorted_pick(~A, ~le, ~le_trans, ~le_total, le(x, y), x, xt, y, yt, {==}, hx, hy, merge_by_sorted(~A, ~le, ~le_trans, ~le_total, xt, y <> yt, internal_sorted_tail(~A, ~le, x, xt, hx), hy), merge_by_sorted(~A, ~le, ~le_trans, ~le_total, x <> xt, yt, hx, internal_sorted_tail(~A, ~le, y, yt, hy)))
 
+# Merging two sorted Nat lists gives a sorted list.
 def merge_by_sorted_nat(+xs: List<&2, Nat>, +ys: List<&2, Nat>, hx: MList.sorted_by(~Nat, ~Nat.is_le, xs), hy: MList.sorted_by(~Nat, ~Nat.is_le, ys)) -> MList.sorted_by(~Nat, ~Nat.is_le, MPerm.merge_by(~Nat, ~Nat.is_le, xs, ys)):
   merge_by_sorted(~Nat, ~Nat.is_le, ~internal_le_trans_nat, ~internal_le_flip_nat, xs, ys, hx, hy)
 
@@ -256,8 +259,10 @@ def sort_by_sorted(~A: Data, ~le: A -> A -> Bool, ~le_trans: @x: A -> @y: A -> @
     case +x <> +t:
       msort_by_sorted(~A, ~le, ~le_trans, ~le_total, 1n+List.length(&2, A, t), x <> t, MNat.le_succ(1n+List.length(&2, A, t)))
 
+# Merge sort with fuel = length returns a sorted Nat list (h always holds: MNat.le_succ).
 def msort_by_sorted_nat(+xs: List<&2, Nat>, +h: {Nat.is_le(List.length(&2, Nat, xs), 1n+List.length(&2, Nat, xs)) == True{} : Bool}) -> MList.sorted_by(~Nat, ~Nat.is_le, MPerm.msort_by(~Nat, ~Nat.is_le, List.length(&2, Nat, xs), xs)):
   msort_by_sorted(~Nat, ~Nat.is_le, ~internal_le_trans_nat, ~internal_le_flip_nat, List.length(&2, Nat, xs), xs, h)
 
+# Merge sort returns a sorted Nat list.
 def sort_by_sorted_nat(+xs: List<&2, Nat>) -> MList.sorted_by(~Nat, ~Nat.is_le, MPerm.sort_by(~Nat, ~Nat.is_le, xs)):
   sort_by_sorted(~Nat, ~Nat.is_le, ~internal_le_trans_nat, ~internal_le_flip_nat, xs)

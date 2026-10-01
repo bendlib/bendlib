@@ -72,6 +72,7 @@ def insert_by(~A: Data, ~le: A -> A -> Bool, +x: A, xs: List<&2, A>) -> List<&2,
     case +y <> +t:
       Bool.pick(List<&2, A>, le(x, y), x <> y <> t, y <> insert_by(~A, ~le, x, t))
 
+# Insertion sort by the comparator le.
 def isort_by(~A: Data, ~le: A -> A -> Bool, xs: List<&2, A>) -> List<&2, A>:
   match xs:
     case Nil{}:
@@ -102,7 +103,7 @@ def isort_by_perm(~A: Data, ~le: A -> A -> Bool, +xs: List<&2, A>) -> K.perm(A, 
     case +x <> t:
       perm_trans(A, x <> t, x <> isort_by(~A, ~le, t), isort_by(~A, ~le, x <> t), perm_cons(A, x, t, isort_by(~A, ~le, t), isort_by_perm(~A, ~le, t)), insert_by_perm(~A, ~le, x, isort_by(~A, ~le, t)))
 
-# Closed instance: instantiate at Nat and at String.
+# Insertion sort permutes a Nat list.
 def isort_by_perm_nat(+xs: List<&2, Nat>) -> K.perm(Nat, xs, isort_by(~Nat, ~Nat.is_le, xs)):
   isort_by_perm(~Nat, ~Nat.is_le, xs)
 
@@ -126,6 +127,7 @@ def perm_move(-A: Data, +xs: List<&2, A>, +y: A, +t: List<&2, A>) -> K.perm(A, L
     case +x <> r:
       perm_trans(A, x <> List.append(&2, A, r, y <> t), x <> y <> List.append(&2, A, r, t), y <> x <> List.append(&2, A, r, t), perm_cons(A, x, List.append(&2, A, r, y <> t), y <> List.append(&2, A, r, t), perm_move(A, r, y, t)), perm_swap(A, x, y, List.append(&2, A, r, t)))
 
+# Merges two lists, taking the head of xs first whenever le(x, y) holds.
 def merge_by(~A: Data, ~le: A -> A -> Bool, xs: List<&2, A>, ys: List<&2, A>) -> List<&2, A>:
   match xs ys:
     case Nil{} _:
@@ -152,6 +154,7 @@ def merge_by_perm(~A: Data, ~le: A -> A -> Bool, +xs: List<&2, A>, +ys: List<&2,
     case +x <> +xt +y <> +yt:
       internal_merge_pick(A, le(x, y), x, xt, y, yt, merge_by(~A, ~le, xt, y <> yt), merge_by(~A, ~le, x <> xt, yt), merge_by_perm(~A, ~le, xt, y <> yt), merge_by_perm(~A, ~le, x <> xt, yt))
 
+# Merging two Nat lists permutes their concatenation.
 def merge_by_perm_nat(+xs: List<&2, Nat>, +ys: List<&2, Nat>) -> K.perm(Nat, List.append(&2, Nat, xs, ys), merge_by(~Nat, ~Nat.is_le, xs, ys)):
   merge_by_perm(~Nat, ~Nat.is_le, xs, ys)
 
@@ -171,7 +174,7 @@ def perm_append_comm(-A: Data, +xs: List<&2, A>, +ys: List<&2, A>) -> K.perm(A, 
     case +x <> r:
       perm_trans(A, x <> List.append(&2, A, r, ys), x <> List.append(&2, A, ys, r), List.append(&2, A, ys, x <> r), perm_cons(A, x, List.append(&2, A, r, ys), List.append(&2, A, ys, r), perm_append_comm(A, r, ys)), perm_move_rev(A, ys, x, r))
 
-# Permuting the right operand of an append.
+# Permuting the right operand of an append gives a permutation of the append.
 def perm_append_right(-A: Data, +xs: List<&2, A>, +ys: List<&2, A>, -zs: List<&2, A>, h: K.perm(A, ys, zs)) -> K.perm(A, List.append(&2, A, xs, ys), List.append(&2, A, xs, zs)):
   match xs:
     case Nil{}:
@@ -179,10 +182,11 @@ def perm_append_right(-A: Data, +xs: List<&2, A>, +ys: List<&2, A>, -zs: List<&2
     case +x <> r:
       perm_cons(A, x, List.append(&2, A, r, ys), List.append(&2, A, r, zs), perm_append_right(A, r, ys, zs, h))
 
-# Permuting both operands of an append.
+# Permuting both operands of an append gives a permutation of the append.
 def perm_append(-A: Data, +xs: List<&2, A>, +xs2: List<&2, A>, +ys: List<&2, A>, -ys2: List<&2, A>, p: K.perm(A, xs, xs2), q: K.perm(A, ys, ys2)) -> K.perm(A, List.append(&2, A, xs, ys), List.append(&2, A, xs2, ys2)):
   perm_trans(A, List.append(&2, A, xs, ys), List.append(&2, A, ys, xs), List.append(&2, A, xs2, ys2), perm_append_comm(A, xs, ys), perm_trans(A, List.append(&2, A, ys, xs), List.append(&2, A, ys, xs2), List.append(&2, A, xs2, ys2), perm_append_right(A, ys, xs, xs2, p), perm_trans(A, List.append(&2, A, ys, xs2), List.append(&2, A, xs2, ys), List.append(&2, A, xs2, ys2), perm_append_comm(A, ys, xs2), perm_append_right(A, xs2, ys, ys2, q))))
 
+# The elements of a list at even positions (0, 2, 4, ...).
 def evens(-A: Data, xs: List<&2, A>) -> List<&2, A>:
   match xs:
     case Nil{}:
@@ -194,6 +198,7 @@ def evens(-A: Data, xs: List<&2, A>) -> List<&2, A>:
         case +y <> t:
           x <> evens(A, t)
 
+# The elements of a list at odd positions (1, 3, 5, ...).
 def odds(-A: Data, xs: List<&2, A>) -> List<&2, A>:
   match xs:
     case Nil{}:
@@ -233,6 +238,7 @@ def msort_by_perm(~A: Data, ~le: A -> A -> Bool, fuel: Nat, +xs: List<&2, A>) ->
     case 1n++f:
       perm_trans(A, xs, List.append(&2, A, evens(A, xs), odds(A, xs)), msort_by(~A, ~le, 1n+f, xs), split_perm(A, xs), perm_trans(A, List.append(&2, A, evens(A, xs), odds(A, xs)), List.append(&2, A, msort_by(~A, ~le, f, evens(A, xs)), msort_by(~A, ~le, f, odds(A, xs))), msort_by(~A, ~le, 1n+f, xs), perm_append(A, evens(A, xs), msort_by(~A, ~le, f, evens(A, xs)), odds(A, xs), msort_by(~A, ~le, f, odds(A, xs)), msort_by_perm(~A, ~le, f, evens(A, xs)), msort_by_perm(~A, ~le, f, odds(A, xs))), merge_by_perm(~A, ~le, msort_by(~A, ~le, f, evens(A, xs)), msort_by(~A, ~le, f, odds(A, xs)))))
 
+# Merge sort by the comparator le.
 def sort_by(~A: Data, ~le: A -> A -> Bool, +xs: List<&2, A>) -> List<&2, A>:
   msort_by(~A, ~le, List.length(&2, A, xs), xs)
 
@@ -240,6 +246,7 @@ def sort_by(~A: Data, ~le: A -> A -> Bool, +xs: List<&2, A>) -> List<&2, A>:
 def sort_by_perm(~A: Data, ~le: A -> A -> Bool, +xs: List<&2, A>) -> K.perm(A, xs, sort_by(~A, ~le, xs)):
   msort_by_perm(~A, ~le, List.length(&2, A, xs), xs)
 
+# Merge sort permutes a Nat list.
 def sort_by_perm_nat(+xs: List<&2, Nat>) -> K.perm(Nat, xs, sort_by(~Nat, ~Nat.is_le, xs)):
   sort_by_perm(~Nat, ~Nat.is_le, xs)
 
@@ -295,7 +302,6 @@ def perm_sym(-A: Data, +xs: List<&2, A>, -ys: List<&2, A>, h: K.perm(A, xs, ys))
   +s = s
   (internal_invert(s), internal_sym_eq(A, s, xs, ys, e))
 
-# Permutation preserves length.
 def internal_swap_head_length(-A: Data, xs: List<&2, A>) -> {List.length(&2, A, K.swap_head(A, xs)) == List.length(&2, A, xs) : Nat}:
   match xs:
     case Nil{}:
@@ -330,6 +336,7 @@ def internal_length_eq(-A: Data, +s: List<&2, Nat>, +xs: List<&2, A>, -ys: List<
   %e : {List.length(&2, A, _) == List.length(&2, A, xs) : Nat}
   internal_apply_length(A, s, xs)
 
+# Permutation preserves length.
 def perm_length(-A: Data, +xs: List<&2, A>, -ys: List<&2, A>, h: K.perm(A, xs, ys)) -> {List.length(&2, A, ys) == List.length(&2, A, xs) : Nat}:
   (s, e) = h
   internal_length_eq(A, s, xs, ys, e)

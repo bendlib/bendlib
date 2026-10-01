@@ -408,11 +408,6 @@ def length_replicate(A, n, x):
       %length_replicate(A, p, x) : {1n+List.length(&2, A, List.replicate(A, p, x)) == 1n+_ : Nat}
       {==}
 
-# Range(n) has length n.
-law length_range:
-  for n: Nat
-  {List.length(&2, Nat, List.range(n)) == n : Nat}
-
 def internal_length_range_go(+n: Nat, acc: List<&2, Nat>) -> {List.length(&2, Nat, List.range.go(n, acc)) == Nat.add(n, List.length(&2, Nat, acc)) : Nat}:
   match n:
     case 0n:
@@ -420,6 +415,11 @@ def internal_length_range_go(+n: Nat, acc: List<&2, Nat>) -> {List.length(&2, Na
     case 1n+p:
       %MNat.add_succ(p, List.length(&2, Nat, acc)) : {List.length(&2, Nat, List.range.go(p, p <> acc)) == _ : Nat}
       internal_length_range_go(p, p <> acc)
+
+# Range(n) has length n.
+law length_range:
+  for n: Nat
+  {List.length(&2, Nat, List.range(n)) == n : Nat}
 
 def length_range(n):
   +n = n
@@ -510,6 +510,13 @@ def foldl_append(a, A, B, f, xs, ys, z):
     case h <> t:
       foldl_append(~a, ~A, ~B, ~f, t, ys, f(z, h))
 
+def internal_map_reverse_go(~A: Type, ~B: Type, ~f: A -> B, xs: List<A>, acc: List<A>) -> {List.map(~A, ~B, ~f, List.reverse.go(&1, A, xs, acc)) == List.reverse.go(&1, B, List.map(~A, ~B, ~f, xs), List.map(~A, ~B, ~f, acc)) : List<B>}:
+  match xs:
+    case Nil{}:
+      {==}
+    case h <> t:
+      internal_map_reverse_go(~A, ~B, ~f, t, h <> acc)
+
 # Mapping commutes with reversing: map f (reverse xs) = reverse (map f xs).
 law map_reverse:
   for ~A: Type
@@ -517,13 +524,6 @@ law map_reverse:
   for ~f: A -> B
   for xs: List<A>
   {List.map(~A, ~B, ~f, List.reverse(&1, A, xs)) == List.reverse(&1, B, List.map(~A, ~B, ~f, xs)) : List<B>}
-
-def internal_map_reverse_go(~A: Type, ~B: Type, ~f: A -> B, xs: List<A>, acc: List<A>) -> {List.map(~A, ~B, ~f, List.reverse.go(&1, A, xs, acc)) == List.reverse.go(&1, B, List.map(~A, ~B, ~f, xs), List.map(~A, ~B, ~f, acc)) : List<B>}:
-  match xs:
-    case Nil{}:
-      {==}
-    case h <> t:
-      internal_map_reverse_go(~A, ~B, ~f, t, h <> acc)
 
 def map_reverse(A, B, f, xs):
   internal_map_reverse_go(~A, ~B, ~f, xs, Nil{})
@@ -562,6 +562,13 @@ def any_append(a, A, f, xs, ys):
       %Equal.sym(Bool, List.any(~a, ~A, ~f, List.append(a, A, t, ys)), Bool.or(List.any(~a, ~A, ~f, t), List.any(~a, ~A, ~f, ys)), any_append(~a, ~A, ~f, t, ys)) : {Bool.or(f(h), _) == Bool.or(Bool.or(f(h), List.any(~a, ~A, ~f, t)), List.any(~a, ~A, ~f, ys)) : Bool}
       Equal.sym(Bool, Bool.or(Bool.or(f(h), List.any(~a, ~A, ~f, t)), List.any(~a, ~A, ~f, ys)), Bool.or(f(h), Bool.or(List.any(~a, ~A, ~f, t), List.any(~a, ~A, ~f, ys))), MBool.or_assoc(f(h), List.any(~a, ~A, ~f, t), List.any(~a, ~A, ~f, ys)))
 
+def internal_filter_put_append(-A: Data, h: A, r: List<&2, A>, s: List<&2, A>, b: Bool) -> {List.append(&2, A, List.filter.put(A, h, r, b), s) == List.filter.put(A, h, List.append(&2, A, r, s), b) : List<&2, A>}:
+  match b:
+    case False{}:
+      {==}
+    case True{}:
+      {==}
+
 # Filtering an append filters each part.
 law filter_append:
   for ~A: Data
@@ -569,13 +576,6 @@ law filter_append:
   for xs: List<&2, A>
   for ys: List<&2, A>
   {List.filter(~A, ~f, List.append(&2, A, xs, ys)) == List.append(&2, A, List.filter(~A, ~f, xs), List.filter(~A, ~f, ys)) : List<&2, A>}
-
-def internal_filter_put_append(-A: Data, h: A, r: List<&2, A>, s: List<&2, A>, b: Bool) -> {List.append(&2, A, List.filter.put(A, h, r, b), s) == List.filter.put(A, h, List.append(&2, A, r, s), b) : List<&2, A>}:
-  match b:
-    case False{}:
-      {==}
-    case True{}:
-      {==}
 
 def filter_append(A, f, xs, ys):
   match xs:
@@ -604,19 +604,19 @@ def contains_append(A, eq, xs, ys, x):
       %Equal.sym(Bool, List.contains(~A, ~eq, List.append(&2, A, t, ys), x), Bool.or(List.contains(~A, ~eq, t, x), List.contains(~A, ~eq, ys, x)), contains_append(~A, ~eq, t, ys, x)) : {Bool.or(eq(h, x), _) == Bool.or(Bool.or(eq(h, x), List.contains(~A, ~eq, t, x)), List.contains(~A, ~eq, ys, x)) : Bool}
       Equal.sym(Bool, Bool.or(Bool.or(eq(h, x), List.contains(~A, ~eq, t, x)), List.contains(~A, ~eq, ys, x)), Bool.or(eq(h, x), Bool.or(List.contains(~A, ~eq, t, x), List.contains(~A, ~eq, ys, x))), MBool.or_assoc(eq(h, x), List.contains(~A, ~eq, t, x), List.contains(~A, ~eq, ys, x)))
 
-# Filtering never makes a list longer.
-law length_filter_le:
-  for ~A: Data
-  for ~f: A -> Bool
-  for xs: List<&2, A>
-  {Nat.is_le(List.length(&2, A, List.filter(~A, ~f, xs)), List.length(&2, A, xs)) == True{} : Bool}
-
 def internal_length_filter_put_le(-A: Data, h: A, r: List<&2, A>, b: Bool) -> {Nat.is_le(List.length(&2, A, List.filter.put(A, h, r, b)), 1n+List.length(&2, A, r)) == True{} : Bool}:
   match b:
     case False{}:
       MNat.le_succ(List.length(&2, A, r))
     case True{}:
       MNat.le_refl(1n+List.length(&2, A, r))
+
+# Filtering never makes a list longer.
+law length_filter_le:
+  for ~A: Data
+  for ~f: A -> Bool
+  for xs: List<&2, A>
+  {Nat.is_le(List.length(&2, A, List.filter(~A, ~f, xs)), List.length(&2, A, xs)) == True{} : Bool}
 
 def length_filter_le(A, f, xs):
   match xs:
@@ -676,7 +676,7 @@ def internal_mem_append_right(+xs: List<&2, Nat>, +ys: List<&2, Nat>, +x: Nat, h
     case hd <> tl:
       internal_or_of_right(Nat.is_eq(hd, x), List.contains(~Nat, ~Nat.is_eq, List.append(&2, Nat, tl, ys), x), internal_mem_append_right(tl, ys, x, h))
 
-# The head of a cons is a member of it.
+# The head of a Nat list is a member of it (membership by Nat.is_eq).
 law mem_cons_self:
   for x: Nat
   for -xs: List<&2, Nat>
@@ -686,7 +686,7 @@ def mem_cons_self(x, xs):
   %Equal.sym(Bool, Nat.is_eq(x, x), True{}, MNat.is_eq_refl(x)) : {Bool.or(_, List.contains(~Nat, ~Nat.is_eq, xs, x)) == True{} : Bool}
   {==}
 
-# Membership is preserved when a new head is prepended.
+# A member of a Nat list stays a member when a head is prepended.
 law mem_cons_of_mem:
   for x: Nat
   for y: Nat
@@ -698,7 +698,7 @@ def mem_cons_of_mem(x, y, xs, h):
   +x = x
   internal_or_of_right(Nat.is_eq(y, x), List.contains(~Nat, ~Nat.is_eq, xs, x), h)
 
-# Nothing is a member of the empty list.
+# No Nat is a member of the empty list.
 law not_mem_nil:
   for -x: Nat
   mem(~Nat, ~Nat.is_eq, x, Nil{}) -> Empty
@@ -706,7 +706,7 @@ law not_mem_nil:
 def not_mem_nil(x, h):
   MNat.internal_false_ne_true(h)
 
-# Membership on the left of an append.
+# A member of xs is a member of xs ++ ys (Nat lists).
 law mem_append_left:
   for xs: List<&2, Nat>
   for ys: List<&2, Nat>
@@ -717,7 +717,7 @@ law mem_append_left:
 def mem_append_left(xs, ys, x, h):
   internal_mem_append_left(xs, ys, x, h)
 
-# Membership on the right of an append.
+# A member of ys is a member of xs ++ ys (Nat lists).
 law mem_append_right:
   for xs: List<&2, Nat>
   for ys: List<&2, Nat>
@@ -728,14 +728,14 @@ law mem_append_right:
 def mem_append_right(xs, ys, x, h):
   internal_mem_append_right(xs, ys, x, h)
 
-# The empty list is sorted by any comparator.
+# The empty Nat list is sorted by Nat.is_le.
 law sorted_nil:
   sorted_by(~Nat, ~Nat.is_le, Nil{})
 
 def sorted_nil():
   {==}
 
-# A singleton list is sorted by any comparator.
+# A one-element Nat list is sorted by Nat.is_le.
 law sorted_single:
   for -x: Nat
   sorted_by(~Nat, ~Nat.is_le, [x])
@@ -743,7 +743,7 @@ law sorted_single:
 def sorted_single(x):
   {==}
 
-# A sorted tail with an in-order head is sorted.
+# A Nat list sorted by Nat.is_le stays sorted under a head that is <= the next element.
 law sorted_cons_cons_intro:
   for -x: Nat
   for -y: Nat
@@ -756,7 +756,7 @@ def sorted_cons_cons_intro(x, y, t, hxy, hyt):
   %Equal.sym(Bool, Nat.is_le(x, y), True{}, hxy) : {Bool.and(_, List.all(~&1, ~(Nat & Nat), ~(p => Nat.is_le(Pair.fst(Nat, Nat, p), Pair.snd(Nat, Nat, p))), List.zip(&2, Nat, &2, Nat, y <> t, t))) == True{} : Bool}
   hyt
 
-# The head pair of a sorted cons-cons list is in order.
+# The first two elements of a Nat list sorted by Nat.is_le are in order.
 law sorted_cons_cons_elim_le:
   for x: Nat
   for y: Nat
@@ -767,7 +767,7 @@ law sorted_cons_cons_elim_le:
 def sorted_cons_cons_elim_le(x, y, t, h):
   internal_and_left(Nat.is_le(x, y), List.all(~&1, ~(Nat & Nat), ~(p => Nat.is_le(Pair.fst(Nat, Nat, p), Pair.snd(Nat, Nat, p))), List.zip(&2, Nat, &2, Nat, y <> t, t)), h)
 
-# The tail of a sorted cons-cons list is sorted.
+# The tail of a Nat list of two or more elements sorted by Nat.is_le is sorted.
 law sorted_cons_cons_elim_tail:
   for x: Nat
   for y: Nat
@@ -778,7 +778,7 @@ law sorted_cons_cons_elim_tail:
 def sorted_cons_cons_elim_tail(x, y, t, h):
   internal_and_right(Nat.is_le(x, y), List.all(~&1, ~(Nat & Nat), ~(p => Nat.is_le(Pair.fst(Nat, Nat, p), Pair.snd(Nat, Nat, p))), List.zip(&2, Nat, &2, Nat, y <> t, t)), h)
 
-# A sorted list has a sorted tail.
+# The tail of a nonempty Nat list sorted by Nat.is_le is sorted.
 law sorted_tail:
   for x: Nat
   for xs: List<&2, Nat>
@@ -1626,7 +1626,7 @@ def filter_reverse(A, f, xs):
       %Equal.sym(List<&2, A>, List.filter(~A, ~f, List.reverse(&2, A, t)), List.reverse(&2, A, List.filter(~A, ~f, t)), filter_reverse(~A, ~f, t)) : {List.append(&2, A, _, List.filter(~A, ~f, [h])) == List.reverse(&2, A, List.filter.put(A, h, List.filter(~A, ~f, t), f(h))) : List<&2, A>}
       internal_reverse_filter_put(A, h, List.filter(~A, ~f, t), f(h))
 
-# Folding cons from the right over the empty list rebuilds the list.
+# Folding cons from the right, starting from the empty list, rebuilds the list.
 law foldr_cons_nil:
   for ~a: Quant
   for ~A: Kind(a)
@@ -2697,7 +2697,7 @@ law filter_reverse_sym:
 def filter_reverse_sym(A, f, xs):
   Equal.sym(List<&2, A>, List.filter(~A, ~f, List.reverse(&2, A, xs)), List.reverse(&2, A, List.filter(~A, ~f, xs)), filter_reverse(~A, ~f, xs))
 
-# Folding cons from the right over the empty list rebuilds the list, reversed to rewrite toward the simple side.
+# Folding cons from the right, starting from the empty list, rebuilds the list, reversed to rewrite toward the simple side.
 law foldr_cons_nil_sym:
   for ~a: Quant
   for ~A: Kind(a)

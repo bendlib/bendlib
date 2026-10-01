@@ -115,7 +115,7 @@ def internal_bool_or_comm(x: Bool, y: Bool) -> {Bool.or(x, y) == Bool.or(y, x) :
 def internal_list_nat_append_assoc(x: List<&2, Nat>, y: List<&2, Nat>, z: List<&2, Nat>) -> {List.append(&2, Nat, List.append(&2, Nat, x, y), z) == List.append(&2, Nat, x, List.append(&2, Nat, y, z)) : List<&2, Nat>}:
   MList.append_assoc(&2, Nat, x, y, z)
 
-# Nat addition is left-commutative.
+# Nat addition is left-commutative (the same statement as MNat.add_left_comm).
 law nat_add_left_comm:
   for +a: Nat
   for +b: Nat
@@ -125,7 +125,7 @@ law nat_add_left_comm:
 def nat_add_left_comm(a, b, c):
   op_left_comm(~Nat, ~Nat.add, ~internal_nat_add_assoc, ~internal_nat_add_comm, a, b, c)
 
-# Nat addition is right-commutative.
+# Nat addition is right-commutative (the same statement as MNat.add_right_comm).
 law nat_add_right_comm:
   for +a: Nat
   for +b: Nat
@@ -135,7 +135,7 @@ law nat_add_right_comm:
 def nat_add_right_comm(a, b, c):
   op_right_comm(~Nat, ~Nat.add, ~internal_nat_add_assoc, ~internal_nat_add_comm, a, b, c)
 
-# Nat addition's middle-four interchange.
+# Nat addition's middle-four interchange (the same statement as MNat.add_add_add_comm).
 law nat_add_four:
   for +a: Nat
   for +b: Nat
@@ -146,7 +146,7 @@ law nat_add_four:
 def nat_add_four(a, b, c, d):
   op_four(~Nat, ~Nat.add, ~internal_nat_add_assoc, ~internal_nat_add_comm, a, b, c, d)
 
-# Nat multiplication is left-commutative.
+# Nat multiplication is left-commutative (the same statement as MNat.mul_left_comm).
 law nat_mul_left_comm:
   for +a: Nat
   for +b: Nat
@@ -156,7 +156,7 @@ law nat_mul_left_comm:
 def nat_mul_left_comm(a, b, c):
   op_left_comm(~Nat, ~internal_nat_mul, ~internal_nat_mul_assoc, ~internal_nat_mul_comm, a, b, c)
 
-# Nat multiplication is right-commutative.
+# Nat multiplication is right-commutative (the same statement as MNat.mul_right_comm).
 law nat_mul_right_comm:
   for +a: Nat
   for +b: Nat
@@ -166,7 +166,7 @@ law nat_mul_right_comm:
 def nat_mul_right_comm(a, b, c):
   op_right_comm(~Nat, ~internal_nat_mul, ~internal_nat_mul_assoc, ~internal_nat_mul_comm, a, b, c)
 
-# Nat multiplication's middle-four interchange.
+# Nat multiplication's middle-four interchange (the same statement as MNat.mul_mul_mul_comm).
 law nat_mul_four:
   for +a: Nat
   for +b: Nat
@@ -228,6 +228,14 @@ law list_nat_append_assoc4:
 def list_nat_append_assoc4(a, b, c, d):
   op_assoc4(~List<&2, Nat>, ~List.append(&2, Nat), ~internal_list_nat_append_assoc, a, b, c, d)
 
+def internal_foldl_foldr(~B: Data, ~op: B -> B -> B, ~assoc: @x: B -> @y: B -> @z: B -> {op(op(x, y), z) == op(x, op(y, z)) : B}, ~comm: @x: B -> @y: B -> {op(x, y) == op(y, x) : B}, ~z: B, ~id: @x: B -> {op(z, x) == x : B}, +xs: List<&2, B>, +acc: B) -> {List.foldl(&2, B, B, op, xs, acc) == op(acc, List.foldr(&2, B, B, op, xs, z)) : B}:
+  match xs:
+    case Nil{}:
+      Equal.sym(B, op(acc, z), acc, Equal.trans(B, op(acc, z), op(z, acc), acc, comm(acc, z), id(acc)))
+    case +h <> +t:
+      %Equal.sym(B, List.foldl(&2, B, B, op, t, op(acc, h)), op(op(acc, h), List.foldr(&2, B, B, op, t, z)), internal_foldl_foldr(~B, ~op, ~assoc, ~comm, ~z, ~id, t, op(acc, h))) : {_ == op(acc, op(h, List.foldr(&2, B, B, op, t, z))) : B}
+      assoc(acc, h, List.foldr(&2, B, B, op, t, z))
+
 # Folding left equals folding right for an associative, commutative operation with a left identity.
 law foldl_op_eq_foldr_op:
   for ~B: Data
@@ -238,14 +246,6 @@ law foldl_op_eq_foldr_op:
   for ~id: @x: B -> {op(z, x) == x : B}
   for +xs: List<&2, B>
   {List.foldl(&2, B, B, op, xs, z) == List.foldr(&2, B, B, op, xs, z) : B}
-
-def internal_foldl_foldr(~B: Data, ~op: B -> B -> B, ~assoc: @x: B -> @y: B -> @z: B -> {op(op(x, y), z) == op(x, op(y, z)) : B}, ~comm: @x: B -> @y: B -> {op(x, y) == op(y, x) : B}, ~z: B, ~id: @x: B -> {op(z, x) == x : B}, +xs: List<&2, B>, +acc: B) -> {List.foldl(&2, B, B, op, xs, acc) == op(acc, List.foldr(&2, B, B, op, xs, z)) : B}:
-  match xs:
-    case Nil{}:
-      Equal.sym(B, op(acc, z), acc, Equal.trans(B, op(acc, z), op(z, acc), acc, comm(acc, z), id(acc)))
-    case +h <> +t:
-      %Equal.sym(B, List.foldl(&2, B, B, op, t, op(acc, h)), op(op(acc, h), List.foldr(&2, B, B, op, t, z)), internal_foldl_foldr(~B, ~op, ~assoc, ~comm, ~z, ~id, t, op(acc, h))) : {_ == op(acc, op(h, List.foldr(&2, B, B, op, t, z))) : B}
-      assoc(acc, h, List.foldr(&2, B, B, op, t, z))
 
 def foldl_op_eq_foldr_op(B, op, assoc, comm, z, id, xs):
   %Equal.sym(B, List.foldl(&2, B, B, op, xs, z), op(z, List.foldr(&2, B, B, op, xs, z)), internal_foldl_foldr(~B, ~op, ~assoc, ~comm, ~z, ~id, xs, z)) : {_ == List.foldr(&2, B, B, op, xs, z) : B}
@@ -323,7 +323,7 @@ law op_comm3_sym:
 def op_comm3_sym(A, op, comm, a, b, c):
   Equal.sym(A, op(op(a, b), c), op(c, op(b, a)), op_comm3(~A, ~op, ~comm, a, b, c))
 
-# Nat addition is left-commutative, reversed to rewrite toward the simple side.
+# Nat addition is left-commutative (the same statement as MNat.add_left_comm), reversed to rewrite toward the simple side.
 law nat_add_left_comm_sym:
   for +a: Nat
   for +b: Nat
@@ -333,7 +333,7 @@ law nat_add_left_comm_sym:
 def nat_add_left_comm_sym(a, b, c):
   Equal.sym(Nat, Nat.add(a, Nat.add(b, c)), Nat.add(b, Nat.add(a, c)), nat_add_left_comm(a, b, c))
 
-# Nat addition is right-commutative, reversed to rewrite toward the simple side.
+# Nat addition is right-commutative (the same statement as MNat.add_right_comm), reversed to rewrite toward the simple side.
 law nat_add_right_comm_sym:
   for +a: Nat
   for +b: Nat
@@ -343,7 +343,7 @@ law nat_add_right_comm_sym:
 def nat_add_right_comm_sym(a, b, c):
   Equal.sym(Nat, Nat.add(Nat.add(a, b), c), Nat.add(Nat.add(a, c), b), nat_add_right_comm(a, b, c))
 
-# Nat addition's middle-four interchange, reversed to rewrite toward the simple side.
+# Nat addition's middle-four interchange (the same statement as MNat.add_add_add_comm), reversed to rewrite toward the simple side.
 law nat_add_four_sym:
   for +a: Nat
   for +b: Nat
@@ -354,7 +354,7 @@ law nat_add_four_sym:
 def nat_add_four_sym(a, b, c, d):
   Equal.sym(Nat, Nat.add(Nat.add(a, b), Nat.add(c, d)), Nat.add(Nat.add(a, c), Nat.add(b, d)), nat_add_four(a, b, c, d))
 
-# Nat multiplication is left-commutative, reversed to rewrite toward the simple side.
+# Nat multiplication is left-commutative (the same statement as MNat.mul_left_comm), reversed to rewrite toward the simple side.
 law nat_mul_left_comm_sym:
   for +a: Nat
   for +b: Nat
@@ -364,7 +364,7 @@ law nat_mul_left_comm_sym:
 def nat_mul_left_comm_sym(a, b, c):
   Equal.sym(Nat, Nat.mul(a, Nat.mul(b, c)), Nat.mul(b, Nat.mul(a, c)), nat_mul_left_comm(a, b, c))
 
-# Nat multiplication is right-commutative, reversed to rewrite toward the simple side.
+# Nat multiplication is right-commutative (the same statement as MNat.mul_right_comm), reversed to rewrite toward the simple side.
 law nat_mul_right_comm_sym:
   for +a: Nat
   for +b: Nat
@@ -374,7 +374,7 @@ law nat_mul_right_comm_sym:
 def nat_mul_right_comm_sym(a, b, c):
   Equal.sym(Nat, Nat.mul(Nat.mul(a, b), c), Nat.mul(Nat.mul(a, c), b), nat_mul_right_comm(a, b, c))
 
-# Nat multiplication's middle-four interchange, reversed to rewrite toward the simple side.
+# Nat multiplication's middle-four interchange (the same statement as MNat.mul_mul_mul_comm), reversed to rewrite toward the simple side.
 law nat_mul_four_sym:
   for +a: Nat
   for +b: Nat
