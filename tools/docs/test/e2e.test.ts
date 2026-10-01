@@ -1,4 +1,4 @@
-// End to end on the live hub: builds three real packages with a fresh cache (fetch,
+// End to end on the live hub: builds four real packages with a fresh cache (fetch,
 // verify, extract, check on the installed bend) and inspects the generated site.
 
 import { beforeAll, describe, expect, test } from "bun:test";
@@ -11,7 +11,9 @@ import { sha256 } from "../src/hub.ts";
 import { hubHash, packageFiles } from "../../mathlib/hash.ts";
 
 const MATHLIB = "0xafc61ca8b7738a6df7f28eddf80168f8";   // bend-mathlib@0.1.0.1
-const TENSORS = "0x39d8166231e68361eb37e8bef9287b8a";   // bend-tensors@0.0.0.2
+const KERNEL = "0xb5c8145e53a6a127d611f45f602666ec";    // bendlib-kernel-list@1.0.0.0 (ours, so its name stays)
+// bend-tensors@0.0.0.2, by hash: its name record left the hub, its content did not.
+const TENSORS = "0x39d8166231e68361eb37e8bef9287b8a";
 const ANON = "0x6648eb78d8a978a0e437eabbfbc841cd";      // anonymous; imports 0xe49a3e65…/parse.bend
 const PARSE = "0xe49a3e6521e1b71e55654a885f27bcc1";
 
@@ -31,21 +33,21 @@ const read = (p: string) => readFileSync(join(out, p), "utf8");
 
 beforeAll(() => {
   const p = Bun.spawnSync([process.execPath, join(import.meta.dir, "..", "build.ts"),
-    "--only", `bend-mathlib@0.1.0.1,bend-tensors@0.0.0.2,${ANON}`, "--out", out, "--cache", join(root, "cache"), "--jobs", "4"]);
+    "--only", `bend-mathlib@0.1.0.1,bendlib-kernel-list@1.0.0.0,${TENSORS},${ANON}`, "--out", out, "--cache", join(root, "cache"), "--jobs", "4"]);
   log = new TextDecoder().decode(p.stdout) + new TextDecoder().decode(p.stderr);
   if (p.exitCode !== 0) throw new Error(`build exited ${p.exitCode}:\n${log}`);
 }, 600_000);
 
-describe("three-package build from the live hub", () => {
+describe("four-package build from the live hub", () => {
   test("pages exist for every package, module and name", () => {
     for (const f of ["index.html", "search.html", "search-index.json", "assets/style.css", "assets/search.js", "assets/site.js",
       `pkg/${MATHLIB}/index.html`, `pkg/${MATHLIB}/nat.bend.html`, `pkg/${MATHLIB}/list.bend.html`,
       `pkg/${TENSORS}/index.html`, `pkg/${TENSORS}/bend_tensors.bend.html`,
-      `pkg/${ANON}/index.html`, `pkg/${ANON}/format.bend.html`, "name/bend-mathlib/index.html", "name/bend-tensors/index.html"]) {
+      `pkg/${ANON}/index.html`, `pkg/${ANON}/format.bend.html`, "name/bend-mathlib/index.html", "name/bendlib-kernel-list/index.html", `pkg/${KERNEL}/index.html`]) {
       expect(existsSync(join(out, f))).toBe(true);
     }
-    expect(log).toContain("packages   3 (2 carry a name@version)");
-    expect(log).toContain("fetch: 3 new packages fetched and verified");
+    expect(log).toContain("packages   4 (2 carry a name@version)");
+    expect(log).toContain("fetch: 4 new packages fetched and verified");
   });
 
   test("the author page exists and the site nav links to it", () => {
@@ -105,14 +107,15 @@ describe("three-package build from the live hub", () => {
     expect(read("index.html")).toContain("each package checked on bend 2.0.34");
   });
 
-  test("the index lists the three packages, named ones first, with statuses from the real checker", () => {
+  test("the index lists the four packages, named ones first, with statuses from the real checker", () => {
     const html = read("index.html");
-    const [m, t, a] = ['bend-mathlib</a> <span class="pill">@0.1.0.1</span>', 'bend-tensors</a> <span class="pill">@0.0.0.2</span>', `${ANON.slice(0, 10)}…</a>`].map((s) => html.indexOf(`>${s}`));
+    const [m, k, t, a] = ['bend-mathlib</a> <span class="pill">@0.1.0.1</span>', 'bendlib-kernel-list</a> <span class="pill">@1.0.0.0</span>', `${TENSORS.slice(0, 10)}…</a>`, `${ANON.slice(0, 10)}…</a>`].map((s) => html.indexOf(`>${s}`));
     expect(m).toBeGreaterThan(0);
-    expect(t).toBeGreaterThan(0);
-    expect(a).toBeGreaterThan(Math.max(m, t));
+    expect(k).toBeGreaterThan(0);
+    expect(Math.min(t, a)).toBeGreaterThan(Math.max(m, k));
     expect(read(`pkg/${MATHLIB}/index.html`)).toMatch(/<h1>bend-mathlib@0\.1\.0\.1 <span class="st st-checks">/);
-    expect(read(`pkg/${TENSORS}/index.html`)).toMatch(/<h1>bend-tensors@0\.0\.0\.2 <span class="st st-unsafe">/);
+    expect(read(`pkg/${KERNEL}/index.html`)).toMatch(/<h1>bendlib-kernel-list@1\.0\.0\.0 <span class="st st-checks">/);
+    expect(read(`pkg/${TENSORS}/index.html`)).toMatch(new RegExp(`<h1>${TENSORS.slice(0, 10)} <span class="st st-unsafe">`));
   });
 
   test("the anonymous package shows its real hub dependency", () => {
