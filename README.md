@@ -6,12 +6,12 @@ import instead of re-proving, and tools that keep laws honest.
 [Docs for every BendHub package](https://bendlib.github.io/bendlib/) ·
 [lemma index](packages/bend-mathlib/README.md) ·
 [lawcheck](tools/lawcheck) ·
-[agent skill](skills/bend-mathlib/SKILL.md) ·
+[agent plugin](plugins/bend-mathlib/skills/bend-mathlib/SKILL.md) ·
 [good first lemmas](https://github.com/bendlib/bendlib/issues?q=is%3Aopen+label%3A%22good+first+lemma%22)
 
 | Part | What | Status |
 |---|---|---|
-| [`bend-mathlib`](packages/bend-mathlib) | 421 published lemmas (+281 generated `_sym` twins) about `Nat`, `Bool`, `List`, `String`, `Maybe`, equality — generic, proved, zero `@unsafe` | **0.7.0.0 on BendHub** |
+| [`bend-mathlib`](packages/bend-mathlib) | 438 published lemmas (+292 generated `_sym` twins) about `Nat`, `Bool`, `List`, `String`, `Maybe`, equality — generic, proved, zero `@unsafe` | **0.7.1.0 on BendHub** |
 | [`@bendlib/reader`](tools/reader) | Reads Bend source with the official parser of your installed compiler version | working |
 | [`lawcheck`](tools/lawcheck) | Finds counterexamples to laws before you try to prove them, and shrinks them; mutation mode shows how well the laws pin each def | **0.3.1**, binaries for Linux and macOS |
 | [Bend Docs](https://bendlib.github.io/bendlib/) | API docs, checker status and law-shape search for every BendHub package | **live**, rebuilt on a schedule (the footer shows the build time) |
@@ -21,8 +21,8 @@ import instead of re-proving, and tools that keep laws honest.
 ![86 lines by hand vs two imports and four rewrites](examples/demo/demo.gif)
 
 ```python
-import bend-mathlib@0.7.0.0/nat.bend as MNat
-import bend-mathlib@0.7.0.0/list.bend as MList
+import bend-mathlib@0.7.1.0/nat.bend as MNat
+import bend-mathlib@0.7.1.0/list.bend as MList
 
 law my_rev:
   for xs: List<&2, U32>
@@ -33,10 +33,18 @@ def my_rev(xs):
 ```
 
 Every lemma with its statement: [packages/bend-mathlib/README.md](packages/bend-mathlib/README.md).
-Proving with an AI agent? Give it [skills/bend-mathlib/SKILL.md](skills/bend-mathlib/SKILL.md)
-(copy the folder into your agent's skills directory, e.g. `~/.claude/skills/`): it teaches the
-agent to find, import and rewrite with these lemmas instead of re-proving them.
-By hash (content-pinned): `import 0x63d5fd78a2a52f082c7824372390170c/nat.bend as MNat`.
+Proving with an AI agent? Install the plugin, which teaches the agent to find, import and rewrite
+with these lemmas instead of re-proving them:
+
+```sh
+claude plugin marketplace add bendlib/bendlib
+claude plugin install bend-mathlib@bendlib
+```
+
+(or `/plugin marketplace add bendlib/bendlib` inside Claude Code). Other agents: copy
+[plugins/bend-mathlib/skills/bend-mathlib](plugins/bend-mathlib/skills/bend-mathlib/SKILL.md) into
+their skills directory.
+By hash (content-pinned): `import 0x3c446c5bcf57d1eef89775ba0b411fc6/nat.bend as MNat`.
 
 ## Check a law before you prove it
 
@@ -69,8 +77,10 @@ changes your laws fail to notice. Details: [tools/lawcheck](tools/lawcheck).
   hint line) on the pinned compiler.
 - **Checked by the proven kernel.** CI also runs `bend --verdict`, which re-checks every proof in
   BendTT, the kernel whose soundness is proved in Lean: `nat`, `list`, `bool`, `string`, `maybe`,
-  `equal`, `perm` and the kernel package pass; `algebra`, `order` and `sort` wait on
-  [bendlang/bend#1182](https://github.com/bendlang/bend/issues/1182).
+  `equal`, `perm` and the kernel package pass. `algebra` and `order` wait on
+  [bendlang/bend#1182](https://github.com/bendlang/bend/issues/1182) (our fix:
+  [#1263](https://github.com/bendlang/bend/pull/1263)); `sort` also needs kinds that depend on a
+  run-time value, which BendTT cannot express yet.
 - **Built for AI provers too.** Mathlib-standard names, one-line statements, generated
   `_sym` twins for the rewrite direction that simplifies.
 
@@ -104,11 +114,11 @@ bun test tools/
 bun tools/comments.ts
 bun tools/mathlib/devlib.ts --check
 bun tools/mathlib/devlib.ts run -- bun tools/mathlib/check.ts packages/bend-mathlib
-for m in $(find packages/bend-mathlib -name '*.bend' | sort); do bun tools/mathlib/devlib.ts run -- bun tools/lawcheck/cli.ts "$m" --max-instances 100 --strict --allow-skip cong2,eq_true_of_ne_false,foldl_op_eq_foldr_op,foldl_op_eq_foldr_op_sym,le_antisymm_eq,le_total,le_total_d,le_total_of_not_le,le_total_true,le_total_true_sym,le_trans3,le_trans4,maybe_bind_assoc,maybe_bind_assoc_sym,maybe_bind_map,maybe_bind_map_sym,maybe_map_bind,maybe_map_bind_sym,maybe_map_compose,maybe_map_compose_sym,maybe_map_pure,maybe_map_pure_sym,maybe_pure_bind,maybe_pure_bind_sym,op_assoc4,op_assoc4_sym,op_comm3,op_comm3_sym,op_four,op_four_sym,op_left_comm,op_left_comm_sym,op_right_comm,op_right_comm_sym,subst || exit 1; done
+for m in $(find packages/bend-mathlib -name '*.bend' | sort); do bun tools/mathlib/devlib.ts run -- bun tools/lawcheck/cli.ts "$m" --max-instances 100 --strict --allow-skip cong2,eq_true_of_ne_false,foldl_eq_foldr,foldl_eq_foldr_sym,foldl_op_eq_foldr_op,foldl_op_eq_foldr_op_sym,le_antisymm_eq,le_total,le_total_d,le_total_of_not_le,le_total_true,le_total_true_sym,le_trans3,le_trans4,maybe_bind_assoc,maybe_bind_assoc_sym,maybe_bind_map,maybe_bind_map_sym,maybe_map_bind,maybe_map_bind_sym,maybe_map_compose,maybe_map_compose_sym,maybe_map_pure,maybe_map_pure_sym,maybe_pure_bind,maybe_pure_bind_sym,op_assoc4,op_assoc4_sym,op_comm3,op_comm3_sym,op_four,op_four_sym,op_left_comm,op_left_comm_sym,op_right_comm,op_right_comm_sym,subst || exit 1; done
 bun tools/mathlib/lint.ts packages/bend-mathlib --erasure
 bun tools/mathlib/twins.ts packages/bend-mathlib --check
 bun tools/mathlib/lock.ts packages/bend-mathlib --check
-bun tools/mathlib/index.ts packages/bend-mathlib bend-mathlib 0.7.0.0 --check
+bun tools/mathlib/index.ts packages/bend-mathlib bend-mathlib 0.7.1.0 --check
 ```
 
 Published statements never change: a fix gets a new name (`PLAN.md` §3.1 rule 2). Full procedure and

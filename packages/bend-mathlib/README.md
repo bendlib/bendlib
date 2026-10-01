@@ -8,7 +8,7 @@ side into the compound one and `name_sym` simplifies the compound side.
 ## algebra
 
 ```python
-import bend-mathlib@0.7.0.0/algebra.bend as MAlgebra
+import bend-mathlib@0.7.1.0/algebra.bend as MAlgebra
 ```
 
 | lemma | statement | meaning | since |
@@ -29,7 +29,8 @@ import bend-mathlib@0.7.0.0/algebra.bend as MAlgebra
 | `bool_or_left_comm(a, b, c)` | `∀ +a: Bool, +b: Bool, +c: Bool. {Bool.or(a, Bool.or(b, c)) == Bool.or(b, Bool.or(a, c)) : Bool}` | Bool or is left-commutative. | 0.4.0.0 |
 | `bool_or_right_comm(a, b, c)` | `∀ +a: Bool, +b: Bool, +c: Bool. {Bool.or(Bool.or(a, b), c) == Bool.or(Bool.or(a, c), b) : Bool}` | Bool or is right-commutative. | 0.4.0.0 |
 | `list_nat_append_assoc4(a, b, c, d)` | `∀ +a: List<&2, Nat>, +b: List<&2, Nat>, +c: List<&2, Nat>, +d: List<&2, Nat>. {List.append(&2, Nat, List.append(&2, Nat, List.append(&2, Nat, a, b), c), d) == List.append(&2, Nat, a, List.append(&2, Nat, b, List.append(&2, Nat, c, d))) : List<&2, Nat>}` | Four-way reassociation for List append over Nat. | 0.4.0.0 |
-| `foldl_op_eq_foldr_op(~B, ~op, ~assoc, ~comm, ~z, ~id, xs)` | `∀ ~B: Data, ~op: B -> B -> B, ~assoc: @x: B -> @y: B -> @z: B -> {op(op(x, y), z) == op(x, op(y, z)) : B}, ~comm: @x: B -> @y: B -> {op(x, y) == op(y, x) : B}, ~z: B, ~id: @x: B -> {op(z, x) == x : B}, +xs: List<&2, B>. {List.foldl(&2, B, B, op, xs, z) == List.foldr(&2, B, B, op, xs, z) : B}` | Folding left equals folding right for an associative, commutative operation with a left identity. | 0.4.0.0 |
+| `foldl_op_eq_foldr_op(~B, ~op, ~assoc, ~comm, ~z, ~id, xs)` | `∀ ~B: Data, ~op: B -> B -> B, ~assoc: @x: B -> @y: B -> @z: B -> {op(op(x, y), z) == op(x, op(y, z)) : B}, ~comm: @x: B -> @y: B -> {op(x, y) == op(y, x) : B}, ~z: B, ~id: @x: B -> {op(z, x) == x : B}, +xs: List<&2, B>. {List.foldl(&2, B, B, op, xs, z) == List.foldr(&2, B, B, op, xs, z) : B}` | Folding left equals folding right for an associative, commutative operation with a left identity (foldl_eq_foldr needs no identity). | 0.4.0.0 |
+| `foldl_eq_foldr(~B, ~op, ~assoc, ~comm, z, xs)` | `∀ ~B: Data, ~op: B -> B -> B, ~assoc: @x: B -> @y: B -> @z: B -> {op(op(x, y), z) == op(x, op(y, z)) : B}, ~comm: @x: B -> @y: B -> {op(x, y) == op(y, x) : B}, +z: B, +xs: List<&2, B>. {List.foldl(&2, B, B, op, xs, z) == List.foldr(&2, B, B, op, xs, z) : B}` | Folding left equals folding right for an associative, commutative operation (Mathlib's List.foldl_eq_foldr). | 0.7.1.0 |
 | `op_assoc4_sym(~A, ~op, ~assoc, a, b, c, d)` | `∀ ~A: Data, ~op: A -> A -> A, ~assoc: @x: A -> @y: A -> @z: A -> {op(op(x, y), z) == op(x, op(y, z)) : A}, +a: A, +b: A, +c: A, +d: A. {op(a, op(b, op(c, d))) == op(op(op(a, b), c), d) : A}` | Four-way reassociation from associativity alone, reversed to rewrite toward the simple side. | 0.4.0.0 |
 | `op_left_comm_sym(~A, ~op, ~assoc, ~comm, a, b, c)` | `∀ ~A: Data, ~op: A -> A -> A, ~assoc: @x: A -> @y: A -> @z: A -> {op(op(x, y), z) == op(x, op(y, z)) : A}, ~comm: @x: A -> @y: A -> {op(x, y) == op(y, x) : A}, +a: A, +b: A, +c: A. {op(b, op(a, c)) == op(a, op(b, c)) : A}` | Left commutation from associativity and commutativity, reversed to rewrite toward the simple side. | 0.4.0.0 |
 | `op_right_comm_sym(~A, ~op, ~assoc, ~comm, a, b, c)` | `∀ ~A: Data, ~op: A -> A -> A, ~assoc: @x: A -> @y: A -> @z: A -> {op(op(x, y), z) == op(x, op(y, z)) : A}, ~comm: @x: A -> @y: A -> {op(x, y) == op(y, x) : A}, +a: A, +b: A, +c: A. {op(op(a, c), b) == op(op(a, b), c) : A}` | Right commutation from associativity and commutativity, reversed to rewrite toward the simple side. | 0.4.0.0 |
@@ -46,12 +47,13 @@ import bend-mathlib@0.7.0.0/algebra.bend as MAlgebra
 | `bool_or_left_comm_sym(a, b, c)` | `∀ +a: Bool, +b: Bool, +c: Bool. {Bool.or(b, Bool.or(a, c)) == Bool.or(a, Bool.or(b, c)) : Bool}` | Bool or is left-commutative, reversed to rewrite toward the simple side. | 0.4.0.0 |
 | `bool_or_right_comm_sym(a, b, c)` | `∀ +a: Bool, +b: Bool, +c: Bool. {Bool.or(Bool.or(a, c), b) == Bool.or(Bool.or(a, b), c) : Bool}` | Bool or is right-commutative, reversed to rewrite toward the simple side. | 0.4.0.0 |
 | `list_nat_append_assoc4_sym(a, b, c, d)` | `∀ +a: List<&2, Nat>, +b: List<&2, Nat>, +c: List<&2, Nat>, +d: List<&2, Nat>. {List.append(&2, Nat, a, List.append(&2, Nat, b, List.append(&2, Nat, c, d))) == List.append(&2, Nat, List.append(&2, Nat, List.append(&2, Nat, a, b), c), d) : List<&2, Nat>}` | Four-way reassociation for List append over Nat, reversed to rewrite toward the simple side. | 0.4.0.0 |
-| `foldl_op_eq_foldr_op_sym(~B, ~op, ~assoc, ~comm, ~z, ~id, xs)` | `∀ ~B: Data, ~op: B -> B -> B, ~assoc: @x: B -> @y: B -> @z: B -> {op(op(x, y), z) == op(x, op(y, z)) : B}, ~comm: @x: B -> @y: B -> {op(x, y) == op(y, x) : B}, ~z: B, ~id: @x: B -> {op(z, x) == x : B}, +xs: List<&2, B>. {List.foldr(&2, B, B, op, xs, z) == List.foldl(&2, B, B, op, xs, z) : B}` | Folding left equals folding right for an associative, commutative operation with a left identity, reversed to rewrite toward the simple side. | 0.4.0.0 |
+| `foldl_op_eq_foldr_op_sym(~B, ~op, ~assoc, ~comm, ~z, ~id, xs)` | `∀ ~B: Data, ~op: B -> B -> B, ~assoc: @x: B -> @y: B -> @z: B -> {op(op(x, y), z) == op(x, op(y, z)) : B}, ~comm: @x: B -> @y: B -> {op(x, y) == op(y, x) : B}, ~z: B, ~id: @x: B -> {op(z, x) == x : B}, +xs: List<&2, B>. {List.foldr(&2, B, B, op, xs, z) == List.foldl(&2, B, B, op, xs, z) : B}` | Folding left equals folding right for an associative, commutative operation with a left identity (foldl_eq_foldr needs no identity), reversed to rewrite toward the simple side. | 0.4.0.0 |
+| `foldl_eq_foldr_sym(~B, ~op, ~assoc, ~comm, z, xs)` | `∀ ~B: Data, ~op: B -> B -> B, ~assoc: @x: B -> @y: B -> @z: B -> {op(op(x, y), z) == op(x, op(y, z)) : B}, ~comm: @x: B -> @y: B -> {op(x, y) == op(y, x) : B}, +z: B, +xs: List<&2, B>. {List.foldr(&2, B, B, op, xs, z) == List.foldl(&2, B, B, op, xs, z) : B}` | Folding left equals folding right for an associative, commutative operation (Mathlib's List.foldl_eq_foldr), reversed to rewrite toward the simple side. | 0.7.1.0 |
 
 ## bool
 
 ```python
-import bend-mathlib@0.7.0.0/bool.bend as MBool
+import bend-mathlib@0.7.1.0/bool.bend as MBool
 ```
 
 | lemma | statement | meaning | since |
@@ -129,7 +131,7 @@ import bend-mathlib@0.7.0.0/bool.bend as MBool
 ## equal
 
 ```python
-import bend-mathlib@0.7.0.0/equal.bend as MEqual
+import bend-mathlib@0.7.1.0/equal.bend as MEqual
 ```
 
 | lemma | statement | meaning | since |
@@ -142,7 +144,7 @@ import bend-mathlib@0.7.0.0/equal.bend as MEqual
 ## list
 
 ```python
-import bend-mathlib@0.7.0.0/list.bend as MList
+import bend-mathlib@0.7.1.0/list.bend as MList
 ```
 
 | predicate | definition | since |
@@ -350,7 +352,7 @@ import bend-mathlib@0.7.0.0/list.bend as MList
 ## maybe
 
 ```python
-import bend-mathlib@0.7.0.0/maybe.bend as MMaybe
+import bend-mathlib@0.7.1.0/maybe.bend as MMaybe
 ```
 
 | lemma | statement | meaning | since |
@@ -389,7 +391,7 @@ import bend-mathlib@0.7.0.0/maybe.bend as MMaybe
 ## nat
 
 ```python
-import bend-mathlib@0.7.0.0/nat.bend as MNat
+import bend-mathlib@0.7.1.0/nat.bend as MNat
 ```
 
 | predicate | definition | since |
@@ -545,8 +547,8 @@ import bend-mathlib@0.7.0.0/nat.bend as MNat
 | `min_eq_right(a, b, h)` | `∀ a: Nat, b: Nat, h: le(b, a). {Nat.min(a, b) == b : Nat}` | The minimum is the smaller argument on the right: b <= a implies min a b = b. | 0.6.0.0 |
 | `max_eq_left(a, b, h)` | `∀ a: Nat, b: Nat, h: le(b, a). {Nat.max(a, b) == a : Nat}` | The maximum is the larger argument on the left: b <= a implies max a b = a. | 0.6.0.0 |
 | `max_eq_right(a, b, h)` | `∀ a: Nat, b: Nat, h: le(a, b). {Nat.max(a, b) == b : Nat}` | The maximum is the larger argument on the right: a <= b implies max a b = b. | 0.6.0.0 |
-| `le_min(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.is_le(a, Nat.min(b, c)) == Bool.and(Nat.is_le(a, b), Nat.is_le(a, c)) : Bool}` | A number is at most the minimum exactly when it is at most both: a <= min b c tests as a <= b and a <= c. | 0.6.0.0 |
-| `max_le(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.is_le(Nat.max(a, b), c) == Bool.and(Nat.is_le(a, c), Nat.is_le(b, c)) : Bool}` | The maximum is at most c exactly when both arguments are: max a b <= c tests as a <= c and b <= c. | 0.6.0.0 |
+| `le_min(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.is_le(a, Nat.min(b, c)) == Bool.and(Nat.is_le(a, b), Nat.is_le(a, c)) : Bool}` | A number is at most the minimum exactly when it is at most both: a <= min b c tests as a <= b and a <= c (Mathlib's le_min_iff; the implication is le_min_of_le_of_le). | 0.6.0.0 |
+| `max_le(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.is_le(Nat.max(a, b), c) == Bool.and(Nat.is_le(a, c), Nat.is_le(b, c)) : Bool}` | The maximum is at most c exactly when both arguments are: max a b <= c tests as a <= c and b <= c (Mathlib's max_le_iff; the implication is max_le_of_le_of_le). | 0.6.0.0 |
 | `mul_le_mul_left(a, b, k, h)` | `∀ a: Nat, b: Nat, k: Nat, h: le(a, b). le(Nat.mul(k, a), Nat.mul(k, b))` | Multiplying on the left preserves the order: a <= b implies k * a <= k * b. | 0.6.0.0 |
 | `mul_le_mul(a, b, c, d, h1, h2)` | `∀ a: Nat, b: Nat, c: Nat, d: Nat, h1: le(a, c), h2: le(b, d). le(Nat.mul(a, b), Nat.mul(c, d))` | Multiplying two bounded factors stays bounded: a <= c and b <= d imply a * b <= c * d. | 0.6.0.0 |
 | `succ_pos(n)` | `∀ -n: Nat. lt(0n, 1n+n)` | Every successor is positive: 0 < n + 1. | 0.7.0.0 |
@@ -611,6 +613,22 @@ import bend-mathlib@0.7.0.0/nat.bend as MNat
 | `add_mul_mod_self_left(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.mod(Nat.add(a, Nat.mul(b, c)), b) == Nat.mod(a, b) : Nat}` | Adding a multiple of the divisor keeps the remainder: (a + b * c) % b = a % b. | 0.7.0.0 |
 | `mod_two_eq_zero_or_one(n)` | `∀ n: Nat. {Bool.or(Nat.is_eq(Nat.mod(n, 2n), 0n), Nat.is_eq(Nat.mod(n, 2n), 1n)) == True{} : Bool}` | A remainder modulo two is zero or one. | 0.7.0.0 |
 | `div_add_mod(a, b)` | `∀ a: Nat, b: Nat. {Nat.add(Nat.mul(b, Nat.div(a, b)), Nat.mod(a, b)) == a : Nat}` | The divisor times the quotient plus the remainder is the dividend: b * (a / b) + a % b = a. | 0.7.0.0 |
+| `two_mul(n)` | `∀ n: Nat. {Nat.mul(2n, n) == Nat.add(n, n) : Nat}` | Two times n is n + n. | 0.7.1.0 |
+| `double_eq_two_mul(n)` | `∀ n: Nat. {Nat.double(n) == Nat.mul(2n, n) : Nat}` | Doubling is multiplying by two: double n = 2 * n. | 0.7.1.0 |
+| `double_add(a, b)` | `∀ a: Nat, b: Nat. {Nat.double(Nat.add(a, b)) == Nat.add(Nat.double(a), Nat.double(b)) : Nat}` | Doubling distributes over addition: double (a + b) = double a + double b. | 0.7.1.0 |
+| `double_mul(a, b)` | `∀ a: Nat, b: Nat. {Nat.double(Nat.mul(a, b)) == Nat.mul(Nat.double(a), b) : Nat}` | Doubling a product doubles its left factor: double (a * b) = double a * b. | 0.7.1.0 |
+| `mul_double(a, b)` | `∀ a: Nat, b: Nat. {Nat.mul(a, Nat.double(b)) == Nat.double(Nat.mul(a, b)) : Nat}` | Multiplying by a doubled factor doubles the product: a * double b = double (a * b). | 0.7.1.0 |
+| `double_sub(a, b)` | `∀ a: Nat, b: Nat. {Nat.double(Nat.sub(a, b)) == Nat.sub(Nat.double(a), Nat.double(b)) : Nat}` | Doubling distributes over truncated subtraction: double (a - b) = double a - double b. | 0.7.1.0 |
+| `le_double(n)` | `∀ n: Nat. le(n, Nat.double(n))` | A natural is at most its double: n <= double n. | 0.7.1.0 |
+| `double_le_double(a, b, h)` | `∀ a: Nat, b: Nat, h: le(a, b). le(Nat.double(a), Nat.double(b))` | Doubling preserves the order: a <= b implies double a <= double b. | 0.7.1.0 |
+| `double_lt_double(a, b, h)` | `∀ a: Nat, b: Nat, h: lt(a, b). lt(Nat.double(a), Nat.double(b))` | Doubling preserves the strict order: a < b implies double a < double b. | 0.7.1.0 |
+| `double_div_two_add_mod_two(n)` | `∀ n: Nat. {Nat.add(Nat.double(Nat.div(n, 2n)), Nat.mod(n, 2n)) == n : Nat}` | Twice the half plus the parity is the number: double (n / 2) + n % 2 = n. | 0.7.1.0 |
+| `add_le_add_iff_right(a, b, k)` | `∀ a: Nat, b: Nat, k: Nat. {Nat.is_le(a, b) == Nat.is_le(Nat.add(a, k), Nat.add(b, k)) : Bool}` | Adding the same amount on the right does not change the order test: a <= b tests as a + k <= b + k. | 0.7.1.0 |
+| `add_left_cancel_iff(k, a, b)` | `∀ k: Nat, -a: Nat, -b: Nat. {Nat.is_eq(a, b) == Nat.is_eq(Nat.add(k, a), Nat.add(k, b)) : Bool}` | Adding the same amount on the left does not change the equality test: a = b tests as k + a = k + b. | 0.7.1.0 |
+| `add_right_cancel_iff(a, b, k)` | `∀ a: Nat, b: Nat, k: Nat. {Nat.is_eq(a, b) == Nat.is_eq(Nat.add(a, k), Nat.add(b, k)) : Bool}` | Adding the same amount on the right does not change the equality test: a = b tests as a + k = b + k. | 0.7.1.0 |
+| `sub_add_comm(n, m, k, h)` | `∀ n: Nat, m: Nat, k: Nat, h: le(k, n). {Nat.sub(Nat.add(n, m), k) == Nat.add(Nat.sub(n, k), m) : Nat}` | Subtracting from the left summand commutes with adding the right one: k <= n implies (n + m) - k = (n - k) + m. | 0.7.1.0 |
+| `le_min_of_le_of_le(a, b, c, hb, hc)` | `∀ a: Nat, b: Nat, c: Nat, hb: le(a, b), hc: le(a, c). le(a, Nat.min(b, c))` | A lower bound of both b and c is a lower bound of their minimum: a <= b and a <= c imply a <= min b c. | 0.7.1.0 |
+| `max_le_of_le_of_le(a, b, c, ha, hb)` | `∀ a: Nat, b: Nat, c: Nat, ha: le(a, c), hb: le(b, c). le(Nat.max(a, b), c)` | An upper bound of both a and b bounds their maximum: a <= c and b <= c imply max a b <= c. | 0.7.1.0 |
 | `add_zero_sym(x)` | `∀ x: Nat. {x == Nat.add(x, 0n) : Nat}` | Zero is a right identity for addition: x + 0 = x, reversed to rewrite toward the simple side. | 0.1.0.0 |
 | `zero_add_sym(x)` | `∀ -x: Nat. {x == Nat.add(0n, x) : Nat}` | Zero is a left identity for addition: 0 + x = x, reversed to rewrite toward the simple side. | 0.1.0.0 |
 | `add_succ_sym(n, m)` | `∀ n: Nat, -m: Nat. {1n+Nat.add(n, m) == Nat.add(n, 1n+m) : Nat}` | Adding a successor on the right: n + (m + 1) = (n + m) + 1, reversed to rewrite toward the simple side. | 0.1.0.0 |
@@ -692,8 +710,8 @@ import bend-mathlib@0.7.0.0/nat.bend as MNat
 | `add_sub_add_right_sym(n, k, m)` | `∀ n: Nat, k: Nat, m: Nat. {Nat.sub(n, m) == Nat.sub(Nat.add(n, k), Nat.add(m, k)) : Nat}` | A common right summand cancels in a difference: (n + k) - (m + k) = n - m, reversed to rewrite toward the simple side. | 0.6.0.0 |
 | `sub_mul_sym(n, m, k)` | `∀ n: Nat, m: Nat, k: Nat. {Nat.sub(Nat.mul(n, k), Nat.mul(m, k)) == Nat.mul(Nat.sub(n, m), k) : Nat}` | Multiplication distributes over subtraction on the right: (n - m) * k = n * k - m * k, reversed to rewrite toward the simple side. | 0.6.0.0 |
 | `mul_sub_sym(n, m, k)` | `∀ n: Nat, m: Nat, k: Nat. {Nat.sub(Nat.mul(n, m), Nat.mul(n, k)) == Nat.mul(n, Nat.sub(m, k)) : Nat}` | Multiplication distributes over subtraction on the left: n * (m - k) = n * m - n * k, reversed to rewrite toward the simple side. | 0.6.0.0 |
-| `le_min_sym(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Bool.and(Nat.is_le(a, b), Nat.is_le(a, c)) == Nat.is_le(a, Nat.min(b, c)) : Bool}` | A number is at most the minimum exactly when it is at most both: a <= min b c tests as a <= b and a <= c, reversed to rewrite toward the simple side. | 0.6.0.0 |
-| `max_le_sym(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Bool.and(Nat.is_le(a, c), Nat.is_le(b, c)) == Nat.is_le(Nat.max(a, b), c) : Bool}` | The maximum is at most c exactly when both arguments are: max a b <= c tests as a <= c and b <= c, reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `le_min_sym(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Bool.and(Nat.is_le(a, b), Nat.is_le(a, c)) == Nat.is_le(a, Nat.min(b, c)) : Bool}` | A number is at most the minimum exactly when it is at most both: a <= min b c tests as a <= b and a <= c (Mathlib's le_min_iff; the implication is le_min_of_le_of_le), reversed to rewrite toward the simple side. | 0.6.0.0 |
+| `max_le_sym(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Bool.and(Nat.is_le(a, c), Nat.is_le(b, c)) == Nat.is_le(Nat.max(a, b), c) : Bool}` | The maximum is at most c exactly when both arguments are: max a b <= c tests as a <= c and b <= c (Mathlib's max_le_iff; the implication is max_le_of_le_of_le), reversed to rewrite toward the simple side. | 0.6.0.0 |
 | `lt_succ_iff_sym(m, n)` | `∀ m: Nat, n: Nat. {Nat.is_le(m, n) == Nat.is_lt(m, 1n+n) : Bool}` | Below a successor means at most: m < n + 1 tests as m <= n, reversed to rewrite toward the simple side. | 0.7.0.0 |
 | `le_iff_lt_or_eq_sym(a, b)` | `∀ a: Nat, b: Nat. {Bool.or(Nat.is_lt(a, b), Nat.is_eq(a, b)) == Nat.is_le(a, b) : Bool}` | At most means below or equal: a <= b tests as a < b or a = b, reversed to rewrite toward the simple side. | 0.7.0.0 |
 | `lt_iff_le_and_ne_sym(a, b)` | `∀ a: Nat, b: Nat. {Bool.and(Nat.is_le(a, b), Bool.not(Nat.is_eq(a, b))) == Nat.is_lt(a, b) : Bool}` | Below means at most and different: a < b tests as a <= b and not a = b, reversed to rewrite toward the simple side. | 0.7.0.0 |
@@ -715,11 +733,21 @@ import bend-mathlib@0.7.0.0/nat.bend as MNat
 | `add_mul_mod_self_left_sym(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.mod(a, b) == Nat.mod(Nat.add(a, Nat.mul(b, c)), b) : Nat}` | Adding a multiple of the divisor keeps the remainder: (a + b * c) % b = a % b, reversed to rewrite toward the simple side. | 0.7.0.0 |
 | `mod_two_eq_zero_or_one_sym(n)` | `∀ n: Nat. {True{} == Bool.or(Nat.is_eq(Nat.mod(n, 2n), 0n), Nat.is_eq(Nat.mod(n, 2n), 1n)) : Bool}` | A remainder modulo two is zero or one, reversed to rewrite toward the simple side. | 0.7.0.0 |
 | `div_add_mod_sym(a, b)` | `∀ a: Nat, b: Nat. {a == Nat.add(Nat.mul(b, Nat.div(a, b)), Nat.mod(a, b)) : Nat}` | The divisor times the quotient plus the remainder is the dividend: b * (a / b) + a % b = a, reversed to rewrite toward the simple side. | 0.7.0.0 |
+| `two_mul_sym(n)` | `∀ n: Nat. {Nat.add(n, n) == Nat.mul(2n, n) : Nat}` | Two times n is n + n, reversed to rewrite toward the simple side. | 0.7.1.0 |
+| `double_eq_two_mul_sym(n)` | `∀ n: Nat. {Nat.mul(2n, n) == Nat.double(n) : Nat}` | Doubling is multiplying by two: double n = 2 * n, reversed to rewrite toward the simple side. | 0.7.1.0 |
+| `double_add_sym(a, b)` | `∀ a: Nat, b: Nat. {Nat.add(Nat.double(a), Nat.double(b)) == Nat.double(Nat.add(a, b)) : Nat}` | Doubling distributes over addition: double (a + b) = double a + double b, reversed to rewrite toward the simple side. | 0.7.1.0 |
+| `double_mul_sym(a, b)` | `∀ a: Nat, b: Nat. {Nat.mul(Nat.double(a), b) == Nat.double(Nat.mul(a, b)) : Nat}` | Doubling a product doubles its left factor: double (a * b) = double a * b, reversed to rewrite toward the simple side. | 0.7.1.0 |
+| `mul_double_sym(a, b)` | `∀ a: Nat, b: Nat. {Nat.double(Nat.mul(a, b)) == Nat.mul(a, Nat.double(b)) : Nat}` | Multiplying by a doubled factor doubles the product: a * double b = double (a * b), reversed to rewrite toward the simple side. | 0.7.1.0 |
+| `double_sub_sym(a, b)` | `∀ a: Nat, b: Nat. {Nat.sub(Nat.double(a), Nat.double(b)) == Nat.double(Nat.sub(a, b)) : Nat}` | Doubling distributes over truncated subtraction: double (a - b) = double a - double b, reversed to rewrite toward the simple side. | 0.7.1.0 |
+| `double_div_two_add_mod_two_sym(n)` | `∀ n: Nat. {n == Nat.add(Nat.double(Nat.div(n, 2n)), Nat.mod(n, 2n)) : Nat}` | Twice the half plus the parity is the number: double (n / 2) + n % 2 = n, reversed to rewrite toward the simple side. | 0.7.1.0 |
+| `add_le_add_iff_right_sym(a, b, k)` | `∀ a: Nat, b: Nat, k: Nat. {Nat.is_le(Nat.add(a, k), Nat.add(b, k)) == Nat.is_le(a, b) : Bool}` | Adding the same amount on the right does not change the order test: a <= b tests as a + k <= b + k, reversed to rewrite toward the simple side. | 0.7.1.0 |
+| `add_left_cancel_iff_sym(k, a, b)` | `∀ k: Nat, -a: Nat, -b: Nat. {Nat.is_eq(Nat.add(k, a), Nat.add(k, b)) == Nat.is_eq(a, b) : Bool}` | Adding the same amount on the left does not change the equality test: a = b tests as k + a = k + b, reversed to rewrite toward the simple side. | 0.7.1.0 |
+| `add_right_cancel_iff_sym(a, b, k)` | `∀ a: Nat, b: Nat, k: Nat. {Nat.is_eq(Nat.add(a, k), Nat.add(b, k)) == Nat.is_eq(a, b) : Bool}` | Adding the same amount on the right does not change the equality test: a = b tests as a + k = b + k, reversed to rewrite toward the simple side. | 0.7.1.0 |
 
 ## order
 
 ```python
-import bend-mathlib@0.7.0.0/order.bend as MOrder
+import bend-mathlib@0.7.1.0/order.bend as MOrder
 ```
 
 | lemma | statement | meaning | since |
@@ -734,7 +762,7 @@ import bend-mathlib@0.7.0.0/order.bend as MOrder
 ## string
 
 ```python
-import bend-mathlib@0.7.0.0/string.bend as MString
+import bend-mathlib@0.7.1.0/string.bend as MString
 ```
 
 | lemma | statement | meaning | since |
@@ -791,4 +819,4 @@ import bend-mathlib@0.7.0.0/string.bend as MString
 | `to_list_append_sym(a, b)` | `∀ a: String, -b: String. {List.append(&2, Char, String.to_list(a), String.to_list(b)) == String.to_list(String.append(a, b)) : List<&2, Char>}` | The characters of an append are the characters of each part, appended, reversed to rewrite toward the simple side. | 0.7.0.0 |
 | `length_to_list_sym(s)` | `∀ s: String. {String.length(s) == List.length(&2, Char, String.to_list(s)) : Nat}` | A string has as many characters as its character list, reversed to rewrite toward the simple side. | 0.7.0.0 |
 
-421 lemmas + 281 generated _sym twins, 6 predicates. Generated by `tools/mathlib/index.ts`.
+438 lemmas + 292 generated _sym twins, 6 predicates. Generated by `tools/mathlib/index.ts`.

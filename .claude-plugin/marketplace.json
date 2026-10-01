@@ -1,0 +1,12 @@
+{
+  "name": "bendlib",
+  "owner": { "name": "bendlib", "url": "https://github.com/bendlib" },
+  "description": "Agent plugins for Bend 2 from bendlib.",
+  "plugins": [
+    {
+      "name": "bend-mathlib",
+      "source": "./plugins/bend-mathlib",
+      "description": "Prove Bend 2 laws with bend-mathlib's machine-checked lemmas instead of re-proving them."
+    }
+  ]
+}

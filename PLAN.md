@@ -406,7 +406,7 @@ check/lint/twins/lock/index/release tools and `devlib` (§3.5); a CI job holding
 `bend --verdict`, the proven kernel (F35); lawcheck 0.3 (engine C, shrinking, premises, datatypes,
 template catalog, `mutate`, `--json`, `--native`, tag-triggered binaries, `install.sh`); Bend Docs
 at https://bendlib.github.io/bendlib/, with per-package checker status and a pointer from every law
-another package restates to its bend-mathlib lemma; an agent skill (`skills/bend-mathlib`).
+another package restates to its bend-mathlib lemma; an agent skill, shipped as a Claude Code plugin (`plugins/bend-mathlib`).
 
 ### 7.2 Next — the work items are beads (`br ready`); this says why the order
 Lemma work first (each lemma removes a re-proof everywhere; the checker judges it), then lawcheck

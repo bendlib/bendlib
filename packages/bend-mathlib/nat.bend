@@ -2452,7 +2452,7 @@ def internal_and_true_sym(x: Bool) -> {x == Bool.and(x, True{}) : Bool}:
     case True{}:
       {==}
 
-# A number is at most the minimum exactly when it is at most both: a <= min b c tests as a <= b and a <= c.
+# A number is at most the minimum exactly when it is at most both: a <= min b c tests as a <= b and a <= c (Mathlib's le_min_iff; the implication is le_min_of_le_of_le).
 law le_min:
   for a: Nat
   for b: Nat
@@ -2476,7 +2476,7 @@ def le_min(a, b, c):
     case 1n+p 1n+q 1n+r:
       le_min(p, q, r)
 
-# The maximum is at most c exactly when both arguments are: max a b <= c tests as a <= c and b <= c.
+# The maximum is at most c exactly when both arguments are: max a b <= c tests as a <= c and b <= c (Mathlib's max_le_iff; the implication is max_le_of_le_of_le).
 law max_le:
   for a: Nat
   for b: Nat
@@ -3511,6 +3511,225 @@ def div_add_mod(a, b):
   %add_comm(Nat.mod(a, b), Nat.mul(b, Nat.div(a, b))) : {_ == a : Nat}
   mod_add_div(a, b)
 
+# Two times n is n + n.
+law two_mul:
+  for n: Nat
+  {Nat.mul(2n, n) == Nat.add(n, n) : Nat}
+
+def two_mul(n):
+  +n = n
+  %Equal.sym(Nat, Nat.add(n, 0n), n, add_zero(n)) : {Nat.add(n, _) == Nat.add(n, n) : Nat}
+  {==}
+
+# Doubling is multiplying by two: double n = 2 * n.
+law double_eq_two_mul:
+  for n: Nat
+  {Nat.double(n) == Nat.mul(2n, n) : Nat}
+
+def double_eq_two_mul(n):
+  +n = n
+  %Equal.sym(Nat, Nat.mul(2n, n), Nat.add(n, n), two_mul(n)) : {Nat.double(n) == _ : Nat}
+  double_eq_add(n)
+
+# Doubling distributes over addition: double (a + b) = double a + double b.
+law double_add:
+  for a: Nat
+  for b: Nat
+  {Nat.double(Nat.add(a, b)) == Nat.add(Nat.double(a), Nat.double(b)) : Nat}
+
+def double_add(a, b):
+  +a = a
+  +b = b
+  %Equal.sym(Nat, Nat.double(Nat.add(a, b)), Nat.add(Nat.add(a, b), Nat.add(a, b)), double_eq_add(Nat.add(a, b))) : {_ == Nat.add(Nat.double(a), Nat.double(b)) : Nat}
+  %Equal.sym(Nat, Nat.double(a), Nat.add(a, a), double_eq_add(a)) : {Nat.add(Nat.add(a, b), Nat.add(a, b)) == Nat.add(_, Nat.double(b)) : Nat}
+  %Equal.sym(Nat, Nat.double(b), Nat.add(b, b), double_eq_add(b)) : {Nat.add(Nat.add(a, b), Nat.add(a, b)) == Nat.add(Nat.add(a, a), _) : Nat}
+  add_add_add_comm(a, b, a, b)
+
+# Doubling a product doubles its left factor: double (a * b) = double a * b.
+law double_mul:
+  for a: Nat
+  for b: Nat
+  {Nat.double(Nat.mul(a, b)) == Nat.mul(Nat.double(a), b) : Nat}
+
+def double_mul(a, b):
+  +a = a
+  +b = b
+  %Equal.sym(Nat, Nat.double(Nat.mul(a, b)), Nat.add(Nat.mul(a, b), Nat.mul(a, b)), double_eq_add(Nat.mul(a, b))) : {_ == Nat.mul(Nat.double(a), b) : Nat}
+  %Equal.sym(Nat, Nat.double(a), Nat.add(a, a), double_eq_add(a)) : {Nat.add(Nat.mul(a, b), Nat.mul(a, b)) == Nat.mul(_, b) : Nat}
+  Equal.sym(Nat, Nat.mul(Nat.add(a, a), b), Nat.add(Nat.mul(a, b), Nat.mul(a, b)), add_mul(a, a, b))
+
+# Multiplying by a doubled factor doubles the product: a * double b = double (a * b).
+law mul_double:
+  for a: Nat
+  for b: Nat
+  {Nat.mul(a, Nat.double(b)) == Nat.double(Nat.mul(a, b)) : Nat}
+
+def mul_double(a, b):
+  +a = a
+  +b = b
+  %Equal.sym(Nat, Nat.double(b), Nat.add(b, b), double_eq_add(b)) : {Nat.mul(a, _) == Nat.double(Nat.mul(a, b)) : Nat}
+  %Equal.sym(Nat, Nat.double(Nat.mul(a, b)), Nat.add(Nat.mul(a, b), Nat.mul(a, b)), double_eq_add(Nat.mul(a, b))) : {Nat.mul(a, Nat.add(b, b)) == _ : Nat}
+  mul_add(a, b, b)
+
+# Doubling distributes over truncated subtraction: double (a - b) = double a - double b.
+law double_sub:
+  for a: Nat
+  for b: Nat
+  {Nat.double(Nat.sub(a, b)) == Nat.sub(Nat.double(a), Nat.double(b)) : Nat}
+
+def double_sub(a, b):
+  match a b:
+    case 0n _:
+      {==}
+    case 1n+p 0n:
+      {==}
+    case 1n+p 1n+q:
+      double_sub(p, q)
+
+# A natural is at most its double: n <= double n.
+law le_double:
+  for n: Nat
+  le(n, Nat.double(n))
+
+def le_double(n):
+  +n = n
+  %Equal.sym(Nat, Nat.double(n), Nat.add(n, n), double_eq_add(n)) : le(n, _)
+  le_add_right(n, n)
+
+# Doubling preserves the order: a <= b implies double a <= double b.
+law double_le_double:
+  for a: Nat
+  for b: Nat
+  for h: le(a, b)
+  le(Nat.double(a), Nat.double(b))
+
+def double_le_double(a, b, h):
+  +a = a
+  +b = b
+  +h = h
+  %Equal.sym(Nat, Nat.double(a), Nat.add(a, a), double_eq_add(a)) : le(_, Nat.double(b))
+  %Equal.sym(Nat, Nat.double(b), Nat.add(b, b), double_eq_add(b)) : le(Nat.add(a, a), _)
+  add_le_add(a, a, b, b, h, h)
+
+# Doubling preserves the strict order: a < b implies double a < double b.
+law double_lt_double:
+  for a: Nat
+  for b: Nat
+  for h: lt(a, b)
+  lt(Nat.double(a), Nat.double(b))
+
+def double_lt_double(a, b, h):
+  +a = a
+  +b = b
+  +h = h
+  %Equal.sym(Nat, Nat.double(a), Nat.add(a, a), double_eq_add(a)) : lt(_, Nat.double(b))
+  %Equal.sym(Nat, Nat.double(b), Nat.add(b, b), double_eq_add(b)) : lt(Nat.add(a, a), _)
+  add_lt_add(a, a, b, b, h, h)
+
+# Twice the half plus the parity is the number: double (n / 2) + n % 2 = n.
+law double_div_two_add_mod_two:
+  for n: Nat
+  {Nat.add(Nat.double(Nat.div(n, 2n)), Nat.mod(n, 2n)) == n : Nat}
+
+def double_div_two_add_mod_two(n):
+  +n = n
+  %Equal.sym(Nat, Nat.double(Nat.div(n, 2n)), Nat.mul(2n, Nat.div(n, 2n)), double_eq_two_mul(Nat.div(n, 2n))) : {Nat.add(_, Nat.mod(n, 2n)) == n : Nat}
+  div_add_mod(n, 2n)
+
+# Adding the same amount on the right does not change the order test: a <= b tests as a + k <= b + k.
+law add_le_add_iff_right:
+  for a: Nat
+  for b: Nat
+  for k: Nat
+  {Nat.is_le(a, b) == Nat.is_le(Nat.add(a, k), Nat.add(b, k)) : Bool}
+
+def add_le_add_iff_right(a, b, k):
+  +a = a
+  +b = b
+  +k = k
+  %add_comm(k, a) : {Nat.is_le(a, b) == Nat.is_le(_, Nat.add(b, k)) : Bool}
+  %add_comm(k, b) : {Nat.is_le(a, b) == Nat.is_le(Nat.add(k, a), _) : Bool}
+  add_le_add_iff_left(k, a, b)
+
+# Adding the same amount on the left does not change the equality test: a = b tests as k + a = k + b.
+law add_left_cancel_iff:
+  for k: Nat
+  for -a: Nat
+  for -b: Nat
+  {Nat.is_eq(a, b) == Nat.is_eq(Nat.add(k, a), Nat.add(k, b)) : Bool}
+
+def add_left_cancel_iff(k, a, b):
+  match k:
+    case 0n:
+      {==}
+    case 1n+p:
+      add_left_cancel_iff(p, a, b)
+
+# Adding the same amount on the right does not change the equality test: a = b tests as a + k = b + k.
+law add_right_cancel_iff:
+  for a: Nat
+  for b: Nat
+  for k: Nat
+  {Nat.is_eq(a, b) == Nat.is_eq(Nat.add(a, k), Nat.add(b, k)) : Bool}
+
+def add_right_cancel_iff(a, b, k):
+  +a = a
+  +b = b
+  +k = k
+  %add_comm(k, a) : {Nat.is_eq(a, b) == Nat.is_eq(_, Nat.add(b, k)) : Bool}
+  %add_comm(k, b) : {Nat.is_eq(a, b) == Nat.is_eq(Nat.add(k, a), _) : Bool}
+  add_left_cancel_iff(k, a, b)
+
+# Subtracting from the left summand commutes with adding the right one: k <= n implies (n + m) - k = (n - k) + m.
+law sub_add_comm:
+  for n: Nat
+  for m: Nat
+  for k: Nat
+  for h: le(k, n)
+  {Nat.sub(Nat.add(n, m), k) == Nat.add(Nat.sub(n, k), m) : Nat}
+
+def sub_add_comm(n, m, k, h):
+  +n = n
+  +m = m
+  +k = k
+  %add_comm(m, n) : {Nat.sub(_, k) == Nat.add(Nat.sub(n, k), m) : Nat}
+  %add_comm(m, Nat.sub(n, k)) : {Nat.sub(Nat.add(m, n), k) == _ : Nat}
+  add_sub_assoc(k, n, h, m)
+
+# A lower bound of both b and c is a lower bound of their minimum: a <= b and a <= c imply a <= min b c.
+law le_min_of_le_of_le:
+  for a: Nat
+  for b: Nat
+  for c: Nat
+  for hb: le(a, b)
+  for hc: le(a, c)
+  le(a, Nat.min(b, c))
+
+def le_min_of_le_of_le(a, b, c, hb, hc):
+  +a = a
+  +b = b
+  +c = c
+  %Equal.sym(Bool, Nat.is_le(a, Nat.min(b, c)), Bool.and(Nat.is_le(a, b), Nat.is_le(a, c)), le_min(a, b, c)) : {_ == True{} : Bool}
+  %Equal.sym(Bool, Nat.is_le(a, b), True{}, hb) : {Bool.and(_, Nat.is_le(a, c)) == True{} : Bool}
+  hc
+
+# An upper bound of both a and b bounds their maximum: a <= c and b <= c imply max a b <= c.
+law max_le_of_le_of_le:
+  for a: Nat
+  for b: Nat
+  for c: Nat
+  for ha: le(a, c)
+  for hb: le(b, c)
+  le(Nat.max(a, b), c)
+
+def max_le_of_le_of_le(a, b, c, ha, hb):
+  +a = a
+  +b = b
+  +c = c
+  %Equal.sym(Bool, Nat.is_le(Nat.max(a, b), c), Bool.and(Nat.is_le(a, c), Nat.is_le(b, c)), max_le(a, b, c)) : {_ == True{} : Bool}
+  %Equal.sym(Bool, Nat.is_le(a, c), True{}, ha) : {Bool.and(_, Nat.is_le(b, c)) == True{} : Bool}
+  hb
+
 # --- generated: _sym twins (tools/mathlib/twins.ts), do not edit ---
 
 # Zero is a right identity for addition: x + 0 = x, reversed to rewrite toward the simple side.
@@ -4243,7 +4462,7 @@ law mul_sub_sym:
 def mul_sub_sym(n, m, k):
   Equal.sym(Nat, Nat.mul(n, Nat.sub(m, k)), Nat.sub(Nat.mul(n, m), Nat.mul(n, k)), mul_sub(n, m, k))
 
-# A number is at most the minimum exactly when it is at most both: a <= min b c tests as a <= b and a <= c, reversed to rewrite toward the simple side.
+# A number is at most the minimum exactly when it is at most both: a <= min b c tests as a <= b and a <= c (Mathlib's le_min_iff; the implication is le_min_of_le_of_le), reversed to rewrite toward the simple side.
 law le_min_sym:
   for a: Nat
   for b: Nat
@@ -4253,7 +4472,7 @@ law le_min_sym:
 def le_min_sym(a, b, c):
   Equal.sym(Bool, Nat.is_le(a, Nat.min(b, c)), Bool.and(Nat.is_le(a, b), Nat.is_le(a, c)), le_min(a, b, c))
 
-# The maximum is at most c exactly when both arguments are: max a b <= c tests as a <= c and b <= c, reversed to rewrite toward the simple side.
+# The maximum is at most c exactly when both arguments are: max a b <= c tests as a <= c and b <= c (Mathlib's max_le_iff; the implication is max_le_of_le_of_le), reversed to rewrite toward the simple side.
 law max_le_sym:
   for a: Nat
   for b: Nat
@@ -4466,3 +4685,93 @@ law div_add_mod_sym:
 
 def div_add_mod_sym(a, b):
   Equal.sym(Nat, Nat.add(Nat.mul(b, Nat.div(a, b)), Nat.mod(a, b)), a, div_add_mod(a, b))
+
+# Two times n is n + n, reversed to rewrite toward the simple side.
+law two_mul_sym:
+  for n: Nat
+  {Nat.add(n, n) == Nat.mul(2n, n) : Nat}
+
+def two_mul_sym(n):
+  Equal.sym(Nat, Nat.mul(2n, n), Nat.add(n, n), two_mul(n))
+
+# Doubling is multiplying by two: double n = 2 * n, reversed to rewrite toward the simple side.
+law double_eq_two_mul_sym:
+  for n: Nat
+  {Nat.mul(2n, n) == Nat.double(n) : Nat}
+
+def double_eq_two_mul_sym(n):
+  Equal.sym(Nat, Nat.double(n), Nat.mul(2n, n), double_eq_two_mul(n))
+
+# Doubling distributes over addition: double (a + b) = double a + double b, reversed to rewrite toward the simple side.
+law double_add_sym:
+  for a: Nat
+  for b: Nat
+  {Nat.add(Nat.double(a), Nat.double(b)) == Nat.double(Nat.add(a, b)) : Nat}
+
+def double_add_sym(a, b):
+  Equal.sym(Nat, Nat.double(Nat.add(a, b)), Nat.add(Nat.double(a), Nat.double(b)), double_add(a, b))
+
+# Doubling a product doubles its left factor: double (a * b) = double a * b, reversed to rewrite toward the simple side.
+law double_mul_sym:
+  for a: Nat
+  for b: Nat
+  {Nat.mul(Nat.double(a), b) == Nat.double(Nat.mul(a, b)) : Nat}
+
+def double_mul_sym(a, b):
+  Equal.sym(Nat, Nat.double(Nat.mul(a, b)), Nat.mul(Nat.double(a), b), double_mul(a, b))
+
+# Multiplying by a doubled factor doubles the product: a * double b = double (a * b), reversed to rewrite toward the simple side.
+law mul_double_sym:
+  for a: Nat
+  for b: Nat
+  {Nat.double(Nat.mul(a, b)) == Nat.mul(a, Nat.double(b)) : Nat}
+
+def mul_double_sym(a, b):
+  Equal.sym(Nat, Nat.mul(a, Nat.double(b)), Nat.double(Nat.mul(a, b)), mul_double(a, b))
+
+# Doubling distributes over truncated subtraction: double (a - b) = double a - double b, reversed to rewrite toward the simple side.
+law double_sub_sym:
+  for a: Nat
+  for b: Nat
+  {Nat.sub(Nat.double(a), Nat.double(b)) == Nat.double(Nat.sub(a, b)) : Nat}
+
+def double_sub_sym(a, b):
+  Equal.sym(Nat, Nat.double(Nat.sub(a, b)), Nat.sub(Nat.double(a), Nat.double(b)), double_sub(a, b))
+
+# Twice the half plus the parity is the number: double (n / 2) + n % 2 = n, reversed to rewrite toward the simple side.
+law double_div_two_add_mod_two_sym:
+  for n: Nat
+  {n == Nat.add(Nat.double(Nat.div(n, 2n)), Nat.mod(n, 2n)) : Nat}
+
+def double_div_two_add_mod_two_sym(n):
+  Equal.sym(Nat, Nat.add(Nat.double(Nat.div(n, 2n)), Nat.mod(n, 2n)), n, double_div_two_add_mod_two(n))
+
+# Adding the same amount on the right does not change the order test: a <= b tests as a + k <= b + k, reversed to rewrite toward the simple side.
+law add_le_add_iff_right_sym:
+  for a: Nat
+  for b: Nat
+  for k: Nat
+  {Nat.is_le(Nat.add(a, k), Nat.add(b, k)) == Nat.is_le(a, b) : Bool}
+
+def add_le_add_iff_right_sym(a, b, k):
+  Equal.sym(Bool, Nat.is_le(a, b), Nat.is_le(Nat.add(a, k), Nat.add(b, k)), add_le_add_iff_right(a, b, k))
+
+# Adding the same amount on the left does not change the equality test: a = b tests as k + a = k + b, reversed to rewrite toward the simple side.
+law add_left_cancel_iff_sym:
+  for k: Nat
+  for -a: Nat
+  for -b: Nat
+  {Nat.is_eq(Nat.add(k, a), Nat.add(k, b)) == Nat.is_eq(a, b) : Bool}
+
+def add_left_cancel_iff_sym(k, a, b):
+  Equal.sym(Bool, Nat.is_eq(a, b), Nat.is_eq(Nat.add(k, a), Nat.add(k, b)), add_left_cancel_iff(k, a, b))
+
+# Adding the same amount on the right does not change the equality test: a = b tests as a + k = b + k, reversed to rewrite toward the simple side.
+law add_right_cancel_iff_sym:
+  for a: Nat
+  for b: Nat
+  for k: Nat
+  {Nat.is_eq(Nat.add(a, k), Nat.add(b, k)) == Nat.is_eq(a, b) : Bool}
+
+def add_right_cancel_iff_sym(a, b, k):
+  Equal.sym(Bool, Nat.is_eq(a, b), Nat.is_eq(Nat.add(a, k), Nat.add(b, k)), add_right_cancel_iff(a, b, k))

@@ -236,7 +236,7 @@ def internal_foldl_foldr(~B: Data, ~op: B -> B -> B, ~assoc: @x: B -> @y: B -> @
       %Equal.sym(B, List.foldl(&2, B, B, op, t, op(acc, h)), op(op(acc, h), List.foldr(&2, B, B, op, t, z)), internal_foldl_foldr(~B, ~op, ~assoc, ~comm, ~z, ~id, t, op(acc, h))) : {_ == op(acc, op(h, List.foldr(&2, B, B, op, t, z))) : B}
       assoc(acc, h, List.foldr(&2, B, B, op, t, z))
 
-# Folding left equals folding right for an associative, commutative operation with a left identity.
+# Folding left equals folding right for an associative, commutative operation with a left identity (foldl_eq_foldr needs no identity).
 law foldl_op_eq_foldr_op:
   for ~B: Data
   for ~op: B -> B -> B
@@ -250,6 +250,37 @@ law foldl_op_eq_foldr_op:
 def foldl_op_eq_foldr_op(B, op, assoc, comm, z, id, xs):
   %Equal.sym(B, List.foldl(&2, B, B, op, xs, z), op(z, List.foldr(&2, B, B, op, xs, z)), internal_foldl_foldr(~B, ~op, ~assoc, ~comm, ~z, ~id, xs, z)) : {_ == List.foldr(&2, B, B, op, xs, z) : B}
   id(List.foldr(&2, B, B, op, xs, z))
+
+def internal_foldl_assoc(~B: Data, ~op: B -> B -> B, ~assoc: @x: B -> @y: B -> @z: B -> {op(op(x, y), z) == op(x, op(y, z)) : B}, +xs: List<&2, B>, +a: B, +b: B) -> {List.foldl(&2, B, B, op, xs, op(a, b)) == op(a, List.foldl(&2, B, B, op, xs, b)) : B}:
+  match xs:
+    case Nil{}:
+      {==}
+    case +h <> +t:
+      %Equal.sym(B, op(op(a, b), h), op(a, op(b, h)), assoc(a, b, h)) : {List.foldl(&2, B, B, op, t, _) == op(a, List.foldl(&2, B, B, op, t, op(b, h))) : B}
+      internal_foldl_assoc(~B, ~op, ~assoc, t, a, op(b, h))
+
+def internal_foldl_eq_foldr(~B: Data, ~op: B -> B -> B, ~assoc: @x: B -> @y: B -> @z: B -> {op(op(x, y), z) == op(x, op(y, z)) : B}, ~comm: @x: B -> @y: B -> {op(x, y) == op(y, x) : B}, +z: B, +xs: List<&2, B>) -> {List.foldl(&2, B, B, op, xs, z) == List.foldr(&2, B, B, op, xs, z) : B}:
+  match xs:
+    case Nil{}:
+      {==}
+    case +h <> +t:
+      %comm(h, z) : {List.foldl(&2, B, B, op, t, _) == op(h, List.foldr(&2, B, B, op, t, z)) : B}
+      %Equal.sym(B, List.foldl(&2, B, B, op, t, op(h, z)), op(h, List.foldl(&2, B, B, op, t, z)), internal_foldl_assoc(~B, ~op, ~assoc, t, h, z)) : {_ == op(h, List.foldr(&2, B, B, op, t, z)) : B}
+      %internal_foldl_eq_foldr(~B, ~op, ~assoc, ~comm, z, t) : {op(h, List.foldl(&2, B, B, op, t, z)) == op(h, _) : B}
+      {==}
+
+# Folding left equals folding right for an associative, commutative operation (Mathlib's List.foldl_eq_foldr).
+law foldl_eq_foldr:
+  for ~B: Data
+  for ~op: B -> B -> B
+  for ~assoc: @x: B -> @y: B -> @z: B -> {op(op(x, y), z) == op(x, op(y, z)) : B}
+  for ~comm: @x: B -> @y: B -> {op(x, y) == op(y, x) : B}
+  for +z: B
+  for +xs: List<&2, B>
+  {List.foldl(&2, B, B, op, xs, z) == List.foldr(&2, B, B, op, xs, z) : B}
+
+def foldl_eq_foldr(B, op, assoc, comm, z, xs):
+  internal_foldl_eq_foldr(~B, ~op, ~assoc, ~comm, z, xs)
 
 # --- generated: _sym twins (tools/mathlib/twins.ts), do not edit ---
 
@@ -436,7 +467,7 @@ law list_nat_append_assoc4_sym:
 def list_nat_append_assoc4_sym(a, b, c, d):
   Equal.sym(List<&2, Nat>, List.append(&2, Nat, List.append(&2, Nat, List.append(&2, Nat, a, b), c), d), List.append(&2, Nat, a, List.append(&2, Nat, b, List.append(&2, Nat, c, d))), list_nat_append_assoc4(a, b, c, d))
 
-# Folding left equals folding right for an associative, commutative operation with a left identity, reversed to rewrite toward the simple side.
+# Folding left equals folding right for an associative, commutative operation with a left identity (foldl_eq_foldr needs no identity), reversed to rewrite toward the simple side.
 law foldl_op_eq_foldr_op_sym:
   for ~B: Data
   for ~op: B -> B -> B
@@ -449,3 +480,16 @@ law foldl_op_eq_foldr_op_sym:
 
 def foldl_op_eq_foldr_op_sym(B, op, assoc, comm, z, id, xs):
   Equal.sym(B, List.foldl(&2, B, B, op, xs, z), List.foldr(&2, B, B, op, xs, z), foldl_op_eq_foldr_op(~B, ~op, ~assoc, ~comm, ~z, ~id, xs))
+
+# Folding left equals folding right for an associative, commutative operation (Mathlib's List.foldl_eq_foldr), reversed to rewrite toward the simple side.
+law foldl_eq_foldr_sym:
+  for ~B: Data
+  for ~op: B -> B -> B
+  for ~assoc: @x: B -> @y: B -> @z: B -> {op(op(x, y), z) == op(x, op(y, z)) : B}
+  for ~comm: @x: B -> @y: B -> {op(x, y) == op(y, x) : B}
+  for +z: B
+  for +xs: List<&2, B>
+  {List.foldr(&2, B, B, op, xs, z) == List.foldl(&2, B, B, op, xs, z) : B}
+
+def foldl_eq_foldr_sym(B, op, assoc, comm, z, xs):
+  Equal.sym(B, List.foldl(&2, B, B, op, xs, z), List.foldr(&2, B, B, op, xs, z), foldl_eq_foldr(~B, ~op, ~assoc, ~comm, z, xs))

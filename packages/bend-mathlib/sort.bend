@@ -259,7 +259,7 @@ def sort_by_sorted(~A: Data, ~le: A -> A -> Bool, ~le_trans: @x: A -> @y: A -> @
     case +x <> +t:
       msort_by_sorted(~A, ~le, ~le_trans, ~le_total, 1n+List.length(&2, A, t), x <> t, MNat.le_succ(1n+List.length(&2, A, t)))
 
-# Merge sort with fuel = length returns a sorted Nat list (h always holds: MNat.le_succ).
+# Merge sort with fuel = length returns a sorted Nat list (h always holds; sort_by_sorted_nat needs no h).
 def msort_by_sorted_nat(+xs: List<&2, Nat>, +h: {Nat.is_le(List.length(&2, Nat, xs), 1n+List.length(&2, Nat, xs)) == True{} : Bool}) -> MList.sorted_by(~Nat, ~Nat.is_le, MPerm.msort_by(~Nat, ~Nat.is_le, List.length(&2, Nat, xs), xs)):
   msort_by_sorted(~Nat, ~Nat.is_le, ~internal_le_trans_nat, ~internal_le_flip_nat, List.length(&2, Nat, xs), xs, h)
 

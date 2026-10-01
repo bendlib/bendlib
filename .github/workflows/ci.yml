@@ -106,7 +106,7 @@ jobs:
           lookup-only: true
       - name: lawcheck ${{ matrix.module }}
         if: steps.stamp.outputs.cache-hit != 'true'
-        run: bun tools/mathlib/devlib.ts run -- bun tools/lawcheck/cli.ts packages/bend-mathlib/${{ matrix.module }}.bend --max-instances 100 --strict --allow-skip cong2,eq_true_of_ne_false,foldl_op_eq_foldr_op,foldl_op_eq_foldr_op_sym,le_antisymm_eq,le_total,le_total_d,le_total_of_not_le,le_total_true,le_total_true_sym,le_trans3,le_trans4,maybe_bind_assoc,maybe_bind_assoc_sym,maybe_bind_map,maybe_bind_map_sym,maybe_map_bind,maybe_map_bind_sym,maybe_map_compose,maybe_map_compose_sym,maybe_map_pure,maybe_map_pure_sym,maybe_pure_bind,maybe_pure_bind_sym,op_assoc4,op_assoc4_sym,op_comm3,op_comm3_sym,op_four,op_four_sym,op_left_comm,op_left_comm_sym,op_right_comm,op_right_comm_sym,subst
+        run: bun tools/mathlib/devlib.ts run -- bun tools/lawcheck/cli.ts packages/bend-mathlib/${{ matrix.module }}.bend --max-instances 100 --strict --allow-skip cong2,eq_true_of_ne_false,foldl_eq_foldr,foldl_eq_foldr_sym,foldl_op_eq_foldr_op,foldl_op_eq_foldr_op_sym,le_antisymm_eq,le_total,le_total_d,le_total_of_not_le,le_total_true,le_total_true_sym,le_trans3,le_trans4,maybe_bind_assoc,maybe_bind_assoc_sym,maybe_bind_map,maybe_bind_map_sym,maybe_map_bind,maybe_map_bind_sym,maybe_map_compose,maybe_map_compose_sym,maybe_map_pure,maybe_map_pure_sym,maybe_pure_bind,maybe_pure_bind_sym,op_assoc4,op_assoc4_sym,op_comm3,op_comm3_sym,op_four,op_four_sym,op_left_comm,op_left_comm_sym,op_right_comm,op_right_comm_sym,subst
       - name: stamp lawcheck ${{ matrix.module }}
         if: steps.stamp.outputs.cache-hit != 'true'
         run: touch .lawcheck-stamp
@@ -141,11 +141,12 @@ jobs:
             out=$(verdict "$f") && [ "$out" = "ALL PROOFS CHECK" ] || { echo "$f: $out"; exit 1; }
             echo "ok $f"
           done
-          # bendlang/bend#1182: the kernel cannot yet express a call of a higher-order ~ parameter whose result is an equation
+          # algebra, order: --verdict finds no models for ~ laws of a ~ function (bendlang/bend#1182, fix in #1263);
+          # sort, all: that, plus defs at a kind that depends on a run-time value, which BendTT cannot express yet
           for f in packages/bend-mathlib/{algebra,order,sort,all}.bend; do
             out=$(verdict "$f") && { echo "$f now passes --verdict: move it to the list above"; exit 1; }
             echo "$out" | grep -q "mismatch between the TypeScript implementation" || { echo "$f: $out"; exit 1; }
-            echo "blocked upstream (#1182) $f"
+            echo "blocked upstream $f"
           done
 
   latest-compiler:
@@ -176,7 +177,7 @@ jobs:
         run: bun tools/mathlib/devlib.ts --check
       - run: bun tools/mathlib/devlib.ts run -- bun tools/mathlib/check.ts packages/bend-mathlib
       - run: bun test tools/reader tools/lawcheck
-      - run: bun tools/lawcheck/cli.ts packages/bend-mathlib/nat.bend --max-instances 50 --strict --allow-skip cong2,eq_true_of_ne_false,foldl_op_eq_foldr_op,foldl_op_eq_foldr_op_sym,le_antisymm_eq,le_total,le_total_d,le_total_of_not_le,le_total_true,le_total_true_sym,le_trans3,le_trans4,maybe_bind_assoc,maybe_bind_assoc_sym,maybe_bind_map,maybe_bind_map_sym,maybe_map_bind,maybe_map_bind_sym,maybe_map_compose,maybe_map_compose_sym,maybe_map_pure,maybe_map_pure_sym,maybe_pure_bind,maybe_pure_bind_sym,op_assoc4,op_assoc4_sym,op_comm3,op_comm3_sym,op_four,op_four_sym,op_left_comm,op_left_comm_sym,op_right_comm,op_right_comm_sym,subst
+      - run: bun tools/lawcheck/cli.ts packages/bend-mathlib/nat.bend --max-instances 50 --strict --allow-skip cong2,eq_true_of_ne_false,foldl_eq_foldr,foldl_eq_foldr_sym,foldl_op_eq_foldr_op,foldl_op_eq_foldr_op_sym,le_antisymm_eq,le_total,le_total_d,le_total_of_not_le,le_total_true,le_total_true_sym,le_trans3,le_trans4,maybe_bind_assoc,maybe_bind_assoc_sym,maybe_bind_map,maybe_bind_map_sym,maybe_map_bind,maybe_map_bind_sym,maybe_map_compose,maybe_map_compose_sym,maybe_map_pure,maybe_map_pure_sym,maybe_pure_bind,maybe_pure_bind_sym,op_assoc4,op_assoc4_sym,op_comm3,op_comm3_sym,op_four,op_four_sym,op_left_comm,op_left_comm_sym,op_right_comm,op_right_comm_sym,subst
       - name: F-fact regression (research/experiments/run.sh)
         run: bash research/experiments/run.sh
       - name: open or update the nightly failure issue
