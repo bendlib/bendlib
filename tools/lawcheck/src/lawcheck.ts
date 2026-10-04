@@ -4,7 +4,7 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { BendReadError, decls, load, show, type Decl, type Loaded } from "../../reader/index.ts";
+import { BendReadError, decls, load, printedName, show, type Decl, type Loaded } from "../../reader/index.ts";
 import { stripCommentsAndStrings } from "../../mathlib/lib.ts";
 import { bendBin, cleanCheck, evaluate, evaluateAll, locate, ModuleError, overflowed, runBatch, type Engine, type Item, type Outcome } from "./checker.ts";
 import { defSpan, mutants } from "./mutate.ts";
@@ -197,9 +197,10 @@ function universe(L: Loaded, maxNat = 30): Universe {
         bnd.push(u.k);
         u = u.B;
       }
-      return { name: c.k, params: cparams, fields };
+      return { name: printedName(c.k), params: cparams, fields };
     });
-    adts.set(d.name, { name: d.name, params, ctors });
+    // printed text names types and ctors ns.name; bend >= 2.0.35 keys them ns:name
+    adts.set(printedName(d.name), { name: printedName(d.name), params, ctors });
   }
   return new Universe(adts, maxNat);
 }
@@ -925,7 +926,7 @@ export async function lawcheck(file: string, o: Options): Promise<Report> {
   const own = decls(L, { scope: "own" });
   const allDecls = decls(L, { scope: "all" });
   const predicates = new Map<string, PredStmt | null>();
-  for (const d of allDecls) if (d.predicate) predicates.set(d.name, predicateStatement(L, d));
+  for (const d of allDecls) if (d.predicate) predicates.set(printedName(d.name), predicateStatement(L, d));
   const baseFiles = new Set(allDecls.filter((d) => d.origin === "base").map((d) => d.file));
   const U = universe(L, o.maxNat);
   const { header, qualify, display: nameDisplay, nameOut } = aliasMap(L, tmp, pathFor);
@@ -934,9 +935,10 @@ export async function lawcheck(file: string, o: Options): Promise<Report> {
   for (const d of allDecls) {
     if (d.kind !== "def" && d.kind !== "template") continue;
     const info: TermDecl = { params: splitArrow(d.signature).length - 1, templates: d.templates ?? 0 };
-    termDecls.set(d.name, info);
-    const alias = nameOut(d.name);
-    if (alias !== d.name) termDecls.set(alias, info);
+    const name = printedName(d.name);
+    termDecls.set(name, info);
+    const alias = nameOut(name);
+    if (alias !== name) termDecls.set(alias, info);
   }
   const E: Engine = { header, dir: tmp, bend: bendBin(), timeoutMs: o.timeoutMs ?? 120000, jobs: o.jobs ?? navigator.hardwareConcurrency, runs: 0, display, unsafe: unsafeModules(L, baseFiles) };
   const all = own.filter((d) => d.kind === "law");

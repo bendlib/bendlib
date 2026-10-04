@@ -132,7 +132,7 @@ function fileOfSrc(files: SourceFile[], src: string, key?: string): SourceFile |
   const matches = files.filter((f) => f.parsed === src);
   const pool = matches.length > 0 ? matches : files.filter((f) => f.text === src);
   if (key !== undefined) {
-    const ns = pool.filter((f) => f.namespace !== "" && key.startsWith(f.namespace + "."));
+    const ns = pool.filter((f) => f.namespace !== "" && inNamespace(key, f.namespace));
     if (ns.length > 0) return ns.reduce((a, b) => (b.namespace.length > a.namespace.length ? b : a));
     const root = pool.find((f) => f.namespace === "");
     if (root !== undefined) return root;
@@ -288,8 +288,19 @@ function docAbove(src: string, line: number): string | null {
   return doc.length === 0 ? null : doc.join("\n");
 }
 
-function localName(key: string, ns: string): string {
-  return ns !== "" && key.startsWith(ns + ".") ? key.slice(ns.length + 1) : key;
+// bend.ts keys a file's names ns.name up to 2.0.34 and ns:name from 2.0.35 (its #1156).
+export function inNamespace(key: string, ns: string): boolean {
+  return key.startsWith(ns + ".") || key.startsWith(ns + ":");
+}
+
+/** `key` as bend prints it (its name_key): `ns:name` shows as `ns.name`. */
+export function printedName(key: string): string {
+  return key.replace(":", ".");
+}
+
+/** `key` without its namespace prefix, when it is in namespace `ns`. */
+export function localName(key: string, ns: string): string {
+  return ns !== "" && inNamespace(key, ns) ? key.slice(ns.length + 1) : key;
 }
 
 // A `type …:` body ends at the next top-level item (`def|type|law|import|@unsafe` at

@@ -1,11 +1,11 @@
-// Tests for @bendlib/reader against the installed bend (goldens are for 2.0.34).
+// Tests for @bendlib/reader against the installed bend (goldens are for 2.0.35).
 // usage: cd tools/reader && bun test   (network: first source fetch + hub package)
 
 import { describe, expect, test } from "bun:test";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { BendReadError, bendSource, decls, installedVersion, load, sourcePin, SourceError, type Decl } from "../index.ts";
+import { BendReadError, bendSource, decls, inNamespace, installedVersion, load, localName, sourcePin, SourceError, type Decl } from "../index.ts";
 import { CASES, dump, freshBendLib, goldenPath, HUB_PKG, REPO } from "./golden.ts";
 
 const FIX = path.join(import.meta.dir, "fixtures");
@@ -133,7 +133,7 @@ describe("source", () => {
   });
 });
 
-describe("goldens (bend 2.0.34)", () => {
+describe("goldens (bend 2.0.35)", () => {
   for (const c of CASES) {
     test(`${c.name}: ${c.file}`, async () => {
       const golden = JSON.parse(fs.readFileSync(goldenPath(c), "utf8"));
@@ -214,11 +214,13 @@ describe("decls", () => {
 
   test("identical module contents in distinct namespaces resolve by namespace", async () => {
     const L = await load(path.join(FIX, "identical/main.bend"));
-    const k = Object.fromEntries(decls(L, { scope: "all-non-base" }).map((d) => [d.name, d]));
+    const ds = decls(L, { scope: "all-non-base" });
+    const k = Object.fromEntries(ds.map((d) => [d.name, d]));
+    const dup = (ns: string) => ds.find((d) => d.namespace === ns && inNamespace(d.name, ns) && localName(d.name, ns) === "dup");
     const real = (p: string) => fs.realpathSync(path.join(FIX, "identical", p));
-    expect(k["libA.dup"]).toMatchObject({ kind: "def", namespace: "libA", file: real("libA.bend"), line: 3 });
-    expect(k["libB.dup"]).toMatchObject({ kind: "def", namespace: "libB", file: real("libB.bend"), line: 3 });
-    expect(k["libA.dup"].signature).toBe(k["libB.dup"].signature);
+    expect(dup("libA")).toMatchObject({ kind: "def", namespace: "libA", file: real("libA.bend"), line: 3 });
+    expect(dup("libB")).toMatchObject({ kind: "def", namespace: "libB", file: real("libB.bend"), line: 3 });
+    expect(dup("libA")!.signature).toBe(dup("libB")!.signature);
     expect(k.use).toMatchObject({ kind: "def", namespace: "", file: real("main.bend"), line: 5 });
   });
 

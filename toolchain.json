@@ -1,18 +1,18 @@
 {
   "bend": {
-    "version": "2.0.34",
-    "release": "https://github.com/bendlang/bend/releases/tag/v2.0.34",
+    "version": "2.0.35",
+    "release": "https://github.com/bendlang/bend/releases/tag/v2.0.35",
     "archives": {
-      "linux-x64":    { "file": "bend-2.0.34-linux-x64.tar.gz",    "sha256": "78106a97af242429dcc057258eb8d10f69cddebcd5e263022185a52d003e09bf" },
-      "linux-arm64":  { "file": "bend-2.0.34-linux-arm64.tar.gz",  "sha256": "416a17d282a9fd05ab9637a238b51d5ca508114d9773c37d1c11cad595440ed1" },
-      "darwin-arm64": { "file": "bend-2.0.34-darwin-arm64.tar.gz", "sha256": "a60c820c0ced758d8ace839507ff6c508a204ce4ef0f45e1089ed7bc73e8c267" },
-      "darwin-x64":   { "file": "bend-2.0.34-darwin-x64.tar.gz",   "sha256": "066d4a07a1871a2946be8f42f926582bfda5f13ff728c234ffe79635bd240650" }
+      "linux-x64":    { "file": "bend-2.0.35-linux-x64.tar.gz",    "sha256": "63039d1a119f716767ac5a7d8fe0717cfacf219c6c253c35192148e0dade722f" },
+      "linux-arm64":  { "file": "bend-2.0.35-linux-arm64.tar.gz",  "sha256": "09b813073241628f590f2c2fe420299ec25e4dddd6cf3fdc49c9486339989564" },
+      "darwin-arm64": { "file": "bend-2.0.35-darwin-arm64.tar.gz", "sha256": "2582f25057a519c330e6875798b784b727d4201f1c1f6944a105348f0eb8972e" },
+      "darwin-x64":   { "file": "bend-2.0.35-darwin-x64.tar.gz",   "sha256": "7e59da4513e32ea7526464b342344a992a56372cdf62e0c55a30e9ce26baaeef" }
     },
     "source": {
-      "commit": "7d8a3eb036042c6549461054d25a10f26d361c5c",
+      "commit": "79df8d9c40722ee9507a1e253f283b51025f9d6c",
       "files": {
-        "bend2/bend.ts":  "de2b39db2fcbd2f9115053e85e34d791693e1297bfeb6874da1013ff7b44b7dd",
-        "bend2/main.ts":  "e139cf21c6c925dc2a3f76185c8e2c3fd4c44aee3c9bc8eb2595bc069764500e",
+        "bend2/bend.ts":  "7deae3693eb896f33c73867081b99d2c6f3ed3b57e77e55eb5f6260840dd0e63",
+        "bend2/main.ts":  "d1a3e026f5014f8daec3614df8e39cf261e3fbc47769eb0916fd891bc18703c9",
         "bend2/base.bend": "c742fae9c49b14f0cc9128429a2c6109364c8a933a142f2c90b9f2e5fd976661"
       }
     }

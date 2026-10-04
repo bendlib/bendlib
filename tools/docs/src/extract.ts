@@ -2,7 +2,7 @@
 // failure becomes a per-file error record, never an exception.
 
 import { relative } from "node:path";
-import { load, decls, BendReadError, type BendSource, type Decl, type Loaded } from "../../reader/index.ts";
+import { load, decls, inNamespace, localName, BendReadError, type BendSource, type Decl, type Loaded } from "../../reader/index.ts";
 import type { FileClass } from "./status.ts";
 
 export type DocDecl = {
@@ -37,8 +37,8 @@ function fills(L: Loaded, pkgDir: string): string[] {
   const out: string[] = [];
   for (const k of L.imported) {
     if (L.book.tlds[k]?.v == null) continue;
-    const f = local.find((x) => k.startsWith(x.namespace + "."));
-    if (f !== undefined) out.push(`${relative(pkgDir, f.path)}#${k.slice(f.namespace.length + 1)}`);
+    const f = local.find((x) => inNamespace(k, x.namespace));
+    if (f !== undefined) out.push(`${relative(pkgDir, f.path)}#${localName(k, f.namespace)}`);
   }
   return out;
 }
