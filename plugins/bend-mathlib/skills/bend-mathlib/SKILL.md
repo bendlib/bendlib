@@ -5,7 +5,7 @@ description: Use when writing or proving Bend 2 laws (a `law` and its proof `def
 
 # bend-mathlib
 
-bend-mathlib is a BendHub package of machine-checked lemmas for Bend 2: 438 lemmas about `Nat`,
+bend-mathlib is a BendHub package of machine-checked lemmas for Bend 2: 445 lemmas about `Nat`,
 `Bool`, `List`, `String`, `Maybe`, equality, abstract orders and associative/commutative
 operations, plus permutation and sorting theorems. Every statement is locked, so a newer version
 never changes one you use. Before you prove a basic fact (`add_comm`, `append_assoc`,
@@ -14,15 +14,15 @@ never changes one you use. Before you prove a basic fact (`add_comm`, `append_as
 ## Import
 
 ```python
-import bend-mathlib@0.7.1.0/nat.bend as MNat
-import bend-mathlib@0.7.1.0/list.bend as MList
+import bend-mathlib@0.7.2.0/nat.bend as MNat
+import bend-mathlib@0.7.2.0/list.bend as MList
 ```
 
 Modules: `nat`, `bool`, `list`, `string`, `maybe`, `equal`, `order`, `algebra` (laws), `perm`
 (permutations, `insert_by`/`isort_by`/`merge_by`/`sort_by`) and `sort` (those sorts return sorted
 lists).
 Pin by content hash if you want bytes that can never change:
-`import 0x3c446c5bcf57d1eef89775ba0b411fc6/nat.bend as MNat`.
+`import 0x449abff091641d732d7b9f0780df40ae/nat.bend as MNat`.
 
 ## Find a lemma
 
@@ -57,8 +57,8 @@ its left side, at the spot marked `_`. Use the `_sym` twin to rewrite the other 
 
 ```python
 import Base
-import bend-mathlib@0.7.1.0/nat.bend as MNat
-import bend-mathlib@0.7.1.0/list.bend as MList
+import bend-mathlib@0.7.2.0/nat.bend as MNat
+import bend-mathlib@0.7.2.0/list.bend as MList
 
 law rev_len:
   for +xs: List<&2, U32>

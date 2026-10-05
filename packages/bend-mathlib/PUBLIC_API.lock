@@ -931,6 +931,18 @@
       "sha256": "9dc826f7c558ee0aaeb80025a86ad5942ab6f72ab08ece51b04c4af014351dcb",
       "since": "0.6.0.0"
     },
+    "list.drop_succ": {
+      "kind": "law",
+      "text": "for -a: Quant\nfor -A: Kind(a)\nfor -x: A\nfor -xs: List<a, A>\nfor -n: Nat\n{List.drop(a, A, x <> xs, 1n+n) == List.drop(a, A, xs, n) : List<a, A>}",
+      "sha256": "9dac5872535d965e21d7e2c6512d86c7a19c8169341d1f3607e19123e1c74724",
+      "since": "0.7.2.0"
+    },
+    "list.drop_succ_sym": {
+      "kind": "law",
+      "text": "for -a: Quant\nfor -A: Kind(a)\nfor -x: A\nfor -xs: List<a, A>\nfor -n: Nat\n{List.drop(a, A, xs, n) == List.drop(a, A, x <> xs, 1n+n) : List<a, A>}",
+      "sha256": "d0d51eb0e1e64fb4e598d80cea34d8d973326bc9be0de6cf1389c262da9a86b0",
+      "since": "0.7.2.0"
+    },
     "list.drop_zero": {
       "kind": "law",
       "text": "for -a: Quant\nfor -A: Kind(a)\nfor xs: List<a, A>\n{List.drop(a, A, xs, 0n) == xs : List<a, A>}",
@@ -1387,6 +1399,18 @@
       "sha256": "36ab7042b21c71e76aecd1e7eb32b92356b6112c749203bc0189f2a078257e44",
       "since": "0.7.0.0"
     },
+    "list.length_singleton": {
+      "kind": "law",
+      "text": "for -a: Quant\nfor -A: Kind(a)\nfor -x: A\n{List.length(a, A, [x]) == 1n : Nat}",
+      "sha256": "0e6489fb7d9a449fa563b42ca3df8c368218ffd7256961bb83674e2fbbf5eb5f",
+      "since": "0.7.2.0"
+    },
+    "list.length_singleton_sym": {
+      "kind": "law",
+      "text": "for -a: Quant\nfor -A: Kind(a)\nfor -x: A\n{1n == List.length(a, A, [x]) : Nat}",
+      "sha256": "f5e62223efa2765801f02e321240a63be9078483abaed9a7119d9004eaeaabf3",
+      "since": "0.7.2.0"
+    },
     "list.length_tail": {
       "kind": "law",
       "text": "for -a: Quant\nfor -A: Kind(a)\nfor xs: List<a, A>\n{List.length(a, A, List.tail(a, A, xs)) == Nat.sub(List.length(a, A, xs), 1n) : Nat}",
@@ -1585,6 +1609,18 @@
       "sha256": "702b9ab5f3f77f8b2d65b4b3d21e63dfa718675541e6a5f5ef2ab6dfd314cae1",
       "since": "0.1.0.0"
     },
+    "list.reverse_cons": {
+      "kind": "law",
+      "text": "for -a: Quant\nfor -A: Kind(a)\nfor -x: A\nfor xs: List<a, A>\n{List.reverse(a, A, x <> xs) == List.append(a, A, List.reverse(a, A, xs), [x]) : List<a, A>}",
+      "sha256": "36ee60877e01fc54c6d027264798632615f88c86815666798a165d76954c647e",
+      "since": "0.7.2.0"
+    },
+    "list.reverse_cons_sym": {
+      "kind": "law",
+      "text": "for -a: Quant\nfor -A: Kind(a)\nfor -x: A\nfor xs: List<a, A>\n{List.append(a, A, List.reverse(a, A, xs), [x]) == List.reverse(a, A, x <> xs) : List<a, A>}",
+      "sha256": "80df72c97c14d6b2f2ec37252ecfd1ab6c06c55046afcdcc335a8f4aa09c9a5d",
+      "since": "0.7.2.0"
+    },
     "list.reverse_go_spec": {
       "kind": "law",
       "text": "for -a: Quant\nfor -A: Kind(a)\nfor xs: List<a, A>\nfor -acc: List<a, A>\n{List.reverse.go(a, A, xs, acc) == List.append(a, A, List.reverse(a, A, xs), acc) : List<a, A>}",
@@ -1782,6 +1818,18 @@
       "text": "for -A: Data\nfor n: Nat\nfor m: Nat\nfor -x: A\n{List.replicate(A, Nat.min(m, n), x) == List.take(&2, A, List.replicate(A, n, x), m) : List<&2, A>}",
       "sha256": "3cd2099560de613a744cd53dc7748dff52684125b72309f12cf55acdec438f04",
       "since": "0.6.0.0"
+    },
+    "list.take_succ": {
+      "kind": "law",
+      "text": "for -a: Quant\nfor -A: Kind(a)\nfor -x: A\nfor -xs: List<a, A>\nfor -n: Nat\n{List.take(a, A, x <> xs, 1n+n) == x <> List.take(a, A, xs, n) : List<a, A>}",
+      "sha256": "9dc42e5fd8359f62baa61fad80378a0c2bb7479ada8d0ceb89745fa4733ec48b",
+      "since": "0.7.2.0"
+    },
+    "list.take_succ_sym": {
+      "kind": "law",
+      "text": "for -a: Quant\nfor -A: Kind(a)\nfor -x: A\nfor -xs: List<a, A>\nfor -n: Nat\n{x <> List.take(a, A, xs, n) == List.take(a, A, x <> xs, 1n+n) : List<a, A>}",
+      "sha256": "5a64c4ac42eeebeab7531ea1d0ae0e8325ac8b1dff5737e180147b8210a7983c",
+      "since": "0.7.2.0"
     },
     "list.take_take": {
       "kind": "law",
@@ -3223,6 +3271,18 @@
       "sha256": "24da47dca0a3b660acc2090d72603054434d16f689a812cab2d93e11a72a5ea7",
       "since": "0.2.0.0"
     },
+    "nat.min_le_max": {
+      "kind": "law",
+      "text": "for a: Nat\nfor b: Nat\n{Nat.is_le(Nat.min(a, b), Nat.max(a, b)) == True{} : Bool}",
+      "sha256": "5aa09e35b3fb6c7dae531b4d55e0d6a431ec725dfb413ec6f902cad65e66db11",
+      "since": "0.7.2.0"
+    },
+    "nat.min_le_max_sym": {
+      "kind": "law",
+      "text": "for a: Nat\nfor b: Nat\n{True{} == Nat.is_le(Nat.min(a, b), Nat.max(a, b)) : Bool}",
+      "sha256": "512a6cb8d44519ee20450325a6a1fe7fb36c219fb24ba4044a46370143e91b5c",
+      "since": "0.7.2.0"
+    },
     "nat.min_le_min": {
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\nfor c: Nat\nfor d: Nat\nfor h1: le(a, c)\nfor h2: le(b, d)\nle(Nat.min(a, b), Nat.min(c, d))",
@@ -3601,6 +3661,18 @@
       "sha256": "d5d5159384e6de6827078b7e3f23a0882b00e693060741f519abfef920f7c9ce",
       "since": "0.1.0.0"
     },
+    "nat.mul_two": {
+      "kind": "law",
+      "text": "for n: Nat\n{Nat.mul(n, 2n) == Nat.add(n, n) : Nat}",
+      "sha256": "2c0f451eb4a458ed061985bcc7246f6e8c3cf355a20d05890e3f921b310e2e6b",
+      "since": "0.7.2.0"
+    },
+    "nat.mul_two_sym": {
+      "kind": "law",
+      "text": "for n: Nat\n{Nat.add(n, n) == Nat.mul(n, 2n) : Nat}",
+      "sha256": "82a5ea7ca5c4a47a34e78b6c4c209edf3e4022371bed8bf702e57847039039aa",
+      "since": "0.7.2.0"
+    },
     "nat.mul_zero": {
       "kind": "law",
       "text": "for x: Nat\n{Nat.mul(x, 0n) == 0n : Nat}",
@@ -3762,6 +3834,18 @@
       "text": "for -a: Nat\nfor -n: Nat\n{Nat.mul(a, Nat.pow(a, n)) == Nat.pow(a, 1n+n) : Nat}",
       "sha256": "88e32001a48b2c6497a4b582f52af2ef5ba2cee7c4d48d209ebf4b460347a1d4",
       "since": "0.2.0.0"
+    },
+    "nat.pow_two": {
+      "kind": "law",
+      "text": "for n: Nat\n{Nat.pow(n, 2n) == Nat.mul(n, n) : Nat}",
+      "sha256": "31f77e1ba546a429e1987914d71a45b604a07c0daee2bf602472f9432ac3d4ea",
+      "since": "0.7.2.0"
+    },
+    "nat.pow_two_sym": {
+      "kind": "law",
+      "text": "for n: Nat\n{Nat.mul(n, n) == Nat.pow(n, 2n) : Nat}",
+      "sha256": "204c8b3febabbaee758b26e635d24b5550461e72f1ea725df0b273e3112f031f",
+      "since": "0.7.2.0"
     },
     "nat.pow_zero": {
       "kind": "law",

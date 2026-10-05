@@ -8,7 +8,7 @@ side into the compound one and `name_sym` simplifies the compound side.
 ## algebra
 
 ```python
-import bend-mathlib@0.7.1.0/algebra.bend as MAlgebra
+import bend-mathlib@0.7.2.0/algebra.bend as MAlgebra
 ```
 
 | lemma | statement | meaning | since |
@@ -53,7 +53,7 @@ import bend-mathlib@0.7.1.0/algebra.bend as MAlgebra
 ## bool
 
 ```python
-import bend-mathlib@0.7.1.0/bool.bend as MBool
+import bend-mathlib@0.7.2.0/bool.bend as MBool
 ```
 
 | lemma | statement | meaning | since |
@@ -131,7 +131,7 @@ import bend-mathlib@0.7.1.0/bool.bend as MBool
 ## equal
 
 ```python
-import bend-mathlib@0.7.1.0/equal.bend as MEqual
+import bend-mathlib@0.7.2.0/equal.bend as MEqual
 ```
 
 | lemma | statement | meaning | since |
@@ -144,7 +144,7 @@ import bend-mathlib@0.7.1.0/equal.bend as MEqual
 ## list
 
 ```python
-import bend-mathlib@0.7.1.0/list.bend as MList
+import bend-mathlib@0.7.2.0/list.bend as MList
 ```
 
 | predicate | definition | since |
@@ -257,6 +257,10 @@ import bend-mathlib@0.7.1.0/list.bend as MList
 | `find_append(~A, ~f, xs, ys)` | `∀ ~A: Data, ~f: A -> Bool, xs: List<&2, A>, ys: List<&2, A>. {List.find(~A, ~f, List.append(&2, A, xs, ys)) == Maybe.or(&2, A, List.find(~A, ~f, xs), List.find(~A, ~f, ys)) : Maybe<&2, A>}` | Finding in an append finds in the first part, or else in the second. | 0.7.0.0 |
 | `all_eq_not_any_not(~a, ~A, ~f, xs)` | `∀ ~a: Quant, ~A: Kind(a), ~f: A -> Bool, xs: List<a, A>. {List.all(~a, ~A, ~f, xs) == Bool.not(List.any(~a, ~A, ~(x => Bool.not(f(x))), xs)) : Bool}` | All elements satisfy f exactly when no element fails it. | 0.7.0.0 |
 | `any_eq_not_all_not(~a, ~A, ~f, xs)` | `∀ ~a: Quant, ~A: Kind(a), ~f: A -> Bool, xs: List<a, A>. {List.any(~a, ~A, ~f, xs) == Bool.not(List.all(~a, ~A, ~(x => Bool.not(f(x))), xs)) : Bool}` | Some element satisfies f exactly when not all elements fail it. | 0.7.0.0 |
+| `length_singleton(a, A, x)` | `∀ -a: Quant, -A: Kind(a), -x: A. {List.length(a, A, [x]) == 1n : Nat}` | A one-element list has length one. | 0.7.2.0 |
+| `reverse_cons(a, A, x, xs)` | `∀ -a: Quant, -A: Kind(a), -x: A, xs: List<a, A>. {List.reverse(a, A, x <> xs) == List.append(a, A, List.reverse(a, A, xs), [x]) : List<a, A>}` | Reversing a cons puts its head last: reverse (x :: xs) = reverse xs ++ [x]. | 0.7.2.0 |
+| `take_succ(a, A, x, xs, n)` | `∀ -a: Quant, -A: Kind(a), -x: A, -xs: List<a, A>, -n: Nat. {List.take(a, A, x <> xs, 1n+n) == x <> List.take(a, A, xs, n) : List<a, A>}` | Taking n + 1 elements of a cons keeps its head and takes n from its tail. | 0.7.2.0 |
+| `drop_succ(a, A, x, xs, n)` | `∀ -a: Quant, -A: Kind(a), -x: A, -xs: List<a, A>, -n: Nat. {List.drop(a, A, x <> xs, 1n+n) == List.drop(a, A, xs, n) : List<a, A>}` | Dropping n + 1 elements of a cons drops its head and n from its tail. | 0.7.2.0 |
 | `append_nil_sym(a, A, xs)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>. {xs == List.append(a, A, xs, Nil{}) : List<a, A>}` | The empty list is a right identity for append: xs ++ [] = xs, reversed to rewrite toward the simple side. | 0.1.0.0 |
 | `nil_append_sym(a, A, xs)` | `∀ -a: Quant, -A: Kind(a), -xs: List<a, A>. {xs == List.append(a, A, Nil{}, xs) : List<a, A>}` | The empty list is a left identity for append: [] ++ xs = xs, reversed to rewrite toward the simple side. | 0.1.0.0 |
 | `append_assoc_sym(a, A, xs, ys, zs)` | `∀ -a: Quant, -A: Kind(a), xs: List<a, A>, -ys: List<a, A>, -zs: List<a, A>. {List.append(a, A, xs, List.append(a, A, ys, zs)) == List.append(a, A, List.append(a, A, xs, ys), zs) : List<a, A>}` | Append is associative: (xs ++ ys) ++ zs = xs ++ (ys ++ zs), reversed to rewrite toward the simple side. | 0.1.0.0 |
@@ -348,11 +352,15 @@ import bend-mathlib@0.7.1.0/list.bend as MList
 | `find_append_sym(~A, ~f, xs, ys)` | `∀ ~A: Data, ~f: A -> Bool, xs: List<&2, A>, ys: List<&2, A>. {Maybe.or(&2, A, List.find(~A, ~f, xs), List.find(~A, ~f, ys)) == List.find(~A, ~f, List.append(&2, A, xs, ys)) : Maybe<&2, A>}` | Finding in an append finds in the first part, or else in the second, reversed to rewrite toward the simple side. | 0.7.0.0 |
 | `all_eq_not_any_not_sym(~a, ~A, ~f, xs)` | `∀ ~a: Quant, ~A: Kind(a), ~f: A -> Bool, xs: List<a, A>. {Bool.not(List.any(~a, ~A, ~(x => Bool.not(f(x))), xs)) == List.all(~a, ~A, ~f, xs) : Bool}` | All elements satisfy f exactly when no element fails it, reversed to rewrite toward the simple side. | 0.7.0.0 |
 | `any_eq_not_all_not_sym(~a, ~A, ~f, xs)` | `∀ ~a: Quant, ~A: Kind(a), ~f: A -> Bool, xs: List<a, A>. {Bool.not(List.all(~a, ~A, ~(x => Bool.not(f(x))), xs)) == List.any(~a, ~A, ~f, xs) : Bool}` | Some element satisfies f exactly when not all elements fail it, reversed to rewrite toward the simple side. | 0.7.0.0 |
+| `length_singleton_sym(a, A, x)` | `∀ -a: Quant, -A: Kind(a), -x: A. {1n == List.length(a, A, [x]) : Nat}` | A one-element list has length one, reversed to rewrite toward the simple side. | 0.7.2.0 |
+| `reverse_cons_sym(a, A, x, xs)` | `∀ -a: Quant, -A: Kind(a), -x: A, xs: List<a, A>. {List.append(a, A, List.reverse(a, A, xs), [x]) == List.reverse(a, A, x <> xs) : List<a, A>}` | Reversing a cons puts its head last: reverse (x :: xs) = reverse xs ++ [x], reversed to rewrite toward the simple side. | 0.7.2.0 |
+| `take_succ_sym(a, A, x, xs, n)` | `∀ -a: Quant, -A: Kind(a), -x: A, -xs: List<a, A>, -n: Nat. {x <> List.take(a, A, xs, n) == List.take(a, A, x <> xs, 1n+n) : List<a, A>}` | Taking n + 1 elements of a cons keeps its head and takes n from its tail, reversed to rewrite toward the simple side. | 0.7.2.0 |
+| `drop_succ_sym(a, A, x, xs, n)` | `∀ -a: Quant, -A: Kind(a), -x: A, -xs: List<a, A>, -n: Nat. {List.drop(a, A, xs, n) == List.drop(a, A, x <> xs, 1n+n) : List<a, A>}` | Dropping n + 1 elements of a cons drops its head and n from its tail, reversed to rewrite toward the simple side. | 0.7.2.0 |
 
 ## maybe
 
 ```python
-import bend-mathlib@0.7.1.0/maybe.bend as MMaybe
+import bend-mathlib@0.7.2.0/maybe.bend as MMaybe
 ```
 
 | lemma | statement | meaning | since |
@@ -391,7 +399,7 @@ import bend-mathlib@0.7.1.0/maybe.bend as MMaybe
 ## nat
 
 ```python
-import bend-mathlib@0.7.1.0/nat.bend as MNat
+import bend-mathlib@0.7.2.0/nat.bend as MNat
 ```
 
 | predicate | definition | since |
@@ -629,6 +637,9 @@ import bend-mathlib@0.7.1.0/nat.bend as MNat
 | `sub_add_comm(n, m, k, h)` | `∀ n: Nat, m: Nat, k: Nat, h: le(k, n). {Nat.sub(Nat.add(n, m), k) == Nat.add(Nat.sub(n, k), m) : Nat}` | Subtracting from the left summand commutes with adding the right one: k <= n implies (n + m) - k = (n - k) + m. | 0.7.1.0 |
 | `le_min_of_le_of_le(a, b, c, hb, hc)` | `∀ a: Nat, b: Nat, c: Nat, hb: le(a, b), hc: le(a, c). le(a, Nat.min(b, c))` | A lower bound of both b and c is a lower bound of their minimum: a <= b and a <= c imply a <= min b c. | 0.7.1.0 |
 | `max_le_of_le_of_le(a, b, c, ha, hb)` | `∀ a: Nat, b: Nat, c: Nat, ha: le(a, c), hb: le(b, c). le(Nat.max(a, b), c)` | An upper bound of both a and b bounds their maximum: a <= c and b <= c imply max a b <= c. | 0.7.1.0 |
+| `mul_two(n)` | `∀ n: Nat. {Nat.mul(n, 2n) == Nat.add(n, n) : Nat}` | Multiplying n by two gives n + n. | 0.7.2.0 |
+| `pow_two(n)` | `∀ n: Nat. {Nat.pow(n, 2n) == Nat.mul(n, n) : Nat}` | Squaring n gives n times n. | 0.7.2.0 |
+| `min_le_max(a, b)` | `∀ a: Nat, b: Nat. {Nat.is_le(Nat.min(a, b), Nat.max(a, b)) == True{} : Bool}` | The minimum of two numbers is at most their maximum. | 0.7.2.0 |
 | `add_zero_sym(x)` | `∀ x: Nat. {x == Nat.add(x, 0n) : Nat}` | Zero is a right identity for addition: x + 0 = x, reversed to rewrite toward the simple side. | 0.1.0.0 |
 | `zero_add_sym(x)` | `∀ -x: Nat. {x == Nat.add(0n, x) : Nat}` | Zero is a left identity for addition: 0 + x = x, reversed to rewrite toward the simple side. | 0.1.0.0 |
 | `add_succ_sym(n, m)` | `∀ n: Nat, -m: Nat. {1n+Nat.add(n, m) == Nat.add(n, 1n+m) : Nat}` | Adding a successor on the right: n + (m + 1) = (n + m) + 1, reversed to rewrite toward the simple side. | 0.1.0.0 |
@@ -743,11 +754,14 @@ import bend-mathlib@0.7.1.0/nat.bend as MNat
 | `add_le_add_iff_right_sym(a, b, k)` | `∀ a: Nat, b: Nat, k: Nat. {Nat.is_le(Nat.add(a, k), Nat.add(b, k)) == Nat.is_le(a, b) : Bool}` | Adding the same amount on the right does not change the order test: a <= b tests as a + k <= b + k, reversed to rewrite toward the simple side. | 0.7.1.0 |
 | `add_left_cancel_iff_sym(k, a, b)` | `∀ k: Nat, -a: Nat, -b: Nat. {Nat.is_eq(Nat.add(k, a), Nat.add(k, b)) == Nat.is_eq(a, b) : Bool}` | Adding the same amount on the left does not change the equality test: a = b tests as k + a = k + b, reversed to rewrite toward the simple side. | 0.7.1.0 |
 | `add_right_cancel_iff_sym(a, b, k)` | `∀ a: Nat, b: Nat, k: Nat. {Nat.is_eq(Nat.add(a, k), Nat.add(b, k)) == Nat.is_eq(a, b) : Bool}` | Adding the same amount on the right does not change the equality test: a = b tests as a + k = b + k, reversed to rewrite toward the simple side. | 0.7.1.0 |
+| `mul_two_sym(n)` | `∀ n: Nat. {Nat.add(n, n) == Nat.mul(n, 2n) : Nat}` | Multiplying n by two gives n + n, reversed to rewrite toward the simple side. | 0.7.2.0 |
+| `pow_two_sym(n)` | `∀ n: Nat. {Nat.mul(n, n) == Nat.pow(n, 2n) : Nat}` | Squaring n gives n times n, reversed to rewrite toward the simple side. | 0.7.2.0 |
+| `min_le_max_sym(a, b)` | `∀ a: Nat, b: Nat. {True{} == Nat.is_le(Nat.min(a, b), Nat.max(a, b)) : Bool}` | The minimum of two numbers is at most their maximum, reversed to rewrite toward the simple side. | 0.7.2.0 |
 
 ## order
 
 ```python
-import bend-mathlib@0.7.1.0/order.bend as MOrder
+import bend-mathlib@0.7.2.0/order.bend as MOrder
 ```
 
 | lemma | statement | meaning | since |
@@ -762,7 +776,7 @@ import bend-mathlib@0.7.1.0/order.bend as MOrder
 ## string
 
 ```python
-import bend-mathlib@0.7.1.0/string.bend as MString
+import bend-mathlib@0.7.2.0/string.bend as MString
 ```
 
 | lemma | statement | meaning | since |
@@ -819,4 +833,4 @@ import bend-mathlib@0.7.1.0/string.bend as MString
 | `to_list_append_sym(a, b)` | `∀ a: String, -b: String. {List.append(&2, Char, String.to_list(a), String.to_list(b)) == String.to_list(String.append(a, b)) : List<&2, Char>}` | The characters of an append are the characters of each part, appended, reversed to rewrite toward the simple side. | 0.7.0.0 |
 | `length_to_list_sym(s)` | `∀ s: String. {String.length(s) == List.length(&2, Char, String.to_list(s)) : Nat}` | A string has as many characters as its character list, reversed to rewrite toward the simple side. | 0.7.0.0 |
 
-438 lemmas + 292 generated _sym twins, 6 predicates. Generated by `tools/mathlib/index.ts`.
+445 lemmas + 299 generated _sym twins, 6 predicates. Generated by `tools/mathlib/index.ts`.

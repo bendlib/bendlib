@@ -1768,6 +1768,51 @@ def any_eq_not_all_not(a, A, f, xs):
       %Equal.sym(Bool, List.any(~a, ~A, ~f, t), Bool.not(List.all(~a, ~A, ~(x => Bool.not(f(x))), t)), any_eq_not_all_not(~a, ~A, ~f, t)) : {Bool.or(f(h), _) == Bool.not(Bool.and(Bool.not(f(h)), List.all(~a, ~A, ~(x => Bool.not(f(x))), t))) : Bool}
       internal_or_not_eq_not_and_not(f(h), List.all(~a, ~A, ~(x => Bool.not(f(x))), t))
 
+# A one-element list has length one.
+law length_singleton:
+  for -a: Quant
+  for -A: Kind(a)
+  for -x: A
+  {List.length(a, A, [x]) == 1n : Nat}
+
+def length_singleton(a, A, x):
+  {==}
+
+# Reversing a cons puts its head last: reverse (x :: xs) = reverse xs ++ [x].
+law reverse_cons:
+  for -a: Quant
+  for -A: Kind(a)
+  for -x: A
+  for xs: List<a, A>
+  {List.reverse(a, A, x <> xs) == List.append(a, A, List.reverse(a, A, xs), [x]) : List<a, A>}
+
+def reverse_cons(a, A, x, xs):
+  reverse_go_spec(a, A, xs, [x])
+
+# Taking n + 1 elements of a cons keeps its head and takes n from its tail.
+law take_succ:
+  for -a: Quant
+  for -A: Kind(a)
+  for -x: A
+  for -xs: List<a, A>
+  for -n: Nat
+  {List.take(a, A, x <> xs, 1n+n) == x <> List.take(a, A, xs, n) : List<a, A>}
+
+def take_succ(a, A, x, xs, n):
+  {==}
+
+# Dropping n + 1 elements of a cons drops its head and n from its tail.
+law drop_succ:
+  for -a: Quant
+  for -A: Kind(a)
+  for -x: A
+  for -xs: List<a, A>
+  for -n: Nat
+  {List.drop(a, A, x <> xs, 1n+n) == List.drop(a, A, xs, n) : List<a, A>}
+
+def drop_succ(a, A, x, xs, n):
+  {==}
+
 # --- generated: _sym twins (tools/mathlib/twins.ts), do not edit ---
 
 # The empty list is a right identity for append: xs ++ [] = xs, reversed to rewrite toward the simple side.
@@ -2773,3 +2818,48 @@ law any_eq_not_all_not_sym:
 
 def any_eq_not_all_not_sym(a, A, f, xs):
   Equal.sym(Bool, List.any(~a, ~A, ~f, xs), Bool.not(List.all(~a, ~A, ~(x => Bool.not(f(x))), xs)), any_eq_not_all_not(~a, ~A, ~f, xs))
+
+# A one-element list has length one, reversed to rewrite toward the simple side.
+law length_singleton_sym:
+  for -a: Quant
+  for -A: Kind(a)
+  for -x: A
+  {1n == List.length(a, A, [x]) : Nat}
+
+def length_singleton_sym(a, A, x):
+  Equal.sym(Nat, List.length(a, A, [x]), 1n, length_singleton(a, A, x))
+
+# Reversing a cons puts its head last: reverse (x :: xs) = reverse xs ++ [x], reversed to rewrite toward the simple side.
+law reverse_cons_sym:
+  for -a: Quant
+  for -A: Kind(a)
+  for -x: A
+  for xs: List<a, A>
+  {List.append(a, A, List.reverse(a, A, xs), [x]) == List.reverse(a, A, x <> xs) : List<a, A>}
+
+def reverse_cons_sym(a, A, x, xs):
+  Equal.sym(List<a, A>, List.reverse(a, A, x <> xs), List.append(a, A, List.reverse(a, A, xs), [x]), reverse_cons(a, A, x, xs))
+
+# Taking n + 1 elements of a cons keeps its head and takes n from its tail, reversed to rewrite toward the simple side.
+law take_succ_sym:
+  for -a: Quant
+  for -A: Kind(a)
+  for -x: A
+  for -xs: List<a, A>
+  for -n: Nat
+  {x <> List.take(a, A, xs, n) == List.take(a, A, x <> xs, 1n+n) : List<a, A>}
+
+def take_succ_sym(a, A, x, xs, n):
+  Equal.sym(List<a, A>, List.take(a, A, x <> xs, 1n+n), x <> List.take(a, A, xs, n), take_succ(a, A, x, xs, n))
+
+# Dropping n + 1 elements of a cons drops its head and n from its tail, reversed to rewrite toward the simple side.
+law drop_succ_sym:
+  for -a: Quant
+  for -A: Kind(a)
+  for -x: A
+  for -xs: List<a, A>
+  for -n: Nat
+  {List.drop(a, A, xs, n) == List.drop(a, A, x <> xs, 1n+n) : List<a, A>}
+
+def drop_succ_sym(a, A, x, xs, n):
+  Equal.sym(List<a, A>, List.drop(a, A, x <> xs, 1n+n), List.drop(a, A, xs, n), drop_succ(a, A, x, xs, n))

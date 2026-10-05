@@ -3730,6 +3730,37 @@ def max_le_of_le_of_le(a, b, c, ha, hb):
   %Equal.sym(Bool, Nat.is_le(a, c), True{}, ha) : {Bool.and(_, Nat.is_le(b, c)) == True{} : Bool}
   hb
 
+# Multiplying n by two gives n + n.
+law mul_two:
+  for n: Nat
+  {Nat.mul(n, 2n) == Nat.add(n, n) : Nat}
+
+def mul_two(n):
+  +n = n
+  %mul_comm(2n, n) : {_ == Nat.add(n, n) : Nat}
+  two_mul(n)
+
+# Squaring n gives n times n.
+law pow_two:
+  for n: Nat
+  {Nat.pow(n, 2n) == Nat.mul(n, n) : Nat}
+
+def pow_two(n):
+  +n = n
+  %Equal.sym(Nat, Nat.mul(n, 1n), n, mul_one(n)) : {Nat.mul(n, _) == Nat.mul(n, n) : Nat}
+  {==}
+
+# The minimum of two numbers is at most their maximum.
+law min_le_max:
+  for a: Nat
+  for b: Nat
+  {Nat.is_le(Nat.min(a, b), Nat.max(a, b)) == True{} : Bool}
+
+def min_le_max(a, b):
+  +a = a
+  +b = b
+  le_trans(Nat.min(a, b), a, Nat.max(a, b), min_le_left(a, b), le_max_left(a, b))
+
 # --- generated: _sym twins (tools/mathlib/twins.ts), do not edit ---
 
 # Zero is a right identity for addition: x + 0 = x, reversed to rewrite toward the simple side.
@@ -4775,3 +4806,28 @@ law add_right_cancel_iff_sym:
 
 def add_right_cancel_iff_sym(a, b, k):
   Equal.sym(Bool, Nat.is_eq(a, b), Nat.is_eq(Nat.add(a, k), Nat.add(b, k)), add_right_cancel_iff(a, b, k))
+
+# Multiplying n by two gives n + n, reversed to rewrite toward the simple side.
+law mul_two_sym:
+  for n: Nat
+  {Nat.add(n, n) == Nat.mul(n, 2n) : Nat}
+
+def mul_two_sym(n):
+  Equal.sym(Nat, Nat.mul(n, 2n), Nat.add(n, n), mul_two(n))
+
+# Squaring n gives n times n, reversed to rewrite toward the simple side.
+law pow_two_sym:
+  for n: Nat
+  {Nat.mul(n, n) == Nat.pow(n, 2n) : Nat}
+
+def pow_two_sym(n):
+  Equal.sym(Nat, Nat.pow(n, 2n), Nat.mul(n, n), pow_two(n))
+
+# The minimum of two numbers is at most their maximum, reversed to rewrite toward the simple side.
+law min_le_max_sym:
+  for a: Nat
+  for b: Nat
+  {True{} == Nat.is_le(Nat.min(a, b), Nat.max(a, b)) : Bool}
+
+def min_le_max_sym(a, b):
+  Equal.sym(Bool, Nat.is_le(Nat.min(a, b), Nat.max(a, b)), True{}, min_le_max(a, b))
