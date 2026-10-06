@@ -33,6 +33,8 @@ def my_rev(xs):
 ```
 
 Every lemma with its statement: [packages/bend-mathlib/README.md](packages/bend-mathlib/README.md).
+Used on BendHub by [`mylsm-lsm-store`](https://github.com/FabianVegaA/mylsm) (from 0.4.0.0): its keyed-lookup
+proofs rest on the `string` and `bool` comparison lemmas.
 Proving with an AI agent? Install the plugin, which teaches the agent to find, import and rewrite
 with these lemmas instead of re-proving them:
 
