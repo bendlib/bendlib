@@ -151,7 +151,7 @@ their expected output, and what not to do. Read the whole bead before starting.
    Beads labelled `owner` need contact with people or a purchase: never start them. Beads labelled
    `release` publish to BendHub, `bend link`, tag or create GitHub releases: take them only when
    every dependency is closed and the full gate is green on `origin/main` (PLAN §9 D-release). `br show <id>`, then `br update <id> --status in_progress`.
-2. Environment: `~/.bend/bin/bend version` must print `bend 2.0.35` (else `bun tools/install-bend.ts`).
+2. Environment: `~/.bend/bin/bend version` must print `bend 2.0.36` (else `bun tools/install-bend.ts`).
    Run commands from the repository root. For Bend itself: `bend guide`, `bend base <Name>` (e.g.
    `bend base List`), and `~/.claude/skills/bend2-mega-skill/references/` (`CHEATSHEET.md`,
    `LAWS-AND-PROOFS.md`, `PROOF-COOKBOOK.md`, `ERROR-TAXONOMY.md`).
@@ -184,7 +184,7 @@ their expected output, and what not to do. Read the whole bead before starting.
 7. **Never**: publish, name or link anything on BendHub (`--publish`, `bend link`, `bend login`);
    create git tags or GitHub releases; change an entry of `PUBLIC_API.lock` that has a `since`;
    put `@unsafe`, `?holes` or `def f?(` into `packages/`; delete files (RULE 1); read or print
-   `~/.bend/bender.json`; contact anyone; install anything globally.
+   `~/.bend/bendai.json` (`~/.bend/bender.json` before bend 2.0.36); contact anyone; install anything globally.
 8. New work you discover: `br create "<title>" -p 2 --deps discovered-from:<id> --description-file <file>`
    with a self-contained description.
 

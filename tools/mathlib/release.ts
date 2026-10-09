@@ -21,10 +21,11 @@ const sh = (cmd: string[], extra: Record<string, string> = {}) => {
 };
 const fail = (msg: string): never => { console.error(`release: ${msg}`); process.exit(1); };
 
-// bend reads BEND_HUB and $HOME/.bend/bender.json; read them per call so a test can point both away.
+// bend reads BEND_HUB and its key file; read them per call so a test can point both away.
 const hubUrl = () => process.env.BEND_HUB ?? "https://hub.bend-lang.com";
 const bendBin = () => process.env.BEND_CLI ?? BEND;
-const benderFile = () => join(process.env.HOME ?? homedir(), ".bend", "bender.json");
+// bend >= 2.0.36 keeps the key in bendai.json and moves an older bender.json there on its next hub call.
+const keyFiles = () => ["bendai.json", "bender.json"].map((f) => join(process.env.HOME ?? homedir(), ".bend", f));
 // The ledger is repo-root state; the override lets the publish-path test run off-tree.
 const releasesFile = () => process.env.BENDLIB_RELEASES ?? join(ROOT, "RELEASES.md");
 
@@ -47,11 +48,13 @@ export function regenerateIndex(pkg: string, name: string, version: string) {
 
 /** bend's stored key; without one, `bend link` starts an interactive login and hangs under spawnSync. */
 export function loginError(): string | null {
-  try {
-    const key = (JSON.parse(readFileSync(benderFile(), "utf8")) as { key?: unknown }).key;
-    if (typeof key === "string" && key !== "") return null;
-  } catch {}
-  return "not logged in (no key in ~/.bend/bender.json): run `bend login`";
+  for (const file of keyFiles()) {
+    try {
+      const key = (JSON.parse(readFileSync(file, "utf8")) as { key?: unknown }).key;
+      if (typeof key === "string" && key !== "") return null;
+    } catch {}
+  }
+  return "not logged in (no key in ~/.bend/bendai.json or ~/.bend/bender.json): run `bend login`";
 }
 
 /** Publish, verify from an empty cache, link the name, freeze the lock, regenerate README, record it. */

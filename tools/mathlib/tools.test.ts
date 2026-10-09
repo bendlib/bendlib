@@ -504,7 +504,7 @@ const REAL = process.env.BEND_REAL ?? "";
 const HUB = process.env.BEND_HUB ?? "";
 const args = process.argv.slice(2);
 const key = () => {
-  try { return String((JSON.parse(readFileSync(join(process.env.HOME ?? "", ".bend", "bender.json"), "utf8"))).key ?? ""); } catch { return ""; }
+  try { return String((JSON.parse(readFileSync(join(process.env.HOME ?? "", ".bend", "bendai.json"), "utf8"))).key ?? ""); } catch { return ""; }
 };
 const post = (route, body) => fetch(HUB + route, { method: "POST",
   headers: { authorization: "Bearer " + key(), "content-type": "application/json" }, body: JSON.stringify(body) });
@@ -537,11 +537,13 @@ test("release: loginError is null with a key and typed without one (planted pair
     const bad = mkdtempSync(join(tmpdir(), "bend-login-bad-"));
     process.env.HOME = bad;
     expect(loginError()).toContain("run `bend login`");
-    const good = mkdtempSync(join(tmpdir(), "bend-login-good-"));
-    mkdirSync(join(good, ".bend"));
-    writeFileSync(join(good, ".bend", "bender.json"), JSON.stringify({ key: "test-key", login: "tester" }) + "\n");
-    process.env.HOME = good;
-    expect(loginError()).toBeNull();
+    for (const file of ["bendai.json", "bender.json"]) {
+      const good = mkdtempSync(join(tmpdir(), "bend-login-good-"));
+      mkdirSync(join(good, ".bend"));
+      writeFileSync(join(good, ".bend", file), JSON.stringify({ key: "test-key", login: "tester" }) + "\n");
+      process.env.HOME = good;
+      expect(loginError()).toBeNull();
+    }
   } finally {
     if (saved === undefined) delete process.env.HOME; else process.env.HOME = saved;
   }
@@ -551,7 +553,7 @@ test("release publish: a local mock hub exercises publish, verify, link, freeze 
   const hub = await startMockHub();
   const home = mkdtempSync(join(tmpdir(), "bend-release-home-"));
   mkdirSync(join(home, ".bend"));
-  writeFileSync(join(home, ".bend", "bender.json"), JSON.stringify({ key: "test-key", login: "tester" }) + "\n");
+  writeFileSync(join(home, ".bend", "bendai.json"), JSON.stringify({ key: "test-key", login: "tester" }) + "\n");
   const releases = join(mkdtempSync(join(tmpdir(), "bend-ledger-")), "RELEASES.md");
   const pkg = makeReleasePkg("fixture-package", "0.2.0.0");
   const stub = makePublishStub();
@@ -584,7 +586,7 @@ test("release publish: a hub that echoes a different hash is refused before link
   const hub = await startMockHub({ MOCK_TAMPER: "1" });
   const home = mkdtempSync(join(tmpdir(), "bend-release-tamper-home-"));
   mkdirSync(join(home, ".bend"));
-  writeFileSync(join(home, ".bend", "bender.json"), JSON.stringify({ key: "test-key", login: "tester" }) + "\n");
+  writeFileSync(join(home, ".bend", "bendai.json"), JSON.stringify({ key: "test-key", login: "tester" }) + "\n");
   const releases = join(mkdtempSync(join(tmpdir(), "bend-ledger-tamper-")), "RELEASES.md");
   const pkg = makeReleasePkg("fixture-package", "0.2.0.0");
   const stub = makePublishStub();

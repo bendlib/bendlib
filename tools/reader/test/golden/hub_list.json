@@ -1,5 +1,5 @@
 {
-  "bend": "2.0.35",
+  "bend": "2.0.36",
   "file": "tools/reader/test/fixtures/hub_list.bend",
   "decls": [
     {

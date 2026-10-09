@@ -79,10 +79,11 @@ changes your laws fail to notice. Details: [tools/lawcheck](tools/lawcheck).
   hint line) on the pinned compiler.
 - **Checked by the proven kernel.** CI also runs `bend --verdict`, which re-checks every proof in
   BendTT, the kernel whose soundness is proved in Lean: `nat`, `list`, `bool`, `string`, `maybe`,
-  `equal`, `perm` and the kernel package pass. `algebra` and `order` wait on
-  [bendlang/bend#1182](https://github.com/bendlang/bend/issues/1182) (our fix:
-  [#1263](https://github.com/bendlang/bend/pull/1263)); `sort` also needs kinds that depend on a
-  run-time value, which BendTT cannot express yet.
+  `equal`, `perm` and the kernel package pass. `algebra` and `order` wait on `--verdict`'s model
+  search, which picks a model for each `~` constant of a law in turn, so constants that only fit
+  together get none ([diagnosis](https://github.com/bendlang/bend/pull/1263), related to
+  [bendlang/bend#1182](https://github.com/bendlang/bend/issues/1182)); `sort` also needs template
+  arguments that depend on a run-time value, which BendTT cannot express yet.
 - **Built for AI provers too.** Mathlib-standard names, one-line statements, generated
   `_sym` twins for the rewrite direction that simplifies.
 

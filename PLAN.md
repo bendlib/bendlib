@@ -1,7 +1,7 @@
 # bendlib — plan
 
-> **Date:** 2026-09-24 · **Owner:** Muhammed Durakovic · **Compiler:** `bend 2.0.35` since 2026-10-04
-> (linux-x64 archive sha256 `63039d1a119f716767ac5a7d8fe0717cfacf219c6c253c35192148e0dade722f`; 2.0.34 before)
+> **Date:** 2026-09-24 · **Owner:** Muhammed Durakovic · **Compiler:** `bend 2.0.36` since 2026-10-09
+> (linux-x64 archive sha256 `02089dc0eed0fd5fd6d73c74cc9cffcb2c6638dd3b02ae83f7b8cc57fbe381ba`; 2.0.35 before)
 > **Brand:** GitHub org `bendlib` · hub package `bend-mathlib` (D1: decided) · Apache-2.0
 >
 > Scope rule: this document holds architecture, design and build order. Process, publicity cadence
@@ -28,7 +28,7 @@ structures (`bendlib-heap`, `bendlib-rbmap` over frozen kernels, §3.4), lawful 
 
 ## 1. Grounded facts (verified on 2.0.27, experiments in `research/experiments/`)
 
-Re-run on 2.0.35 (2026-10-04, `research/experiments/run.sh`): 56 passed, 0 failed; no replayed outcome changed. F37 is new.
+Re-run on 2.0.36 (2026-10-09, `research/experiments/run.sh`): 56 passed, 0 failed; no replayed outcome changed. F37 is new since 2.0.35.
 
 Re-run on 2.0.34 (2026-09-29, `research/experiments/run.sh`): 56 passed, 0 failed; no replayed outcome changed. F35 was checked separately with `--verdict` on bool and algebra.
 
@@ -453,7 +453,7 @@ evidence in `research/candidates/predicates/evidence/` and `research/candidates/
   insertion sort are permutations; `perm_length`). Base-only alternatives rejected: sort equality is
   wrong for preorders, count-by-zip is stuck at variables. The kernel is published only after mathlib's
   perm lemmas and the sort theorems check against its exact final hash via `devlib`.
-- **D-release — agents publish.** This machine holds the owner's hub login (`~/.bend/bender.json`);
+- **D-release — agents publish.** This machine holds the owner's hub login (`~/.bend/bendai.json`; `bender.json` before bend 2.0.36);
   release beads (label `release`) run `release.ts --publish`, tags and GitHub releases once every gate
   is green. Outreach to people stays with the owner.
 - **D-invite — no personal outreach by agents;** contributors come through "good first lemma" GitHub
