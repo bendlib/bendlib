@@ -2467,6 +2467,12 @@
       "sha256": "178ea2320a11100f01d6f3d10ff9f65eec8d81509e3bb0dbc5333510269acde6",
       "since": "0.4.0.0"
     },
+    "nat.div_le_div_left": {
+      "kind": "law",
+      "text": "for a: Nat\nfor s: Nat\nfor t: Nat\nfor hs: lt(0n, s)\nfor h: le(s, t)\nle(Nat.div(a, t), Nat.div(a, s))",
+      "sha256": "3aa4f5a56a6058437ee5e98159686089d42433a5f491f1b6b26b436f6e429308",
+      "since": null
+    },
     "nat.div_le_self": {
       "kind": "law",
       "text": "for a: Nat\nfor b: Nat\nle(Nat.div(a, b), a)",
@@ -4830,6 +4836,24 @@
       "text": "for a: U32\nfor b: U32\n{Nat.cmp(U32.to_nat(a), U32.to_nat(b)) == U32.cmp(a, b) : Cmp}",
       "sha256": "19666de26dbcab309e5bd4310212088878a61912ef91b90e611a48974a7027d9",
       "since": "0.8.0.0"
+    },
+    "u32.u32_div_le_div_left": {
+      "kind": "law",
+      "text": "for a: U32\nfor s: U32\nfor t: U32\nfor hs: {U32.is_lt(0, s) == True{} : Bool}\nfor h: {U32.is_le(s, t) == True{} : Bool}\n{U32.is_le(U32.div(a, t), U32.div(a, s)) == True{} : Bool}",
+      "sha256": "95d03d03c2c9718387c82ebb6b9255f95619bb839c72814257dba8c39964200a",
+      "since": null
+    },
+    "u32.u32_div_to_nat": {
+      "kind": "law",
+      "text": "for a: U32\nfor b: U32\n{U32.to_nat(U32.div(a, b)) == Nat.div(U32.to_nat(a), U32.to_nat(b)) : Nat}",
+      "sha256": "1a5b8afd78e84315b5bc3fe3106a7fd3c059578892b66fa6da99b15435e5d57d",
+      "since": null
+    },
+    "u32.u32_div_to_nat_sym": {
+      "kind": "law",
+      "text": "for a: U32\nfor b: U32\n{Nat.div(U32.to_nat(a), U32.to_nat(b)) == U32.to_nat(U32.div(a, b)) : Nat}",
+      "sha256": "9bdea2576a32a757f57de932f809be981034adcb5405c54f53a06d3af0172c71",
+      "since": null
     },
     "u32.u32_from_nat_to_nat": {
       "kind": "law",

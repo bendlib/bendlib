@@ -3444,6 +3444,26 @@ def add_mul_div_left(x, z, b):
   %mul_comm(z, 1n+b) : {Nat.div(Nat.add(x, _), 1n+b) == Nat.add(Nat.div(x, 1n+b), z) : Nat}
   add_mul_div_right(x, z, b)
 
+# Division is antitone in a positive divisor: 0 < s and s <= t imply a / t <= a / s.
+law div_le_div_left:
+  for a: Nat
+  for s: Nat
+  for t: Nat
+  for hs: lt(0n, s)
+  for h: le(s, t)
+  le(Nat.div(a, t), Nat.div(a, s))
+
+def div_le_div_left(a, s, t, hs, h):
+  match s:
+    case 0n:
+      Empty.absurd(le(Nat.div(a, t), Nat.div(a, 0n)), internal_false_ne_true(hs))
+    case 1n++sp:
+      +a = a
+      +t = t
+      +q = Nat.div(a, t)
+      %Equal.sym(Bool, Nat.is_le(q, Nat.div(a, 1n+sp)), Nat.is_le(Nat.mul(q, 1n+sp), a), le_div_iff_mul_le(q, a, sp)) : {_ == True{} : Bool}
+      le_trans(Nat.mul(q, 1n+sp), Nat.mul(q, t), a, mul_le_mul_left(1n+sp, t, q, h), div_mul_le_self(a, t))
+
 # Adding a multiple of the divisor keeps the remainder: (a + c * b) % b = a % b.
 law add_mul_mod_self_right:
   for a: Nat

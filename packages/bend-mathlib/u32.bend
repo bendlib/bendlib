@@ -1,5 +1,5 @@
 # bend-mathlib/u32.bend: machine words as naturals; Word(n) and U32 operations agree with Nat arithmetic
-# (compare, add, sub, inc, not, min, max, from_nat).
+# (compare, add, sub, inc, not, min, max, div, from_nat).
 import Base
 import ./nat.bend as MNat
 
@@ -772,6 +772,206 @@ def u32_max_to_nat(a, b):
     case U32{+x} U32{+y}:
       internal_max_fin(U32{x}, U32{y}, U32.is_lt(U32{x}, U32{y}), Equal.sym(Bool, U32.is_lt(U32{x}, U32{y}), Nat.is_lt(U32.to_nat(U32{x}), U32.to_nat(U32{y})), u32_is_lt_to_nat(U32{x}, U32{y})))
 
+def internal_shl_val(n: Nat, md: Nat, ts: Bool & Word(n)) -> Nat:
+  match ts:
+    case (t, s):
+      Nat.add(Word.to_nat(n, s), Bool.pick(Nat, t, md, 0n))
+
+def internal_shl_con(+p: Nat, +c: Bool, r: Bool & Word(p), -x: Nat, ih: {internal_shl_val(p, Nat.pow(2n, p), r) == x : Nat}) -> {internal_shl_val(1n+p, Nat.pow(2n, 1n+p), Word.shl.out.con(p, c, r)) == Nat.add(internal_bv(c), Nat.double(x)) : Nat}:
+  match r:
+    case (+hi, +t2):
+      +u = Word.to_nat(p, t2)
+      +v = Bool.pick(Nat, hi, Nat.pow(2n, p), 0n)
+      %ih : {Nat.add(Word.to_nat(1n+p, WCon{c, t2}), Bool.pick(Nat, hi, Nat.pow(2n, 1n+p), 0n)) == Nat.add(internal_bv(c), Nat.double(_)) : Nat}
+      %MNat.double_add_sym(u, v) : {Nat.add(Word.to_nat(1n+p, WCon{c, t2}), Bool.pick(Nat, hi, Nat.pow(2n, 1n+p), 0n)) == Nat.add(internal_bv(c), _) : Nat}
+      %internal_pick_pow(hi, p) : {Nat.add(Word.to_nat(1n+p, WCon{c, t2}), _) == Nat.add(internal_bv(c), Nat.add(Nat.double(u), Nat.double(v))) : Nat}
+      %internal_to_nat_con(p, c, t2) : {Nat.add(_, Nat.double(v)) == Nat.add(internal_bv(c), Nat.add(Nat.double(u), Nat.double(v))) : Nat}
+      MNat.add_assoc(internal_bv(c), Nat.double(u), Nat.double(v))
+
+def internal_shl_out(n: Nat, c: Bool, w: Word(n)) -> {internal_shl_val(n, Nat.pow(2n, n), Word.shl.out(n, c, w)) == Nat.add(internal_bv(c), Nat.double(Word.to_nat(n, w))) : Nat}:
+  match n:
+    case 0n:
+      match c:
+        case False{}:
+          match w:
+            case WNil{}:
+              {==}
+        case True{}:
+          match w:
+            case WNil{}:
+              {==}
+    case 1n++p:
+      match w:
+        case WCon{+b, +t}:
+          %internal_to_nat_con(p, b, t) : {internal_shl_val(1n+p, Nat.pow(2n, 1n+p), Word.shl.out(1n+p, c, WCon{b, t})) == Nat.add(internal_bv(c), Nat.double(_)) : Nat}
+          internal_shl_con(p, c, Word.shl.out(p, b, t), Nat.add(internal_bv(b), Nat.double(Word.to_nat(p, t))), internal_shl_out(p, b, t))
+
+def internal_shl_out32(-md: Nat, em: {Nat.pow(2n, 32n) == md : Nat}, x: Bool, rw: Word(32n)) -> {internal_shl_val(32n, md, Word.shl.out(32n, x, rw)) == Nat.add(internal_bv(x), Nat.double(Word.to_nat(32n, rw))) : Nat}:
+  %em : {internal_shl_val(32n, _, Word.shl.out(32n, x, rw)) == Nat.add(internal_bv(x), Nat.double(Word.to_nat(32n, rw))) : Nat}
+  internal_shl_out(32n, x, rw)
+
+def internal_div_step(+k: Nat, +q: Nat, +b: Nat, +r2: Nat, +x: Nat, +r: Nat, -a: Nat, ek: {Nat.add(Nat.mul(k, b), r2) == Nat.add(x, Nat.double(r)) : Nat}, ea: {Nat.add(Nat.mul(q, b), r) == a : Nat}) -> {Nat.add(Nat.mul(Nat.add(k, Nat.double(q)), b), r2) == Nat.add(x, Nat.double(a)) : Nat}:
+  -l = Nat.add(Nat.mul(Nat.add(k, Nat.double(q)), b), r2)
+  %ea : {l == Nat.add(x, Nat.double(_)) : Nat}
+  %MNat.double_add_sym(Nat.mul(q, b), r) : {l == Nat.add(x, _) : Nat}
+  %MNat.double_mul_sym(q, b) : {l == Nat.add(x, Nat.add(_, Nat.double(r))) : Nat}
+  %MNat.add_mul_sym(k, Nat.double(q), b) : {Nat.add(_, r2) == Nat.add(x, Nat.add(Nat.mul(Nat.double(q), b), Nat.double(r))) : Nat}
+  %MNat.add_left_comm(Nat.mul(Nat.double(q), b), x, Nat.double(r)) : {Nat.add(Nat.add(Nat.mul(k, b), Nat.mul(Nat.double(q), b)), r2) == _ : Nat}
+  %ek : {Nat.add(Nat.add(Nat.mul(k, b), Nat.mul(Nat.double(q), b)), r2) == Nat.add(Nat.mul(Nat.double(q), b), _) : Nat}
+  %MNat.add_left_comm(Nat.mul(k, b), Nat.mul(Nat.double(q), b), r2) : {Nat.add(Nat.add(Nat.mul(k, b), Nat.mul(Nat.double(q), b)), r2) == _ : Nat}
+  MNat.add_assoc(Nat.mul(k, b), Nat.mul(Nat.double(q), b), r2)
+
+def internal_bit_double_lt(x: Bool, +r: Nat, +b: Nat, h: MNat.lt(r, b)) -> MNat.lt(Nat.add(internal_bv(x), Nat.double(r)), Nat.double(b)):
+  match x:
+    case False{}:
+      MNat.double_lt_double(r, b, h)
+    case True{}:
+      %Equal.sym(Bool, Nat.is_lt(1n+Nat.double(r), Nat.double(b)), Nat.is_le(2n+Nat.double(r), Nat.double(b)), MNat.is_lt_eq_succ_le(1n+Nat.double(r), Nat.double(b))) : {_ == True{} : Bool}
+      MNat.double_le_double(1n+r, b, MNat.succ_le_of_lt(r, b, h))
+
+def internal_rem_lt_add(+b: Nat, +r2: Nat, -v: Nat, e: {Nat.add(b, r2) == v : Nat}, h: MNat.lt(v, Nat.double(b))) -> MNat.lt(Nat.add(b, r2), Nat.add(b, b)):
+  %Equal.sym(Nat, Nat.add(b, r2), v, e) : MNat.lt(_, Nat.add(b, b))
+  %MNat.double_eq_add(b) : MNat.lt(v, _)
+  h
+
+def internal_rem_lt(+b: Nat, +r2: Nat, -v: Nat, e: {Nat.add(b, r2) == v : Nat}, h: MNat.lt(v, Nat.double(b))) -> MNat.lt(r2, b):
+  MNat.lt_of_add_lt_add_left(b, r2, b, internal_rem_lt_add(b, r2, v, e, h))
+
+def internal_wrap_sum(+b: Nat, +s: Nat, +m: Nat, -v: Nat, hb: MNat.lt(b, m), es: {Nat.add(s, m) == v : Nat}) -> {Nat.add(b, Nat.add(s, Nat.sub(m, b))) == v : Nat}:
+  %MNat.add_left_comm(s, b, Nat.sub(m, b)) : {_ == v : Nat}
+  %Equal.sym(Nat, Nat.add(b, Nat.sub(m, b)), m, MNat.add_sub_of_le(b, m, MNat.le_of_lt(b, m, hb))) : {Nat.add(s, _) == v : Nat}
+  es
+
+def internal_wrap_rem(+b: Nat, +s: Nat, +m: Nat, +v: Nat, +hb: MNat.lt(b, m), es: {Nat.add(s, m) == v : Nat}, hv: MNat.lt(v, Nat.double(b))) -> {Nat.add(b, Nat.mod(Nat.add(s, Nat.sub(m, b)), m)) == v : Nat}:
+  +y = Nat.add(s, Nat.sub(m, b))
+  +ey = internal_wrap_sum(b, s, m, v, hb, es)
+  +hy = internal_rem_lt(b, y, v, ey, hv)
+  %Equal.sym(Nat, Nat.mod(y, m), y, MNat.mod_eq_of_lt(y, m, MNat.lt_trans(y, b, m, hy, hb))) : {Nat.add(b, _) == v : Nat}
+  ey
+
+def internal_dm_inv(m: Nat, b: Nat, a: Nat, qr: Word(m) & U32) -> Type:
+  match qr:
+    case (q, r):
+      {Nat.add(Nat.mul(Word.to_nat(m, q), b), U32.to_nat(r)) == a : Nat} & MNat.lt(U32.to_nat(r), b)
+
+def internal_dm_take(+p: Nat, +q: Word(p), +b: Nat, +r2: Nat, +x: Bool, +r: Nat, -a: Nat, ea: {Nat.add(Nat.mul(Word.to_nat(p, q), b), r) == a : Nat}, hr: MNat.lt(r, b), +e2: {Nat.add(b, r2) == Nat.add(internal_bv(x), Nat.double(r)) : Nat}) -> {Nat.add(Nat.mul(1n+Nat.double(Word.to_nat(p, q)), b), r2) == Nat.add(internal_bv(x), Nat.double(a)) : Nat} & MNat.lt(r2, b):
+  +ek = Equal.trans(Nat, Nat.add(Nat.mul(1n, b), r2), Nat.add(b, r2), Nat.add(internal_bv(x), Nat.double(r)), Equal.cong(Nat, Nat, z => Nat.add(z, r2), Nat.mul(1n, b), b, MNat.one_mul(b)), e2)
+  (internal_div_step(1n, Word.to_nat(p, q), b, r2, internal_bv(x), r, a, ek, ea), internal_rem_lt(b, r2, Nat.add(internal_bv(x), Nat.double(r)), e2, internal_bit_double_lt(x, r, b, hr)))
+
+def internal_dm_wrap(+b: U32, +s: Word(32n), +x: Bool, +r: Nat, +m: Nat, +em: {Nat.pow(2n, 32n) == m : Nat}, hr: MNat.lt(r, U32.to_nat(b)), es: {Nat.add(Word.to_nat(32n, s), m) == Nat.add(internal_bv(x), Nat.double(r)) : Nat}) -> {Nat.add(U32.to_nat(b), U32.to_nat(U32.sub(U32{s}, b))) == Nat.add(internal_bv(x), Nat.double(r)) : Nat}:
+  +bn = U32.to_nat(b)
+  +sn = Word.to_nat(32n, s)
+  +v = Nat.add(internal_bv(x), Nat.double(r))
+  %Equal.sym(Nat, U32.to_nat(U32.sub(U32{s}, b)), Nat.mod(Nat.add(sn, Nat.sub(m, bn)), m), internal_u32_sub_wrap(m, U32{s}, b, em)) : {Nat.add(bn, _) == v : Nat}
+  internal_wrap_rem(bn, sn, m, v, internal_u32_to_nat_lt(m, b, em), es, internal_bit_double_lt(x, r, bn, hr))
+
+def internal_dm_fin(+p: Nat, +q: Word(p), +s: Word(32n), +b: U32, +x: Bool, +r: Nat, -a: Nat, +m: Nat, +em: {Nat.pow(2n, 32n) == m : Nat}, t: Bool, g: Bool, ea: {Nat.add(Nat.mul(Word.to_nat(p, q), U32.to_nat(b)), r) == a : Nat}, +hr: MNat.lt(r, U32.to_nat(b)), es: {Nat.add(Word.to_nat(32n, s), Bool.pick(Nat, t, m, 0n)) == Nat.add(internal_bv(x), Nat.double(r)) : Nat}, eg: {Bool.or(t, U32.is_ge(U32{s}, b)) == g : Bool}) -> internal_dm_inv(1n+p, U32.to_nat(b), Nat.add(internal_bv(x), Nat.double(a)), U32.divmod.go.fin(p, q, U32{s}, b, g)):
+  match t g:
+    case True{} True{}:
+      internal_dm_take(p, q, U32.to_nat(b), U32.to_nat(U32.sub(U32{s}, b)), x, r, a, ea, hr, internal_dm_wrap(b, s, x, r, m, em, hr, es))
+    case True{} False{}:
+      Empty.absurd(internal_dm_inv(1n+p, U32.to_nat(b), Nat.add(internal_bv(x), Nat.double(a)), U32.divmod.go.fin(p, q, U32{s}, b, False{})), MNat.internal_div_true_ne_false(eg))
+    case False{} True{}:
+      +bn = U32.to_nat(b)
+      +sn = Word.to_nat(32n, s)
+      +hle = Equal.trans(Bool, Nat.is_le(bn, sn), U32.is_ge(U32{s}, b), True{}, Equal.trans(Bool, Nat.is_le(bn, sn), Nat.is_ge(sn, bn), U32.is_ge(U32{s}, b), MNat.is_ge_eq_is_le_sym(sn, bn), Equal.sym(Bool, U32.is_ge(U32{s}, b), Nat.is_ge(sn, bn), u32_is_ge_to_nat(U32{s}, b))), eg)
+      +e2 = Equal.trans(Nat, Nat.add(bn, U32.to_nat(U32.sub(U32{s}, b))), Nat.add(bn, Nat.sub(sn, bn)), Nat.add(internal_bv(x), Nat.double(r)), Equal.cong(Nat, Nat, z => Nat.add(bn, z), U32.to_nat(U32.sub(U32{s}, b)), Nat.sub(sn, bn), u32_sub_exact(U32{s}, b, hle)), Equal.trans(Nat, Nat.add(bn, Nat.sub(sn, bn)), sn, Nat.add(internal_bv(x), Nat.double(r)), MNat.add_sub_of_le(bn, sn, hle), Equal.trans(Nat, sn, Nat.add(sn, 0n), Nat.add(internal_bv(x), Nat.double(r)), MNat.add_zero_sym(sn), es)))
+      internal_dm_take(p, q, bn, U32.to_nat(U32.sub(U32{s}, b)), x, r, a, ea, hr, e2)
+    case False{} False{}:
+      +bn = U32.to_nat(b)
+      +sn = Word.to_nat(32n, s)
+      +hnle = Equal.trans(Bool, Nat.is_le(bn, sn), U32.is_ge(U32{s}, b), False{}, Equal.trans(Bool, Nat.is_le(bn, sn), Nat.is_ge(sn, bn), U32.is_ge(U32{s}, b), MNat.is_ge_eq_is_le_sym(sn, bn), Equal.sym(Bool, U32.is_ge(U32{s}, b), Nat.is_ge(sn, bn), u32_is_ge_to_nat(U32{s}, b))), eg)
+      +ek = Equal.trans(Nat, sn, Nat.add(sn, 0n), Nat.add(internal_bv(x), Nat.double(r)), MNat.add_zero_sym(sn), es)
+      (internal_div_step(0n, Word.to_nat(p, q), bn, sn, internal_bv(x), r, a, ek, ea), MNat.lt_of_not_le(bn, sn, hnle))
+
+def internal_dm_shl(+p: Nat, +q: Word(p), +b: U32, +x: Bool, +r: Nat, -a: Nat, ea: {Nat.add(Nat.mul(Word.to_nat(p, q), U32.to_nat(b)), r) == a : Nat}, +hr: MNat.lt(r, U32.to_nat(b)), +md: Nat, +em: {Nat.pow(2n, 32n) == md : Nat}, ts: Bool & Word(32n), es: {internal_shl_val(32n, md, ts) == Nat.add(internal_bv(x), Nat.double(r)) : Nat}) -> internal_dm_inv(1n+p, U32.to_nat(b), Nat.add(internal_bv(x), Nat.double(a)), U32.divmod.go.shl(p, q, b, ts)):
+  match ts:
+    case (+t, +s):
+      internal_dm_fin(p, q, s, b, x, r, a, md, em, t, Bool.or(t, U32.is_ge(U32{s}, b)), ea, hr, es, {==})
+
+def internal_dm_rec(+p: Nat, +x: Bool, +b: U32, +md: Nat, +em: {Nat.pow(2n, 32n) == md : Nat}, -a: Nat, qr: Word(p) & U32, ih: internal_dm_inv(p, U32.to_nat(b), a, qr)) -> internal_dm_inv(1n+p, U32.to_nat(b), Nat.add(internal_bv(x), Nat.double(a)), U32.divmod.go.rec(p, x, b, qr)):
+  match qr:
+    case (+q, r):
+      match r:
+        case U32{+rw}:
+          match ih:
+            case (ea, +hr):
+              internal_dm_shl(p, q, b, x, Word.to_nat(32n, rw), a, ea, hr, md, em, Word.shl.out(32n, x, rw), internal_shl_out32(md, em, x, rw))
+
+def internal_dm_go(m: Nat, w: Word(m), +b: U32, +hb: MNat.lt(0n, U32.to_nat(b)), +md: Nat, +em: {Nat.pow(2n, 32n) == md : Nat}) -> internal_dm_inv(m, U32.to_nat(b), Word.to_nat(m, w), U32.divmod.go(m, w, b)):
+  match m:
+    case 0n:
+      match w:
+        case WNil{}:
+          ({==}, hb)
+    case 1n++p:
+      match w:
+        case WCon{+x, +hi}:
+          %internal_to_nat_con(p, x, hi) : internal_dm_inv(1n+p, U32.to_nat(b), _, U32.divmod.go(1n+p, WCon{x, hi}, b))
+          internal_dm_rec(p, x, b, md, em, Word.to_nat(p, hi), U32.divmod.go(p, hi, b), internal_dm_go(p, hi, b, hb, md, em))
+
+def internal_div_unique(+q: Nat, b: Nat, +r: Nat, -a: Nat, hb: MNat.lt(0n, b), e: {Nat.add(Nat.mul(q, b), r) == a : Nat}, h: MNat.lt(r, b)) -> {q == Nat.div(a, b) : Nat}:
+  match b:
+    case 0n:
+      Empty.absurd({q == Nat.div(a, 0n) : Nat}, MNat.internal_false_ne_true(hb))
+    case 1n++bp:
+      %e : {q == Nat.div(_, 1n+bp) : Nat}
+      %MNat.add_comm(r, Nat.mul(q, 1n+bp)) : {q == Nat.div(_, 1n+bp) : Nat}
+      %MNat.add_mul_div_right_sym(r, q, bp) : {q == _ : Nat}
+      %Equal.sym(Nat, Nat.div(r, 1n+bp), 0n, MNat.div_eq_zero_of_le(r, bp, MNat.le_of_lt_succ(r, bp, h))) : {q == Nat.add(_, q) : Nat}
+      {==}
+
+def internal_div_fin(+b: U32, -a: Nat, hb: MNat.lt(0n, U32.to_nat(b)), qr: Word(32n) & U32, inv: internal_dm_inv(32n, U32.to_nat(b), a, qr)) -> {U32.to_nat(U32.div.fin(qr)) == Nat.div(a, U32.to_nat(b)) : Nat}:
+  match qr:
+    case (q, r):
+      match inv:
+        case (e, h):
+          internal_div_unique(Word.to_nat(32n, q), U32.to_nat(b), U32.to_nat(r), a, hb, e, h)
+
+def internal_div_if(+md: Nat, +em: {Nat.pow(2n, 32n) == md : Nat}, +aw: Word(32n), +bw: Word(32n), z: Bool, ez: {U32.is_zero(U32{bw}) == z : Bool}) -> {U32.to_nat(U32.div.if(aw, U32{bw}, z)) == Nat.div(Word.to_nat(32n, aw), Word.to_nat(32n, bw)) : Nat}:
+  match z:
+    case True{}:
+      +bn = Word.to_nat(32n, bw)
+      +ee = Equal.trans(Bool, Nat.is_eq(bn, 0n), U32.is_zero(U32{bw}), True{}, Equal.sym(Bool, U32.is_zero(U32{bw}), Nat.is_eq(bn, 0n), u32_is_eq_to_nat(U32{bw}, 0)), ez)
+      %Equal.sym(Nat, bn, 0n, MNat.eq_of_is_eq(bn, 0n, ee)) : {0n == Nat.div(Word.to_nat(32n, aw), _) : Nat}
+      {==}
+    case False{}:
+      +bn = Word.to_nat(32n, bw)
+      +ee = Equal.trans(Bool, Nat.is_eq(bn, 0n), U32.is_zero(U32{bw}), False{}, Equal.sym(Bool, U32.is_zero(U32{bw}), Nat.is_eq(bn, 0n), u32_is_eq_to_nat(U32{bw}, 0)), ez)
+      +hb = MNat.pos_of_ne_zero(bn, ee)
+      internal_div_fin(U32{bw}, Word.to_nat(32n, aw), hb, U32.divmod.go(32n, aw, U32{bw}), internal_dm_go(32n, aw, U32{bw}, hb, md, em))
+
+# U32 division is the division of the values, also for a zero divisor: to_nat (a / b) = to_nat a / to_nat b.
+law u32_div_to_nat:
+  for a: U32
+  for b: U32
+  {U32.to_nat(U32.div(a, b)) == Nat.div(U32.to_nat(a), U32.to_nat(b)) : Nat}
+
+def u32_div_to_nat(a, b):
+  match a b:
+    case U32{aw} U32{+bw}:
+      internal_div_if(Nat.pow(2n, 32n), {==}, aw, bw, U32.is_zero(U32{bw}), {==})
+
+# U32 division is antitone in a positive divisor: 0 < s and s <= t imply a / t <= a / s.
+law u32_div_le_div_left:
+  for a: U32
+  for s: U32
+  for t: U32
+  for hs: {U32.is_lt(0, s) == True{} : Bool}
+  for h: {U32.is_le(s, t) == True{} : Bool}
+  {U32.is_le(U32.div(a, t), U32.div(a, s)) == True{} : Bool}
+
+def u32_div_le_div_left(a, s, t, hs, h):
+  +a = a
+  +s = s
+  +t = t
+  %Equal.sym(Bool, U32.is_le(U32.div(a, t), U32.div(a, s)), Nat.is_le(U32.to_nat(U32.div(a, t)), U32.to_nat(U32.div(a, s))), u32_is_le_to_nat(U32.div(a, t), U32.div(a, s))) : {_ == True{} : Bool}
+  %Equal.sym(Nat, U32.to_nat(U32.div(a, t)), Nat.div(U32.to_nat(a), U32.to_nat(t)), u32_div_to_nat(a, t)) : {Nat.is_le(_, U32.to_nat(U32.div(a, s))) == True{} : Bool}
+  %Equal.sym(Nat, U32.to_nat(U32.div(a, s)), Nat.div(U32.to_nat(a), U32.to_nat(s)), u32_div_to_nat(a, s)) : {Nat.is_le(Nat.div(U32.to_nat(a), U32.to_nat(t)), _) == True{} : Bool}
+  +hs2 = Equal.trans(Bool, Nat.is_lt(U32.to_nat(0), U32.to_nat(s)), U32.is_lt(0, s), True{}, Equal.sym(Bool, U32.is_lt(0, s), Nat.is_lt(U32.to_nat(0), U32.to_nat(s)), u32_is_lt_to_nat(0, s)), hs)
+  +h2 = Equal.trans(Bool, Nat.is_le(U32.to_nat(s), U32.to_nat(t)), U32.is_le(s, t), True{}, Equal.sym(Bool, U32.is_le(s, t), Nat.is_le(U32.to_nat(s), U32.to_nat(t)), u32_is_le_to_nat(s, t)), h)
+  MNat.div_le_div_left(U32.to_nat(a), U32.to_nat(s), U32.to_nat(t), hs2, h2)
+
 # --- generated: _sym twins (tools/mathlib/twins.ts), do not edit ---
 
 # The zero word is the natural zero: to_nat (zero n) = 0, reversed to rewrite toward the simple side.
@@ -1057,3 +1257,12 @@ law u32_max_to_nat_sym:
 
 def u32_max_to_nat_sym(a, b):
   Equal.sym(Nat, U32.to_nat(U32.max(a, b)), Nat.max(U32.to_nat(a), U32.to_nat(b)), u32_max_to_nat(a, b))
+
+# U32 division is the division of the values, also for a zero divisor: to_nat (a / b) = to_nat a / to_nat b, reversed to rewrite toward the simple side.
+law u32_div_to_nat_sym:
+  for a: U32
+  for b: U32
+  {Nat.div(U32.to_nat(a), U32.to_nat(b)) == U32.to_nat(U32.div(a, b)) : Nat}
+
+def u32_div_to_nat_sym(a, b):
+  Equal.sym(Nat, U32.to_nat(U32.div(a, b)), Nat.div(U32.to_nat(a), U32.to_nat(b)), u32_div_to_nat(a, b))
