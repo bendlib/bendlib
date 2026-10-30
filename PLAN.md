@@ -462,5 +462,5 @@ evidence in `research/candidates/predicates/evidence/` and `research/candidates/
 - **D-release — agents publish.** This machine holds the owner's hub login (`~/.bend/bendai.json`; `bender.json` before bend 2.0.36);
   release beads (label `release`) run `release.ts --publish`, tags and GitHub releases once every gate
   is green. Outreach to people stays with the owner.
-- **D-invite — no personal outreach by agents;** contributors come through "good first lemma" GitHub
-  issues and the README section.
+- **D-invite — no personal outreach by agents;** users request lemmas through GitHub issues and the
+  README section; every proof is written in this repository, so lemma and proof PRs are not merged.

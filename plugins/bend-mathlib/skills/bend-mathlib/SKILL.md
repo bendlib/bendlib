@@ -94,6 +94,6 @@ A ✓ is evidence, not a proof: the law still needs its proof `def`.
 
 ## When a lemma is missing
 
-Prove it locally with `internal_` helpers, and open an issue or PR at
-https://github.com/bendlib/bendlib (issues labelled "good first lemma" are open starting points).
+Prove it locally with `internal_` helpers, and open an issue with its statement at
+https://github.com/bendlib/bendlib so it can be added to the package.
 Never use `@unsafe` to stand in for a lemma: a file that relies on unsafe code fails the check.

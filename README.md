@@ -7,7 +7,7 @@ import instead of re-proving, and tools that keep laws honest.
 [lemma index](packages/bend-mathlib/README.md) ·
 [lawcheck](tools/lawcheck) ·
 [agent plugin](plugins/bend-mathlib/skills/bend-mathlib/SKILL.md) ·
-[good first lemmas](https://github.com/bendlib/bendlib/issues?q=is%3Aopen+label%3A%22good+first+lemma%22)
+[request a lemma](https://github.com/bendlib/bendlib/issues/new)
 
 | Part | What | Status |
 |---|---|---|
@@ -90,11 +90,10 @@ The architecture and its evidence are in [PLAN.md](PLAN.md) and [research/experi
 
 ## Contribute
 
-A lemma you needed in your own proofs is the best contribution: open a PR that adds it (the
-layout and the gate are below), or pick one of the
-[good first lemmas](https://github.com/bendlib/bendlib/issues?q=is%3Aopen+label%3A%22good+first+lemma%22).
-Thanks to [@nohzafk](https://github.com/nohzafk) for the String module, the Nat.div lemmas, and
-the move to bend 2.0.34.
+Missing a lemma in your own proofs? [Open an issue](https://github.com/bendlib/bendlib/issues/new)
+with its statement and where you need it. Every proof in bend-mathlib is written in this
+repository, so pull requests that add lemmas or proofs are not merged. Bug reports for lawcheck
+and the docs site are welcome too.
 
 ## Develop
 
