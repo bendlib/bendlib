@@ -14,8 +14,8 @@ never changes one you use. Before you prove a basic fact (`add_comm`, `append_as
 ## Import
 
 ```python
-import bend-mathlib@0.8.0.0/nat.bend as MNat
-import bend-mathlib@0.8.0.0/list.bend as MList
+import bend-mathlib@0.8.1.0/nat.bend as MNat
+import bend-mathlib@0.8.1.0/list.bend as MList
 ```
 
 Modules: `nat`, `bool`, `list`, `string`, `maybe`, `equal`, `u32` (`U32` and `Word(n)` against
@@ -26,7 +26,7 @@ Every module passes `bend --verdict` on Bend 2.0.38, so a project that checks wi
 any of them (on 2.0.37 and earlier, `algebra`, `order`, `sort` and `all` were out of the kernel's
 scope, bendlang/bend#1182).
 Pin by content hash if you want bytes that can never change:
-`import 0x78e347bf8d0582a322c01b02c727566f/nat.bend as MNat`.
+`import 0x8ae61ec3a6615abd35f196c07232ad28/nat.bend as MNat`.
 
 ## Find a lemma
 
@@ -61,8 +61,8 @@ its left side, at the spot marked `_`. Use the `_sym` twin to rewrite the other 
 
 ```python
 import Base
-import bend-mathlib@0.8.0.0/nat.bend as MNat
-import bend-mathlib@0.8.0.0/list.bend as MList
+import bend-mathlib@0.8.1.0/nat.bend as MNat
+import bend-mathlib@0.8.1.0/list.bend as MList
 
 law rev_len:
   for +xs: List<&2, U32>

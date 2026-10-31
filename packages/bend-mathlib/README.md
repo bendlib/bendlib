@@ -5,12 +5,10 @@ Machine-checked lemmas for Bend 2, checked with `bend 2.0.39`.
 Rewriting: `%e : P` replaces the right side of `e` with its left side, so `name` expands the simple
 side into the compound one and `name_sym` simplifies the compound side.
 
-Rows marked `next` are proved in this repository but not yet published: the import lines above do not contain them yet.
-
 ## algebra
 
 ```python
-import bend-mathlib@0.8.0.0/algebra.bend as MAlgebra
+import bend-mathlib@0.8.1.0/algebra.bend as MAlgebra
 ```
 
 | lemma | statement | meaning | since |
@@ -55,7 +53,7 @@ import bend-mathlib@0.8.0.0/algebra.bend as MAlgebra
 ## bool
 
 ```python
-import bend-mathlib@0.8.0.0/bool.bend as MBool
+import bend-mathlib@0.8.1.0/bool.bend as MBool
 ```
 
 | lemma | statement | meaning | since |
@@ -133,7 +131,7 @@ import bend-mathlib@0.8.0.0/bool.bend as MBool
 ## equal
 
 ```python
-import bend-mathlib@0.8.0.0/equal.bend as MEqual
+import bend-mathlib@0.8.1.0/equal.bend as MEqual
 ```
 
 | lemma | statement | meaning | since |
@@ -146,7 +144,7 @@ import bend-mathlib@0.8.0.0/equal.bend as MEqual
 ## list
 
 ```python
-import bend-mathlib@0.8.0.0/list.bend as MList
+import bend-mathlib@0.8.1.0/list.bend as MList
 ```
 
 | predicate | definition | since |
@@ -368,7 +366,7 @@ import bend-mathlib@0.8.0.0/list.bend as MList
 ## maybe
 
 ```python
-import bend-mathlib@0.8.0.0/maybe.bend as MMaybe
+import bend-mathlib@0.8.1.0/maybe.bend as MMaybe
 ```
 
 | lemma | statement | meaning | since |
@@ -407,7 +405,7 @@ import bend-mathlib@0.8.0.0/maybe.bend as MMaybe
 ## nat
 
 ```python
-import bend-mathlib@0.8.0.0/nat.bend as MNat
+import bend-mathlib@0.8.1.0/nat.bend as MNat
 ```
 
 | predicate | definition | since |
@@ -625,7 +623,7 @@ import bend-mathlib@0.8.0.0/nat.bend as MNat
 | `pow_lt_pow_left(a, b, h, n)` | `∀ a: Nat, b: Nat, h: lt(a, b), n: Nat. lt(Nat.pow(a, 1n+n), Nat.pow(b, 1n+n))` | Positive powers are strictly monotone in the base: a < b implies a^(1 + n) < b^(1 + n). | 0.7.0.0 |
 | `add_mul_div_right(x, z, b)` | `∀ x: Nat, z: Nat, b: Nat. {Nat.div(Nat.add(x, Nat.mul(z, 1n+b)), 1n+b) == Nat.add(Nat.div(x, 1n+b), z) : Nat}` | Adding a multiple of a positive divisor adds to the quotient: (x + z * (1 + b)) / (1 + b) = x / (1 + b) + z. | 0.7.0.0 |
 | `add_mul_div_left(x, z, b)` | `∀ x: Nat, z: Nat, b: Nat. {Nat.div(Nat.add(x, Nat.mul(1n+b, z)), 1n+b) == Nat.add(Nat.div(x, 1n+b), z) : Nat}` | Adding a multiple of a positive divisor adds to the quotient: (x + (1 + b) * z) / (1 + b) = x / (1 + b) + z. | 0.7.0.0 |
-| `div_le_div_left(a, s, t, hs, h)` | `∀ a: Nat, s: Nat, t: Nat, hs: lt(0n, s), h: le(s, t). le(Nat.div(a, t), Nat.div(a, s))` | Division is antitone in a positive divisor: 0 < s and s <= t imply a / t <= a / s. | next |
+| `div_le_div_left(a, s, t, hs, h)` | `∀ a: Nat, s: Nat, t: Nat, hs: lt(0n, s), h: le(s, t). le(Nat.div(a, t), Nat.div(a, s))` | Division is antitone in a positive divisor: 0 < s and s <= t imply a / t <= a / s. | 0.8.1.0 |
 | `add_mul_mod_self_right(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.mod(Nat.add(a, Nat.mul(c, b)), b) == Nat.mod(a, b) : Nat}` | Adding a multiple of the divisor keeps the remainder: (a + c * b) % b = a % b. | 0.7.0.0 |
 | `add_mul_mod_self_left(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.mod(Nat.add(a, Nat.mul(b, c)), b) == Nat.mod(a, b) : Nat}` | Adding a multiple of the divisor keeps the remainder: (a + b * c) % b = a % b. | 0.7.0.0 |
 | `mod_two_eq_zero_or_one(n)` | `∀ n: Nat. {Bool.or(Nat.is_eq(Nat.mod(n, 2n), 0n), Nat.is_eq(Nat.mod(n, 2n), 1n)) == True{} : Bool}` | A remainder modulo two is zero or one. | 0.7.0.0 |
@@ -774,7 +772,7 @@ import bend-mathlib@0.8.0.0/nat.bend as MNat
 ## order
 
 ```python
-import bend-mathlib@0.8.0.0/order.bend as MOrder
+import bend-mathlib@0.8.1.0/order.bend as MOrder
 ```
 
 | lemma | statement | meaning | since |
@@ -789,7 +787,7 @@ import bend-mathlib@0.8.0.0/order.bend as MOrder
 ## string
 
 ```python
-import bend-mathlib@0.8.0.0/string.bend as MString
+import bend-mathlib@0.8.1.0/string.bend as MString
 ```
 
 | lemma | statement | meaning | since |
@@ -849,7 +847,7 @@ import bend-mathlib@0.8.0.0/string.bend as MString
 ## u32
 
 ```python
-import bend-mathlib@0.8.0.0/u32.bend as MU32
+import bend-mathlib@0.8.1.0/u32.bend as MU32
 ```
 
 | lemma | statement | meaning | since |
@@ -888,8 +886,8 @@ import bend-mathlib@0.8.0.0/u32.bend as MU32
 | `u32_to_nat_from_nat_mod(k)` | `∀ k: Nat. {U32.to_nat(U32.from_nat(k)) == Nat.mod(k, Nat.pow(2n, 32n)) : Nat}` | Converting any natural to U32 and back reduces it modulo 2^32: to_nat (from_nat k) = k % 2^32. | 0.8.0.0 |
 | `u32_min_to_nat(a, b)` | `∀ a: U32, b: U32. {U32.to_nat(U32.min(a, b)) == Nat.min(U32.to_nat(a), U32.to_nat(b)) : Nat}` | The U32 minimum is the minimum of the values: to_nat (min a b) = min (to_nat a) (to_nat b). | 0.8.0.0 |
 | `u32_max_to_nat(a, b)` | `∀ a: U32, b: U32. {U32.to_nat(U32.max(a, b)) == Nat.max(U32.to_nat(a), U32.to_nat(b)) : Nat}` | The U32 maximum is the maximum of the values: to_nat (max a b) = max (to_nat a) (to_nat b). | 0.8.0.0 |
-| `u32_div_to_nat(a, b)` | `∀ a: U32, b: U32. {U32.to_nat(U32.div(a, b)) == Nat.div(U32.to_nat(a), U32.to_nat(b)) : Nat}` | U32 division is the division of the values, also for a zero divisor: to_nat (a / b) = to_nat a / to_nat b. | next |
-| `u32_div_le_div_left(a, s, t, hs, h)` | `∀ a: U32, s: U32, t: U32, hs: {U32.is_lt(0, s) == True{} : Bool}, h: {U32.is_le(s, t) == True{} : Bool}. {U32.is_le(U32.div(a, t), U32.div(a, s)) == True{} : Bool}` | U32 division is antitone in a positive divisor: 0 < s and s <= t imply a / t <= a / s. | next |
+| `u32_div_to_nat(a, b)` | `∀ a: U32, b: U32. {U32.to_nat(U32.div(a, b)) == Nat.div(U32.to_nat(a), U32.to_nat(b)) : Nat}` | U32 division is the division of the values, also for a zero divisor: to_nat (a / b) = to_nat a / to_nat b. | 0.8.1.0 |
+| `u32_div_le_div_left(a, s, t, hs, h)` | `∀ a: U32, s: U32, t: U32, hs: {U32.is_lt(0, s) == True{} : Bool}, h: {U32.is_le(s, t) == True{} : Bool}. {U32.is_le(U32.div(a, t), U32.div(a, s)) == True{} : Bool}` | U32 division is antitone in a positive divisor: 0 < s and s <= t imply a / t <= a / s. | 0.8.1.0 |
 | `word_to_nat_zero_sym(n)` | `∀ n: Nat. {0n == Word.to_nat(n, Word.zero(n)) : Nat}` | The zero word is the natural zero: to_nat (zero n) = 0, reversed to rewrite toward the simple side. | 0.8.0.0 |
 | `word_cmp_to_nat_sym(n, a, b)` | `∀ n: Nat, a: Word(n), b: Word(n). {Nat.cmp(Word.to_nat(n, a), Word.to_nat(n, b)) == Word.cmp(n, a, b) : Cmp}` | Comparing words compares their values: cmp a b = cmp (to_nat a) (to_nat b), reversed to rewrite toward the simple side. | 0.8.0.0 |
 | `word_not_add_sym(n, w)` | `∀ n: Nat, w: Word(n). {Nat.pow(2n, n) == 1n+Nat.add(Word.to_nat(n, Word.not(n, w)), Word.to_nat(n, w)) : Nat}` | One plus a word plus its complement is two to the width: 1 + to_nat (not w) + to_nat w = 2^n, reversed to rewrite toward the simple side. | 0.8.0.0 |
@@ -920,6 +918,6 @@ import bend-mathlib@0.8.0.0/u32.bend as MU32
 | `u32_to_nat_from_nat_mod_sym(k)` | `∀ k: Nat. {Nat.mod(k, Nat.pow(2n, 32n)) == U32.to_nat(U32.from_nat(k)) : Nat}` | Converting any natural to U32 and back reduces it modulo 2^32: to_nat (from_nat k) = k % 2^32, reversed to rewrite toward the simple side. | 0.8.0.0 |
 | `u32_min_to_nat_sym(a, b)` | `∀ a: U32, b: U32. {Nat.min(U32.to_nat(a), U32.to_nat(b)) == U32.to_nat(U32.min(a, b)) : Nat}` | The U32 minimum is the minimum of the values: to_nat (min a b) = min (to_nat a) (to_nat b), reversed to rewrite toward the simple side. | 0.8.0.0 |
 | `u32_max_to_nat_sym(a, b)` | `∀ a: U32, b: U32. {Nat.max(U32.to_nat(a), U32.to_nat(b)) == U32.to_nat(U32.max(a, b)) : Nat}` | The U32 maximum is the maximum of the values: to_nat (max a b) = max (to_nat a) (to_nat b), reversed to rewrite toward the simple side. | 0.8.0.0 |
-| `u32_div_to_nat_sym(a, b)` | `∀ a: U32, b: U32. {Nat.div(U32.to_nat(a), U32.to_nat(b)) == U32.to_nat(U32.div(a, b)) : Nat}` | U32 division is the division of the values, also for a zero divisor: to_nat (a / b) = to_nat a / to_nat b, reversed to rewrite toward the simple side. | next |
+| `u32_div_to_nat_sym(a, b)` | `∀ a: U32, b: U32. {Nat.div(U32.to_nat(a), U32.to_nat(b)) == U32.to_nat(U32.div(a, b)) : Nat}` | U32 division is the division of the values, also for a zero divisor: to_nat (a / b) = to_nat a / to_nat b, reversed to rewrite toward the simple side. | 0.8.1.0 |
 
 491 lemmas + 331 generated _sym twins, 6 predicates. Generated by `tools/mathlib/index.ts`.

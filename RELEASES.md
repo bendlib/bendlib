@@ -17,3 +17,4 @@
 | bend-mathlib | 0.7.4.0 | `0xcdaf59a0332a2e0cdb289bf7a32fba62` | bend 2.0.38 | 2026-10-21 |
 | bend-mathlib | 0.7.5.0 | `0xcd4682caa53da19986acd472c2181473` | bend 2.0.38 | 2026-10-22 |
 | bend-mathlib | 0.8.0.0 | `0x78e347bf8d0582a322c01b02c727566f` | bend 2.0.38 | 2026-10-28 |
+| bend-mathlib | 0.8.1.0 | `0x8ae61ec3a6615abd35f196c07232ad28` | bend 2.0.39 | 2026-10-31 |
