@@ -86,7 +86,7 @@ export type MutateReport = {
   defs: { name: string; mutants: MutantResult[] }[];
 };
 
-export const VERSION = "0.4.0";
+export const VERSION = "0.4.1";
 
 class Skip extends Error {}
 
@@ -437,6 +437,9 @@ function evalNatAt(s: string, peak: { v: bigint }): bigint | null {
   if (lit !== null) return BigInt(lit[1]);
   const suc = /^(\d+)n\+(.+)$/s.exec(t);
   if (suc !== null) { const r = evalNat(suc[2], peak); return r === null ? null : capNat(BigInt(suc[1]) + r); }
+  // a U32 literal prints as plain digits, and U32.to_nat of it is that value in unary
+  const u32 = /^U32\.to_nat\((\d+)\)$/.exec(t);
+  if (u32 !== null) return capNat(BigInt(u32[1]));
   const app = /^Nat\.(add|mul|pow)\(([\s\S]*)\)$/.exec(t);
   if (app === null) return null;
   const args = splitTopArgs(app[2]);
@@ -453,19 +456,23 @@ function evalNatAt(s: string, peak: { v: bigint }): bigint | null {
   return v;
 }
 
-/** True for a `Nat` equation building a value past the checker's stack bound, or a `Nat` comparison of two such values. */
+function largeComparison(side: string): boolean {
+  const cmp = /^Nat\.(?:cmp|is_(?:le|lt|ge|gt|eq|ne))\(([\s\S]*)\)$/.exec(side.trim());
+  if (cmp === null) return false;
+  const args = splitTopArgs(cmp[1]);
+  if (args.length !== 2) return false;
+  const a = evalNat(args[0]), b = evalNat(args[1]);
+  return a !== null && b !== null && a > OVERFLOW_NAT && b > OVERFLOW_NAT;
+}
+
+/** True for a `Nat` comparison of two values past the checker's stack bound, or a `Nat` equation building one. */
 export function predictTooLarge(claim: string): boolean {
   const eq = splitEquation(claim);
   if (eq === null) return false;
-  if (eq.type === "Bool") {
-    // a comparison walks both sides in lockstep, so it is out of reach only when the smaller one is
-    const cmp = /^Nat\.is_(?:le|lt|ge|gt|eq|ne)\(([\s\S]*)\)$/.exec(eq.lhs.trim());
-    if (cmp === null || !/^(True|False)\{\}$/.test(eq.rhs.trim())) return false;
-    const args = splitTopArgs(cmp[1]);
-    if (args.length !== 2) return false;
-    const a = evalNat(args[0]), b = evalNat(args[1]);
-    return a !== null && b !== null && a > OVERFLOW_NAT && b > OVERFLOW_NAT;
-  }
+  // A comparison walks both sides in lockstep, so it is out of reach only when the smaller one is.
+  // The other side must be free of unary Nats, so the checker cannot meet it halfway.
+  const noNat = (s: string) => !/\bNat\.|\d+n\b|to_nat/.test(s);
+  if ((largeComparison(eq.lhs) && noNat(eq.rhs)) || (largeComparison(eq.rhs) && noNat(eq.lhs))) return true;
   if (eq.type !== "Nat") return false;
   // the checker builds every argument in unary, so Nat.mul(Nat.pow(7n, 9n), 0n) is as costly as 7^9
   const pa = { v: 0n }, pb = { v: 0n };

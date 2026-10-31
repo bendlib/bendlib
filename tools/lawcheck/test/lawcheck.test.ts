@@ -493,6 +493,16 @@ describe("too-large instances and --max-nat", () => {
     expect(predictTooLarge("{Nat.is_le(Nat.pow(2n, 3n), Nat.pow(2n, 5n)) == True{} : Bool}")).toBe(false);
     expect(predictTooLarge("{Bool.not(Nat.is_le(Nat.pow(30n, 5n), Nat.pow(30n, 5n))) == False{} : Bool}")).toBe(false);
   });
+
+  test("predictTooLarge drops a Nat.cmp of two U32.to_nat values near 2^32 (the u32_cmp_to_nat instance that timed out)", () => {
+    const max = "U32.to_nat(4294967295)";
+    expect(predictTooLarge(`{Nat.cmp(${max}, ${max}) == U32.cmp(4294967295, 4294967295) : Cmp}`)).toBe(true);
+    expect(predictTooLarge(`{U32.cmp(4294967295, 2147483648) == Nat.cmp(${max}, U32.to_nat(2147483648)) : Cmp}`)).toBe(true);
+    expect(predictTooLarge(`{U32.is_eq(4294967295, 4294967295) == Nat.is_eq(${max}, ${max}) : Bool}`)).toBe(true);
+    // lockstep stops at the smaller side, and an other side with unary Nats may meet it halfway
+    expect(predictTooLarge(`{Nat.cmp(U32.to_nat(65536), ${max}) == U32.cmp(65536, 4294967295) : Cmp}`)).toBe(false);
+    expect(predictTooLarge(`{Nat.is_le(${max}, ${max}) == Nat.is_ge(${max}, ${max}) : Bool}`)).toBe(false);
+  });
 });
 
 describe("imports and --impl", () => {

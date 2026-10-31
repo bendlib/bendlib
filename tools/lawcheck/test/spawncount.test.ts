@@ -71,7 +71,7 @@ async function survivingChild(child: string, limits: { timeoutMs: number; memMb:
   const alive = () => { try { process.kill(pid, 0); return !/^\d+ \(.*\) Z/.test(fs.readFileSync(`/proc/${pid}/stat`, "utf8")); } catch { return false; } };
   for (let i = 0; i < 50 && alive(); i++) await Bun.sleep(100);
   const survived = alive();
-  if (survived) process.kill(pid, "SIGKILL");
+  if (survived) try { process.kill(pid, "SIGKILL"); } catch { /* exited after the check */ }
   return { r, survived };
 }
 
