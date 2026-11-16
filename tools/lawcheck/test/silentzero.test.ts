@@ -19,7 +19,8 @@ describe("no silent zero-law success", () => {
     expect(r.code).toBe(2);
     expect(r.stdout).toBe("");
     expect(r.stderr).toContain("does not type-check");
-    expect(r.stderr).toContain("cases for Succ");
+    expect(r.stderr).toContain("this match doesn't cover Succ");
+    expect(r.stderr).toContain("Location: f");
   }, T);
 
   test("a valid file with laws is unchanged", async () => {
