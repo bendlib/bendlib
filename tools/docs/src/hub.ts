@@ -27,19 +27,61 @@ const HASH = /^0x[0-9a-f]{32}$/;
 const NAME = /^[a-z][a-z0-9-]{0,63}$/;
 const VERSION = /^\d+\.\d+\.\d+\.\d+$/;
 
-async function get(url: string, tries = 3): Promise<Response> {
-  let last: unknown;
-  for (let i = 0; i < tries; i++) {
+/** A hub request that still failed when the retry budget ran out (or a hub-requested wait would exceed it). */
+export class HubError extends Error {
+  constructor(message: string, readonly url: string, readonly status: number | null, readonly attempts: number) {
+    super(message);
+    this.name = "HubError";
+  }
+}
+
+// Mutable so tests can shrink the waits; the build uses the defaults.
+export const hubRetry = { baseMs: 500, budgetMs: 60_000 };
+
+// 408/429 and 5xx are transient; any other status is the hub's answer and goes back to the caller.
+const RETRY_STATUS = (s: number) => s === 408 || s === 429 || s >= 500;
+
+/** Milliseconds a `Retry-After` header asks for (delta-seconds or HTTP-date), or null when absent or unreadable. */
+export function retryAfterMs(header: string | null, now = Date.now()): number | null {
+  if (header === null) return null;
+  const v = header.trim();
+  if (/^\d+$/.test(v)) return Number(v) * 1000;
+  if (!/GMT$/.test(v)) return null;
+  const t = Date.parse(v);
+  return Number.isNaN(t) ? null : Math.max(0, t - now);
+}
+
+// A Retry-After from the hub pauses every request of this process, not only the one that got it.
+let pausedUntil = 0;
+
+async function get(url: string): Promise<Response> {
+  const start = Date.now();
+  let attempts = 0;
+  for (;;) {
+    if (pausedUntil > Date.now()) await Bun.sleep(pausedUntil - Date.now());
+    attempts++;
+    let status: number | null = null, why: string, asked: number | null = null;
     try {
       const r = await fetchHub(url);
-      if (r.ok || r.status === 404 || r.status === 410) return r;
-      last = new Error(`HTTP ${r.status} for ${url}`);
+      if (r.ok || !RETRY_STATUS(r.status)) return r;
+      status = r.status;
+      why = `HTTP ${r.status}`;
+      asked = retryAfterMs(r.headers.get("retry-after"));
+      await r.body?.cancel();
     } catch (e) {
-      last = e;
+      why = e instanceof Error ? e.message : String(e);
     }
-    await Bun.sleep(300 * (i + 1));
+    // Retry-After is a floor: a `0` must not turn the loop into a hammer.
+    const wait = Math.max(asked ?? 0, hubRetry.baseMs * 2 ** (attempts - 1));
+    const elapsed = Date.now() - start;
+    if (elapsed + wait > hubRetry.budgetMs) {
+      const after = asked === null ? "" : `; the hub asked to retry after ${Math.ceil(asked / 1000)} s`;
+      throw new HubError(`${why} for ${url}: gave up after ${attempts} attempt(s) over ${(elapsed / 1000).toFixed(1)} s` +
+        ` (retry budget ${hubRetry.budgetMs / 1000} s${after})`, url, status, attempts);
+    }
+    if (asked !== null) pausedUntil = Math.max(pausedUntil, Date.now() + asked);
+    await Bun.sleep(wait);
   }
-  throw last instanceof Error ? last : new Error(String(last));
 }
 
 async function getJson<T>(url: string): Promise<T> {
@@ -52,8 +94,8 @@ export function sha256(bytes: Uint8Array | string): string {
   return new Bun.CryptoHasher("sha256").update(bytes).digest("hex");
 }
 
-export async function fetchIndex(): Promise<IndexEntry[]> {
-  const idx = await getJson<IndexEntry[]>(`${HUB}/index.json`);
+export async function fetchIndex(hub = HUB): Promise<IndexEntry[]> {
+  const idx = await getJson<IndexEntry[]>(`${hub}/index.json`);
   for (const e of idx) if (!HASH.test(e.hash)) throw new Error(`index.json: malformed hash ${JSON.stringify(e.hash)}`);
   return idx;
 }

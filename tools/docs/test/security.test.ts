@@ -1,11 +1,11 @@
 // Hardening of untrusted hub input: HTML escaping, path containment, name validation,
-// cached-manifest verification and a bounded fetch. Real code paths, no network for 1–4.
+// cached-manifest verification, a bounded fetch and rate-limit retries. Real code paths, no network for 1–4.
 
-import { describe, expect, spyOn, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, sep } from "node:path";
-import { ensurePackage, fetchHub, fetchNames, NAMES_CAP, PACKAGES_PAGE, safePath, seedNames, sha256, underRoot, validNameRecords, type NameRecord } from "../src/hub.ts";
+import { ensurePackage, fetchHub, fetchIndex, fetchNames, HubError, hubRetry, NAMES_CAP, PACKAGES_PAGE, retryAfterMs, safePath, seedNames, sha256, underRoot, validNameRecords, type NameRecord } from "../src/hub.ts";
 import { modPage, encPath, renderLlms, renderModule, renderPackage } from "../src/render.ts";
 import type { Module, Package, Site } from "../src/model.ts";
 
@@ -97,6 +97,93 @@ describe("hub fetches are bounded", () => {
       const t0 = performance.now();
       await expect(fetchHub(`http://127.0.0.1:${server.port}/`, 150)).rejects.toThrow();
       expect(performance.now() - t0).toBeLessThan(5000);
+    } finally {
+      server.stop(true);
+    }
+  });
+});
+
+describe("the hub's rate limit is waited out, within a budget", () => {
+  const saved = { ...hubRetry };
+  beforeEach(() => { hubRetry.baseMs = 5; hubRetry.budgetMs = 60_000; });
+  afterEach(() => { Object.assign(hubRetry, saved); });
+  const INDEX = [{ hash: HASH, files: { "a.bend": 1 }, bytes: 1, ts: 0, desc: "" }];
+  // Answers the given failures in turn, then the index.
+  const serve = (failures: (() => Response)[], seen: number[]) => Bun.serve({
+    port: 0,
+    fetch() {
+      seen.push(performance.now());
+      return failures.shift()?.() ?? Response.json(INDEX);
+    },
+  });
+  const at = (s: { port: number | undefined }) => `http://127.0.0.1:${s.port}`;
+
+  test("Retry-After in seconds and as an HTTP-date is read; anything else is not", () => {
+    const now = Date.parse("Wed, 21 Oct 2026 07:28:00 GMT");
+    expect(retryAfterMs("120", now)).toBe(120_000);
+    expect(retryAfterMs(" 0 ", now)).toBe(0);
+    expect(retryAfterMs("Wed, 21 Oct 2026 07:28:03 GMT", now)).toBe(3000);
+    expect(retryAfterMs("Wed, 21 Oct 2026 07:27:00 GMT", now)).toBe(0);
+    expect(retryAfterMs(null, now)).toBeNull();
+    expect(retryAfterMs("soon", now)).toBeNull();
+    expect(retryAfterMs("1.5", now)).toBeNull();
+  });
+  test("a 429 with Retry-After is waited out for as long as asked, then the index is read", async () => {
+    const seen: number[] = [];
+    const server = serve([() => new Response("slow down", { status: 429, headers: { "Retry-After": "1" } })], seen);
+    try {
+      expect(await fetchIndex(at(server))).toEqual(INDEX);
+      expect(seen.length).toBe(2);
+      expect(seen[1] - seen[0]).toBeGreaterThanOrEqual(950);
+    } finally {
+      server.stop(true);
+    }
+  });
+  test("a 429 or 503 without Retry-After backs off exponentially", async () => {
+    const seen: number[] = [];
+    const server = serve([() => new Response("", { status: 429 }), () => new Response("", { status: 503 }), () => new Response("", { status: 503 })], seen);
+    hubRetry.baseMs = 40;
+    try {
+      expect(await fetchIndex(at(server))).toEqual(INDEX);
+      expect(seen.length).toBe(4);
+      expect(seen[2] - seen[1]).toBeGreaterThanOrEqual(75);
+      expect(seen[3] - seen[2]).toBeGreaterThanOrEqual(155);
+    } finally {
+      server.stop(true);
+    }
+  });
+  test("planted negative: a permanent 429 is a HubError once the budget is spent, not a hang", async () => {
+    const seen: number[] = [];
+    const server = Bun.serve({ port: 0, fetch: () => { seen.push(performance.now()); return new Response("", { status: 429 }); } });
+    hubRetry.budgetMs = 300;
+    const t0 = performance.now();
+    try {
+      const err = await fetchIndex(at(server)).then(() => null, (e: unknown) => e);
+      expect(err).toBeInstanceOf(HubError);
+      expect((err as HubError).status).toBe(429);
+      expect((err as HubError).message).toMatch(/^HTTP 429 for http:\/\/127\.0\.0\.1:\d+\/index\.json: gave up after \d+ attempt\(s\) over [\d.]+ s \(retry budget 0\.3 s\)$/);
+      expect(seen.length).toBeGreaterThan(2);
+      expect(performance.now() - t0).toBeLessThan(2000);
+    } finally {
+      server.stop(true);
+    }
+  });
+  test("planted negative: a Retry-After beyond the budget fails at once and says what the hub asked", async () => {
+    const seen: number[] = [];
+    const server = Bun.serve({ port: 0, fetch: () => { seen.push(performance.now()); return new Response("", { status: 429, headers: { "Retry-After": "3600" } }); } });
+    try {
+      await expect(fetchIndex(at(server))).rejects.toThrow(/gave up after 1 attempt\(s\) .*the hub asked to retry after 3600 s/);
+      expect(seen.length).toBe(1);
+    } finally {
+      server.stop(true);
+    }
+  });
+  test("a 403 is the hub's answer, not retried", async () => {
+    const seen: number[] = [];
+    const server = serve([() => new Response("no", { status: 403 })], seen);
+    try {
+      await expect(fetchIndex(at(server))).rejects.toThrow(/^HTTP 403 for /);
+      expect(seen.length).toBe(1);
     } finally {
       server.stop(true);
     }
@@ -200,11 +287,14 @@ describe("the name list is fetched whole", () => {
   test("planted negative: a vanished name is dropped and an unreachable one keeps the listing's latest; the rest still build", async () => {
     const record = (name: string) => (name === "name-number-3" ? new Response("gone", { status: 404 }) : name === "name-number-4" ? new Response("down", { status: 503 }) : null);
     const server = serveHub({ names: 6, rows: [], record }, []);
+    const saved = { ...hubRetry };
+    Object.assign(hubRetry, { baseMs: 5, budgetMs: 500 });
     try {
       const names = await fetchNames(4, url(server));
       expect(names.map((n) => n.name).sort()).toEqual(["name-number-0", "name-number-1", "name-number-2", "name-number-4", "name-number-5"]);
       expect(names.find((n) => n.name === "name-number-4")!.versions).toEqual([{ version: "1.0.0.0", hash: HASH, ts: 0 }]);
     } finally {
+      Object.assign(hubRetry, saved);
       server.stop(true);
     }
   }, 20_000);
