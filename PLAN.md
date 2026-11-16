@@ -253,8 +253,16 @@ quantities are independent: `rbtree<ak, av, -K: Kind(ak), -V: Kind(av)> is Kind(
   2. `release.ts --publish` runs `bend packages/<pkg>/all.bend --publish` (anonymous; prints `0x…`, must equal step 1).
   3. Tool re-checks `import 0x…/all.bend` from an empty `BEND_LIB` (real hub fetch + hash verify).
   4. `bend link <pkg>@<ver> 0x…` — the name is attached only to verified content.
-  5. Tool appends `{name, version, hash, compiler}` to `RELEASES.md`; README shows the named import and
+  5. Tool appends `{name, version, hash, compiler}` to `RELEASES.md`; INDEX.md shows the named import and
      the hash import (content survives even if a name is lost); git tag.
+- README.md beside the entry is part of the package from bend 2.0.40 on (pkg_files hashes and uploads it,
+  and refuses one over 65536 bytes). `index.ts` therefore writes a short README.md (import by name,
+  module table, how to find a lemma) that names no hash, since a file cannot contain the hash that
+  covers it, plus INDEX.md (every lemma, the hash pin), which is not published. release.ts writes both
+  for the target version before hashing; after the release only INDEX.md changes (since cells, hash
+  pin), and it checks that the package still hashes to the published hash. Releases made before 2.0.40
+  were hashed without a README (the kernel's 0xb5c8…): devlib also links a package at each RELEASES.md
+  hash its files reproduce under the publishing compiler's rule.
 - Versioning: dependents pin exact versions; nothing resolves ranges, so a fix release repairs nobody
   automatically — a version matrix mapping mathlib versions to Bend versions is planned but not built.
 
@@ -377,7 +385,7 @@ it never proves anything.
 ```
 bendlib/                     GitHub: bendlib/bendlib (monorepo)
 ├── PLAN.md  README.md  LICENSE  AGENTS.md  RELEASES.md  toolchain.json
-├── packages/bend-mathlib/   LICENSE all.bend *.bend PUBLIC_API.lock
+├── packages/bend-mathlib/   LICENSE all.bend *.bend PUBLIC_API.lock README.md INDEX.md (generated)
 ├── packages/bendlib-kernel-list/   list.bend LICENSE README.md (published 1.0.0.0, imported by hash)
 ├── tools/
 │   ├── comments.ts          comment lint

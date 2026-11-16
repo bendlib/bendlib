@@ -1,10 +1,11 @@
 // devlib: resolve local packages under `packages/` by their real publish hash, so sources can
 // `import 0x…/file.bend` against a not-yet-published local package in dev mode (PLAN §3.5).
-//
 // `.devlib/` is rebuilt from empty on every run (git-ignored): each `<hash>` is a symlink to the
 // package directory; the child gets `BEND_LIB=<root>/.devlib`, and bend fetches any other hash
 // from the hub into the same directory, so hub imports keep resolving. `--check` fails when a
-// package source pins a `0x…` that names a local package whose current content hash differs.
+// package source pins a `0x…` that names a local package whose current content hash differs. A
+// package is also linked at each of its RELEASES.md hashes that its files reproduce byte for byte
+// under the publishing compiler's rule (a README.md is hashed from bend 2.0.40 on).
 //
 // usage: bun tools/mathlib/devlib.ts [--root <dir>] run -- <cmd…>
 //        bun tools/mathlib/devlib.ts [--root <dir>] --check
@@ -12,8 +13,8 @@
 
 import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, symlinkSync } from "node:fs";
 import { join, relative, resolve, sep } from "node:path";
-import { PkgError, ROOT, importPaths, packageModules } from "./lib.ts";
-import { hubHash, packageFiles } from "./hash.ts";
+import { PkgError, ROOT, importPaths, packageModules, readReleases } from "./lib.ts";
+import { hubHash, packageFiles, publishesReadme } from "./hash.ts";
 
 const USAGE = "usage: bun tools/mathlib/devlib.ts [--root <dir>] run -- <cmd…>  |  [--root <dir>] --check";
 const usage = (msg: string): never => { console.error(`devlib: ${msg}\n${USAGE}`); process.exit(2); };
@@ -21,7 +22,7 @@ const usage = (msg: string): never => { console.error(`devlib: ${msg}\n${USAGE}`
 const HASH = /^0x[0-9a-f]{32}$/;
 const HASH_IMPORT = /^(0x[0-9a-fA-F]+)\/(\S+\.bend)$/;
 
-export type LocalPackage = { name: string; dir: string; entry: string; hash: string; files: string[] };
+export type LocalPackage = { name: string; dir: string; entry: string; hash: string; files: string[]; released: string[] };
 export type Stale = { file: string; hash: string; path: string; owner: string; expected: string };
 
 /** The publish entry of `pkgDir`: `all.bend`, or the sole top-level `.bend` file. */
@@ -36,10 +37,11 @@ function entryOf(pkgDir: string): string | null {
   throw new PkgError(`${pkgDir}: multiple top-level .bend files and no all.bend; cannot choose an entry`);
 }
 
-/** Every `packages/<name>/` with an entry, keyed by its real content hash (hubHash over packageFiles). */
+/** Every `packages/<name>/` with an entry, at its current content hash and at each of its RELEASES.md hashes it reproduces. */
 export function findLocalPackages(root: string): LocalPackage[] {
   const pkgs = join(root, "packages");
   if (!existsSync(pkgs)) return [];
+  const releases = readReleases(join(root, "RELEASES.md"));
   const out: LocalPackage[] = [];
   for (const e of readdirSync(pkgs, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
     if (!e.isDirectory()) continue;
@@ -47,8 +49,15 @@ export function findLocalPackages(root: string): LocalPackage[] {
     const entry = entryOf(dir);
     if (entry === null) continue;
     let files: Record<string, string>;
-    try { files = packageFiles(entry); } catch (err) { if (err instanceof PkgError) throw new PkgError(`packages/${e.name}: ${err.message}`); throw err; }
-    out.push({ name: e.name, dir, entry, hash: hubHash(files), files: Object.keys(files) });
+    const released: string[] = [];
+    try {
+      files = packageFiles(entry);
+      for (const r of releases.filter((r) => r.name === e.name)) {
+        if (hubHash(packageFiles(entry, { readme: publishesReadme(r.compiler) })) === r.hash) released.push(r.hash);
+      }
+    } catch (err) { if (err instanceof PkgError) throw new PkgError(`packages/${e.name}: ${err.message}`); throw err; }
+    const hash = hubHash(files);
+    out.push({ name: e.name, dir, entry, hash, files: Object.keys(files), released: released.filter((h) => h !== hash) });
   }
   return out;
 }
@@ -67,11 +76,13 @@ export function buildDevlib(root: string): { dir: string; packages: LocalPackage
   mkdirSync(dir, { recursive: true });
   const byHash = new Map<string, LocalPackage>();
   for (const p of packages) {
-    if (!HASH.test(p.hash)) throw new PkgError(`${p.name}: content hash ${p.hash} is not 32 hex`);
-    const clash = byHash.get(p.hash);
-    if (clash) throw new PkgError(`content hash ${p.hash} is shared by ${clash.name} and ${p.name}`);
-    byHash.set(p.hash, p);
-    symlinkSync(p.dir, join(dir, p.hash), "dir");
+    for (const h of [p.hash, ...p.released]) {
+      if (!HASH.test(h)) throw new PkgError(`${p.name}: content hash ${h} is not 32 hex`);
+      const clash = byHash.get(h);
+      if (clash) throw new PkgError(`content hash ${h} is shared by ${clash.name} and ${p.name}`);
+      byHash.set(h, p);
+      symlinkSync(p.dir, join(dir, h), "dir");
+    }
   }
   return { dir, packages };
 }
@@ -95,7 +106,7 @@ export function staleDevlib(packages: LocalPackage[]): Stale[] {
     for (const pin of hashPins(p.dir)) {
       if (!HASH.test(pin.hash)) { stale.push({ ...pin, owner: "", expected: "" }); continue; }
       const candidates = packages.filter((q) => q.dir !== p.dir && existsSync(join(q.dir, pin.path)));
-      if (candidates.length === 0 || candidates.some((q) => q.hash === pin.hash)) continue;
+      if (candidates.length === 0 || candidates.some((q) => q.hash === pin.hash || q.released.includes(pin.hash))) continue;
       stale.push({ ...pin, owner: candidates.map((q) => q.name).join(" or "), expected: candidates.map((q) => q.hash).join(" or ") });
     }
   }
@@ -131,7 +142,7 @@ if (import.meta.main) {
   if (args[0] === "--check") {
     let built: { dir: string; packages: LocalPackage[]; stale: Stale[] };
     try { built = checkDevlib(root); } catch (e) { if (e instanceof PkgError) usage(e.message); throw e; }
-    for (const p of built.packages) console.log(`local  ${p.name}  ${p.hash}  (${p.files.length} files)`);
+    for (const p of built.packages) console.log(`local  ${p.name}  ${p.hash}  (${p.files.length} files)${p.released.map((h) => `\n       also ${h}, a release in RELEASES.md these files reproduce`).join("")}`);
     for (const s of built.stale) {
       if (s.owner === "") console.log(`FAIL  ${relative(root, s.file)}: ${s.hash} is not 32 hex`);
       else console.log(`FAIL  ${relative(root, s.file)}: ${s.hash}/${s.path} is stale; local package ${s.owner} now hashes to ${s.expected}`);

@@ -1,12 +1,12 @@
 // Tests for devlib against temp package trees (real compiler runs for the resolution test).
 import { expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, readlinkSync, readdirSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readlinkSync, readdirSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { buildDevlib, checkDevlib, hashPins } from "./devlib.ts";
 import { hubHash, packageFiles } from "./hash.ts";
-import { BEND, CLEAN } from "./lib.ts";
+import { BEND, CLEAN, ROOT } from "./lib.ts";
 
 const dir = import.meta.dir;
 const run = (script: string, ...args: string[]) => {
@@ -146,4 +146,63 @@ test("devlib CLI is a typed usage error, exit 2, no stack", () => {
     expect(r.out).toMatch(/need `run -- <cmd…>` or `--check`|--root needs a directory|no such directory|not a directory/);
     expect(r.out).not.toMatch(/\n\s+at /);
   }
+});
+
+// A kernel published before bend 2.0.40 (no README.md in its hash) that has a README.md beside it now.
+function mkReleasedKernel(root: string, compiler: string): string {
+  mkKernel(root);
+  const d = join(root, "packages", "kernel");
+  const legacy = hubHash(packageFiles(join(d, "all.bend")));
+  writeFileSync(join(d, "README.md"), "# kernel\n\nFrozen; imported by hash.\n");
+  writeFileSync(join(root, "RELEASES.md"), `| package | version | hash | compiler | date |\n|---|---|---|---|---|\n| kernel | 1.0.0.0 | \`${legacy}\` | ${compiler} | 2026-09-25 |\n`);
+  return legacy;
+}
+
+test("devlib links a pre-2.0.40 release its files reproduce without their README, and run resolves it (real compiler)", () => {
+  const root = mkdtempSync(join(tmpdir(), "bend-devlib-legacy-"));
+  const legacy = mkReleasedKernel(root, "bend 2.0.27");
+  const pk = mkConsumer(root, legacy);
+  const { dir: devlib, packages } = buildDevlib(root);
+  const kernel = packages.find((p) => p.name === "kernel")!;
+  expect(kernel.hash).not.toBe(legacy);
+  expect(kernel.files).toContain("README.md");
+  expect(kernel.released).toEqual([legacy]);
+  expect(readlinkSync(join(devlib, legacy))).toBe(realpathSync(join(root, "packages", "kernel")));
+  expect(checkDevlib(root).stale).toEqual([]);
+  const r = run("devlib.ts", "--root", root, "run", "--", BEND, join(pk, "all.bend"), "--check-only");
+  expect(r.out).toContain(CLEAN);
+  expect(r.code).toBe(0);
+});
+
+test("devlib does not link a release its files do not reproduce under that compiler's rule (planted negatives)", () => {
+  // a 2.0.40 release hashes the README, so the README-less hash is no release of these files
+  const ruled = mkdtempSync(join(tmpdir(), "bend-devlib-legacy-rule-"));
+  const legacy = mkReleasedKernel(ruled, "bend 2.0.40");
+  mkConsumer(ruled, legacy);
+  expect(checkDevlib(ruled).stale.map((s) => s.hash)).toEqual([legacy]);
+  expect(existsSync(join(ruled, ".devlib", legacy))).toBe(false);
+
+  // no ledger row: the README-less hash is not linked
+  const unrecorded = mkdtempSync(join(tmpdir(), "bend-devlib-legacy-none-"));
+  const hk = mkReleasedKernel(unrecorded, "bend 2.0.27");
+  writeFileSync(join(unrecorded, "RELEASES.md"), "# Releases\n");
+  mkConsumer(unrecorded, hk);
+  expect(checkDevlib(unrecorded).stale.map((s) => s.hash)).toEqual([hk]);
+
+  // a drifted .bend file breaks the release hash too
+  const drift = mkdtempSync(join(tmpdir(), "bend-devlib-legacy-drift-"));
+  const old = mkReleasedKernel(drift, "bend 2.0.27");
+  writeFileSync(join(drift, "packages", "kernel", "list.bend"), KERNEL_LIST + "\ndef idw2(y: Nat) -> Nat:\n  y\n");
+  mkConsumer(drift, old);
+  const r = run("devlib.ts", "--root", drift, "--check");
+  expect(r.code).toBe(1);
+  expect(r.out).toContain(`${old}/list.bend is stale`);
+});
+
+test("the repository's frozen kernel resolves at its published hash 0xb5c8… under devlib", () => {
+  const { packages } = checkDevlib(ROOT);
+  const kernel = packages.find((p) => p.name === "bendlib-kernel-list")!;
+  expect(kernel.files).toContain("README.md");
+  expect(kernel.released).toContain("0xb5c8145e53a6a127d611f45f602666ec");
+  expect(hubHash(packageFiles(kernel.entry, { readme: false }))).toBe("0xb5c8145e53a6a127d611f45f602666ec");
 });

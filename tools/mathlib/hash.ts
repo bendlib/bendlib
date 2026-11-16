@@ -1,13 +1,13 @@
 // hash: compute the BendHub content hash of a package, exactly as `bend --publish` does
-// (2.0.39 bend2/main.ts cli_publish, pkg_files, pkg_read: main.ts:650-661, 813-869): the entry at
+// (2.0.40 bend2/main.ts cli_publish, pkg_files, pkg_read: main.ts:673-686, 838-902): the entry at
 // its basename, every local import (read as bend.ts book_load reads them) at its real path from
-// the entry's real directory, every foreign `.c`/`.js` a def imports (tld.i, main.ts:828-831) at
-// its path, a LICENSE beside any file; "0x" + sha256 of "sha256(content) path\n" lines, 32 hex.
-//
-// As bend does (main.ts:816-824, 857-867), it refuses (exit 2) an entry linked from another
-// directory, and a file whose path climbs out of the entry's directory or whose real path is outside it.
+// the entry's real directory, every foreign `.c`/`.js` a def imports (tld.i) at its path, a LICENSE
+// beside any file, the README.md beside the entry (2.0.40+, at most README_MAX bytes);
+// "0x" + sha256 of "sha256(content) path\n" lines, 32 hex.
+// As bend does, it refuses (exit 2) an entry linked from another directory, a file whose path climbs
+// out of the entry's directory or whose real path is outside it, and a README.md over README_MAX.
 // usage: bun tools/mathlib/hash.ts <entry.bend>   (hash on stdout, files on stderr)
-// exit: 0 printed · 2 usage (missing, non-file or linked entry, a file outside its directory)
+// exit: 0 printed · 2 usage (missing, non-file or linked entry, a file outside its directory, README too big)
 
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
@@ -16,6 +16,17 @@ import { PkgError, importPaths, isHubImport } from "./lib.ts";
 
 const USAGE = "usage: bun tools/mathlib/hash.ts <entry.bend>";
 const usage = (msg: string): never => { console.error(`hash: ${msg}\n${USAGE}`); process.exit(2); };
+
+/** The largest README.md `bend --publish` takes (2.0.40 main.ts:102, 875-878). */
+export const README_MAX = 65536;
+
+/** Whether `bend --publish` of compiler `version` ("2.0.40" or "bend 2.0.40") puts the entry's README.md in the package. */
+export function publishesReadme(version: string): boolean {
+  const m = /(\d+)\.(\d+)\.(\d+)/.exec(version);
+  if (!m) throw new PkgError(`not a bend version: ${JSON.stringify(version)}`);
+  const [a, b, c] = m.slice(1).map(Number);
+  return a !== 2 ? a > 2 : b !== 0 ? b > 0 : c >= 40;
+}
 
 const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");
 
@@ -28,7 +39,7 @@ export function hubHash(files: Record<string, string>): string {
 const FOREIGN = /^\s+import\s+"([^"]+)"/gm;
 
 /** Collect the files `bend <entry> --publish` would upload (local and foreign imports; hub imports stay out). */
-export function packageFiles(entry: string): Record<string, string> {
+export function packageFiles(entry: string, opts: { readme?: boolean } = {}): Record<string, string> {
   if (!existsSync(entry) || !statSync(entry).isFile()) throw new PkgError(`not a .bend file: ${entry}`);
   const realOf = (file: string): string => {
     try { return realpathSync(file); } catch { throw new PkgError(`cannot read ${file}`); }
@@ -75,6 +86,13 @@ export function packageFiles(entry: string): Record<string, string> {
     }
   };
   visit(entry);
+  // readme: false is the rule of bend 2.0.39 and earlier, under which older releases were hashed.
+  if ((opts.readme ?? true) && readdirSync(root).includes("README.md")) {
+    const readme = join(root, "README.md");
+    files["README.md"] = read(readme);
+    const size = Buffer.byteLength(files["README.md"]);
+    if (size > README_MAX) throw new PkgError(`${readme} is ${size} bytes, over ${README_MAX}, the most BendHub takes; bend refuses to publish it`);
+  }
   return files;
 }
 

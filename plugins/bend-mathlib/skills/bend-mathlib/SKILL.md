@@ -32,6 +32,10 @@ Pin by content hash if you want bytes that can never change:
 
 - Every law with its statement, one per line as `module<TAB>name<TAB>statement` (grep it):
   `curl -s https://bendlib.github.io/bendlib/lemmas.txt | grep '^bend-mathlib' | grep 'Nat.add'`
+- Every lemma, typed def and predicate with its statement and the version that added it:
+  https://github.com/bendlib/bendlib/blob/main/packages/bend-mathlib/INDEX.md. Offline, each law in the
+  fetched `.bend` files (under `~/.bend/lib/0x…/`) has a one-line description above it, and releases
+  made with bend 2.0.40 or later carry a README.md there that lists the modules.
 - The `perm` and `sort` theorems are typed defs, not laws, so that list omits them; read their
   signatures in the source: https://github.com/bendlib/bendlib/tree/main/packages/bend-mathlib
 - Browse or search by shape (`Nat.add(_, 0n)`): https://bendlib.github.io/bendlib/search.html

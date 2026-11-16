@@ -65,7 +65,7 @@ bend/
 ├── .github/workflows/          ci.yml (gates, nightly newest-compiler job), docs.yml (site),
 │                               lawcheck-release.yml (tag-triggered lawcheck binaries)
 ├── packages/bend-mathlib/      all.bend equal.bend bool.bend nat.bend list.bend LICENSE
-│                               PUBLIC_API.lock README.md (generated)
+│                               PUBLIC_API.lock README.md INDEX.md (both generated)
 ├── tools/
 │   ├── comments.ts             comment lint (see "Comments" below)
 │   ├── install-bend.ts         installs the pinned compiler
@@ -86,7 +86,7 @@ bend/
 
 | File | Regenerate with |
 |---|---|
-| `packages/bend-mathlib/README.md` | `bun tools/mathlib/index.ts packages/bend-mathlib bend-mathlib <latest version in RELEASES.md>` |
+| `packages/bend-mathlib/README.md` (short, published with the package: bend 2.0.40 hashes it, max 64 KB) and `packages/bend-mathlib/INDEX.md` (full lemma index, not published) | `bun tools/mathlib/index.ts packages/bend-mathlib bend-mathlib <latest version in RELEASES.md>` (writes both) |
 | Everything below the line `# --- generated: _sym twins (tools/mathlib/twins.ts), do not edit ---` in a mathlib module | `bun tools/mathlib/twins.ts packages/bend-mathlib` |
 | `packages/bend-mathlib/PUBLIC_API.lock` | `bun tools/mathlib/lock.ts packages/bend-mathlib --update` (entries with a `since` version are frozen forever; only `--freeze` in a release sets `since`) |
 | `tools/reader/test/golden/*.json` | `bun tools/reader/test/golden.ts`, only after reviewing the diff a compiler bump caused |

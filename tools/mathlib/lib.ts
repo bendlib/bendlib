@@ -143,6 +143,16 @@ export function readLock(file: string): Record<string, LockEntry> {
   return existsSync(file) ? parseLock(readFileSync(file, "utf8")) : {};
 }
 
+export type Release = { name: string; version: string; hash: string; compiler: string };
+
+/** The rows of a RELEASES.md ledger (`| name | version | \`0x…\` | bend X.Y.Z | date |`); none when it is missing. */
+export function readReleases(file: string): Release[] {
+  if (!existsSync(file)) return [];
+  return readFileSync(file, "utf8").split("\n").map((l) => l.split("|").map((c) => c.trim()))
+    .filter((c) => c.length >= 6 && /^`0x[0-9a-f]{32}`$/.test(c[3]))
+    .map((c) => ({ name: c[1], version: c[2], hash: c[3].slice(1, -1), compiler: c[4] }));
+}
+
 export function packageModules(pkgDir: string): string[] {
   let st;
   try { st = statSync(pkgDir); } catch { throw new PkgError(`no such package directory: ${pkgDir}`); }

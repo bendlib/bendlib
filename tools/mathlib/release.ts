@@ -3,9 +3,11 @@
 // attach the name (PLAN.md §3.5).
 //
 // usage: bun tools/mathlib/release.ts <pkgdir> <name> <version> [--publish]
+//   both: README.md (hashed and published) and INDEX.md are generated for <version> first: into the
+//   package with --publish, into a temp dir for the dry run, which leaves the package untouched
 //   without --publish: gates + expected hash + the exact commands (dry run)
 //   with --publish: also publishes, verifies, links the name, freezes the lock, updates RELEASES.md,
-//   regenerates the package README for the released version
+//   regenerates INDEX.md (since cells, hash pin) and checks the package still has the published hash
 // exit: 0 ok · 1 a gate or verification failed · 2 usage
 
 import { appendFileSync, existsSync, mkdtempSync, readdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
@@ -56,9 +58,14 @@ export function devlibError(bendLib: string | undefined): string | null {
   return link ? refuse(`holds the symlink ${link.name}`) : null;
 }
 
-/** Regenerate the package README for `version`; run after `lock --freeze` so its since cells are final. */
-export function regenerateIndex(pkg: string, name: string, version: string) {
-  return sh([process.execPath, "tools/mathlib/index.ts", pkg, name, version]);
+/** Write README.md and INDEX.md for `version` into `out` (default: the package): before hashing (the README is published), and after the ledger row (INDEX.md). */
+export function regenerateIndex(pkg: string, name: string, version: string, out?: string) {
+  return sh([process.execPath, "tools/mathlib/index.ts", pkg, name, version, ...(out ? [`--out=${out}`] : [])]);
+}
+
+/** What `bend <entry> --publish` would upload once the README staged in `staged` replaces the one beside `entry`. */
+export function stagedFiles(entry: string, staged: string): Record<string, string> {
+  return { ...packageFiles(entry, { readme: false }), "README.md": readFileSync(join(staged, "README.md"), "utf8") };
 }
 
 /** bend's stored key; without one, `bend link` starts an interactive login and hangs under spawnSync. */
@@ -78,7 +85,7 @@ export function verdictError(module: string): string | null {
   return r.code === 0 && r.out === "ALL PROOFS CHECK" ? null : `${relative(ROOT, module)} (exit ${r.code}):\n${r.out}`;
 }
 
-/** Publish, verify from an empty cache, link the name, freeze the lock, regenerate README, record it. */
+/** Publish, verify from an empty cache, link the name, freeze the lock, record it, regenerate INDEX.md. */
 export async function publish(pkg: string, name: string, version: string, expected: string): Promise<string> {
   const pub = sh([bendBin(), join(pkg, "all.bend"), "--publish"]);
   const got = pub.out.match(/^(0x[0-9a-f]{32})$/m)?.[1];
@@ -101,13 +108,15 @@ export async function publish(pkg: string, name: string, version: string, expect
 
   const freeze = sh([process.execPath, "tools/mathlib/lock.ts", pkg, "--freeze", version]);
   if (freeze.code !== 0) throw new Error(`lock freeze failed:\n${freeze.out}`);
-  // freeze rewrites the lock's since cells, so the README is only correct after this step.
-  const idx = regenerateIndex(pkg, name, version);
-  if (idx.code !== 0) throw new Error(`index regeneration for ${version} failed:\n${idx.out}`);
   const compiler = sh([bendBin(), "version"]).out;
   const ledger = releasesFile();
   if (!existsSync(ledger)) writeFileSync(ledger, "# Releases\n\n| package | version | hash | compiler | date |\n|---|---|---|---|---|\n");
   appendFileSync(ledger, `| ${name} | ${version} | \`${got}\` | ${compiler} | ${new Date().toISOString().slice(0, 10)} |\n`);
+  // freeze rewrote the since cells and the ledger now has the hash, both only in INDEX.md, which is not published.
+  const idx = regenerateIndex(pkg, name, version);
+  if (idx.code !== 0) throw new Error(`index regeneration for ${version} failed:\n${idx.out}`);
+  const after = hubHash(packageFiles(join(pkg, "all.bend")));
+  if (after !== got) throw new Error(`after the release the package hashes to ${after}, not the published ${got}: the README changed after publishing`);
   return got;
 }
 
@@ -130,6 +139,12 @@ async function main(): Promise<void> {
     const login = loginError();
     if (login) fail(login);
   }
+  // The README is hashed, so the hash is taken with the one for <version>; a dry run stages it outside the package.
+  const staged = doPublish ? undefined : mkdtempSync(join(tmpdir(), "bendlib-release-"));
+  const idx = regenerateIndex(pkg, name, version, staged);
+  if (idx.code !== 0) fail(`writing README.md and INDEX.md for ${version} failed:\n${idx.out}`);
+  console.log(staged ? `staged README.md and INDEX.md for ${name}@${version} in ${staged}; --publish writes them into the package`
+    : `wrote README.md and INDEX.md for ${name}@${version}; commit them with the release`);
 
   const gates: [string, string[]][] = [
     ["check", [process.execPath, "tools/mathlib/check.ts", pkg]],
@@ -148,7 +163,7 @@ async function main(): Promise<void> {
   }
   const entry = join(pkg, "all.bend");
   let files: Record<string, string>;
-  try { files = packageFiles(entry); } catch (e) { if (e instanceof PkgError) usage(e.message); throw e; }
+  try { files = staged ? stagedFiles(entry, staged) : packageFiles(entry); } catch (e) { if (e instanceof PkgError) usage(e.message); throw e; }
   for (const m of packageModules(pkg)) {
     const err = verdictError(m);
     console.log(`${err ? "FAIL" : "ok  "} verdict ${basename(m, ".bend")}`);
@@ -166,7 +181,7 @@ async function main(): Promise<void> {
   }
   try {
     const got = await publish(pkg, name, version, expected);
-    console.log(`regenerated ${relative(ROOT, join(pkg, "README.md"))}; recorded in ${relative(ROOT, releasesFile())}; tag with: git tag ${name}-v${version} (${got})`);
+    console.log(`regenerated ${relative(ROOT, join(pkg, "INDEX.md"))}; recorded in ${relative(ROOT, releasesFile())}; tag with: git tag ${name}-v${version} (${got})`);
   } catch (e) {
     fail(e instanceof Error ? e.message : String(e));
   }

@@ -4,7 +4,7 @@ The foundation library for [Bend 2](https://github.com/bendlang/bend): machine-c
 import instead of re-proving, and tools that keep laws honest.
 
 [Docs for every BendHub package](https://bendlib.github.io/bendlib/) ·
-[lemma index](packages/bend-mathlib/README.md) ·
+[lemma index](packages/bend-mathlib/INDEX.md) ·
 [lawcheck](tools/lawcheck) ·
 [agent plugin](plugins/bend-mathlib/skills/bend-mathlib/SKILL.md) ·
 [request a lemma](https://github.com/bendlib/bendlib/issues/new)
@@ -32,7 +32,7 @@ def my_rev(xs):
   MList.reverse_reverse(&2, U32, xs)
 ```
 
-Every lemma with its statement: [packages/bend-mathlib/README.md](packages/bend-mathlib/README.md).
+Every lemma with its statement: [packages/bend-mathlib/INDEX.md](packages/bend-mathlib/INDEX.md).
 Used on BendHub by [`mylsm-lsm-store`](https://github.com/FabianVegaA/mylsm) (from 0.4.0.0): its keyed-lookup
 proofs rest on the `string` and `bool` comparison lemmas.
 Proving with an AI agent? Install the plugin, which teaches the agent to find, import and rewrite
