@@ -5,16 +5,16 @@ Every lemma of bend-mathlib with its statement, checked with `bend 2.0.40`.
 Rewriting: `%e : P` replaces the right side of `e` with its left side, so `name` expands the simple
 side into the compound one and `name_sym` simplifies the compound side.
 
-bend-mathlib@0.8.1.0 is `0x8ae61ec3a6615abd35f196c07232ad28`; to pin its bytes, import by hash instead of name:
+bend-mathlib@0.8.1.1 is `0x15432fae482a0916f1cfffa8b5e1a335`; to pin its bytes, import by hash instead of name:
 
 ```python
-import 0x8ae61ec3a6615abd35f196c07232ad28/nat.bend as MNat
+import 0x15432fae482a0916f1cfffa8b5e1a335/nat.bend as MNat
 ```
 
 ## algebra
 
 ```python
-import bend-mathlib@0.8.1.0/algebra.bend as MAlgebra
+import bend-mathlib@0.8.1.1/algebra.bend as MAlgebra
 ```
 
 | lemma | statement | meaning | since |
@@ -59,7 +59,7 @@ import bend-mathlib@0.8.1.0/algebra.bend as MAlgebra
 ## bool
 
 ```python
-import bend-mathlib@0.8.1.0/bool.bend as MBool
+import bend-mathlib@0.8.1.1/bool.bend as MBool
 ```
 
 | lemma | statement | meaning | since |
@@ -137,7 +137,7 @@ import bend-mathlib@0.8.1.0/bool.bend as MBool
 ## equal
 
 ```python
-import bend-mathlib@0.8.1.0/equal.bend as MEqual
+import bend-mathlib@0.8.1.1/equal.bend as MEqual
 ```
 
 | lemma | statement | meaning | since |
@@ -150,7 +150,7 @@ import bend-mathlib@0.8.1.0/equal.bend as MEqual
 ## list
 
 ```python
-import bend-mathlib@0.8.1.0/list.bend as MList
+import bend-mathlib@0.8.1.1/list.bend as MList
 ```
 
 | predicate | definition | since |
@@ -372,7 +372,7 @@ import bend-mathlib@0.8.1.0/list.bend as MList
 ## maybe
 
 ```python
-import bend-mathlib@0.8.1.0/maybe.bend as MMaybe
+import bend-mathlib@0.8.1.1/maybe.bend as MMaybe
 ```
 
 | lemma | statement | meaning | since |
@@ -411,7 +411,7 @@ import bend-mathlib@0.8.1.0/maybe.bend as MMaybe
 ## nat
 
 ```python
-import bend-mathlib@0.8.1.0/nat.bend as MNat
+import bend-mathlib@0.8.1.1/nat.bend as MNat
 ```
 
 | predicate | definition | since |
@@ -778,7 +778,7 @@ import bend-mathlib@0.8.1.0/nat.bend as MNat
 ## order
 
 ```python
-import bend-mathlib@0.8.1.0/order.bend as MOrder
+import bend-mathlib@0.8.1.1/order.bend as MOrder
 ```
 
 | lemma | statement | meaning | since |
@@ -793,7 +793,7 @@ import bend-mathlib@0.8.1.0/order.bend as MOrder
 ## perm
 
 ```python
-import bend-mathlib@0.8.1.0/perm.bend as MPerm
+import bend-mathlib@0.8.1.1/perm.bend as MPerm
 ```
 
 | typed def | signature | meaning | since |
@@ -832,7 +832,7 @@ import bend-mathlib@0.8.1.0/perm.bend as MPerm
 ## sort
 
 ```python
-import bend-mathlib@0.8.1.0/sort.bend as MSort
+import bend-mathlib@0.8.1.1/sort.bend as MSort
 ```
 
 | typed def | signature | meaning | since |
@@ -850,7 +850,7 @@ import bend-mathlib@0.8.1.0/sort.bend as MSort
 ## string
 
 ```python
-import bend-mathlib@0.8.1.0/string.bend as MString
+import bend-mathlib@0.8.1.1/string.bend as MString
 ```
 
 | lemma | statement | meaning | since |
@@ -910,7 +910,7 @@ import bend-mathlib@0.8.1.0/string.bend as MString
 ## u32
 
 ```python
-import bend-mathlib@0.8.1.0/u32.bend as MU32
+import bend-mathlib@0.8.1.1/u32.bend as MU32
 ```
 
 | lemma | statement | meaning | since |

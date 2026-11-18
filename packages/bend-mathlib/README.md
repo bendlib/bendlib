@@ -8,13 +8,13 @@ locked, so a later version never changes one you use.
 ## Import
 
 ```python
-import bend-mathlib@0.8.1.0/nat.bend as MNat
+import bend-mathlib@0.8.1.1/nat.bend as MNat
 ```
 
 Each module imports on its own; `all.bend` imports them all. To pin the exact bytes, import by
 content hash instead of name: `import 0x<hash>/nat.bend as MNat`. The hash of
-bend-mathlib@0.8.1.0 is what `curl -s https://hub.bend-lang.com/name/bend-mathlib@0.8.1.0` prints, what
-`bend` stored in `~/.bend/lib/names/bend-mathlib@0.8.1.0` (or under `$BEND_LIB`) when it first resolved
+bend-mathlib@0.8.1.1 is what `curl -s https://hub.bend-lang.com/name/bend-mathlib@0.8.1.1` prints, what
+`bend` stored in `~/.bend/lib/names/bend-mathlib@0.8.1.1` (or under `$BEND_LIB`) when it first resolved
 the name, and the name of the directory this package was fetched into. This README cannot state it:
 the README is part of the package that the hash covers.
 
