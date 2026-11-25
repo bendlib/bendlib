@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { README_MAX, hubHash, packageFiles } from "./hash.ts";
-import { baseNames, BEND, LOCK_FORMAT, parseLock, parseModule, packageModules, ROOT, rssSource, treeRssKb, type LockEntry } from "./lib.ts";
+import { baseNames, BEND, LOCK_FORMAT, parseLock, parseModule, packageModules, ROOT, rssSource, treeRssKb, twinEquation, type Law, type LockEntry } from "./lib.ts";
 import { lockAgainstErrors } from "./lock.ts";
 import { devlibError, headerVersionError, loginError, publish, regenerateIndex, stagedFiles, verdictError } from "./release.ts";
 
@@ -53,6 +53,34 @@ test("check: a missing compiler is a toolchain error, exit 2, no stack (planted 
   expect(r.code).toBe(2);
   expect(r.out).toContain("toolchain mismatch");
   expect(r.out).not.toMatch(STACK);
+});
+
+test("twins: one rule, conditional rewrites get a twin whatever the predicate's name, bare `a == b` none (planted old rule)", () => {
+  const src = [
+    "law inj:", "  for a: Nat", "  for b: Nat", "  for h: le(a, b)", "  for k: MNat.le(b, a)", "  {a == b : Nat}", "",
+    "def inj(a, b, h, k):", "  {==}", "",
+    "law cancel_qualified:", "  for n: Nat", "  for m: Nat", "  for h: MNat.le(m, n)", "  {Nat.add(Nat.sub(n, m), m) == n : Nat}", "",
+    "def cancel_qualified(n, m, h):", "  {==}", "",
+    "law cancel_plain:", "  for n: Nat", "  for m: Nat", "  for h: le(m, n)", "  {Nat.add(Nat.sub(n, m), m) == n : Nat}", "",
+    "def cancel_plain(n, m, h):", "  {==}", "",
+  ].join("\n");
+  const laws = parseModule("m.bend", src).laws;
+  const want = { inj: false, cancel_qualified: true, cancel_plain: true };
+  const verdicts = (twinned: (l: Law) => boolean) => Object.fromEntries(laws.map((l) => [l.name, twinned(l)]));
+  expect(verdicts((l) => twinEquation(l) !== null)).toEqual(want);
+  expect(twinEquation(laws[2]!)).toEqual({ lhs: "Nat.add(Nat.sub(n, m), m)", rhs: "n", type: "Nat" });
+  // The rule before bend-rom: skip any law with a hypothesis whose type looks like an unqualified call.
+  const old = (l: Law) => !l.binders.some((b) => b.type.startsWith("{") || /^([a-z_][A-Za-z0-9_.]*|[A-Z])\(/.test(b.type));
+  expect(verdicts(old)).not.toEqual(want);
+  expect(verdicts(old).cancel_plain).toBe(false);
+
+  const tmp = mkdtempSync(join(tmpdir(), "bend-twins-rule-"));
+  writeFileSync(join(tmp, "m.bend"), src);
+  expect(run("twins.ts", tmp).code).toBe(0);
+  const text = readFileSync(join(tmp, "m.bend"), "utf8");
+  expect(text).toContain("law cancel_plain_sym:\n  for n: Nat\n  for m: Nat\n  for h: le(m, n)\n  {n == Nat.add(Nat.sub(n, m), m) : Nat}");
+  expect(text).toContain("law cancel_qualified_sym:");
+  expect(text).not.toContain("inj_sym");
 });
 
 test("twins: the good fixture's generated section is up to date", () => {

@@ -1,4 +1,5 @@
-// twins: generate `<name>_sym` twins for every public equational law.
+// twins: generate `<name>_sym` twins for every public one-line equational law, except `a == b`
+// between two bare binder names (rule: twinEquation in lib.ts).
 //
 // Bend's rewrite `%e : P` replaces the equation's RIGHT side with its LEFT side,
 // so a Mathlib-style lemma `{big == simple}` expands, and its reversed twin
@@ -11,7 +12,7 @@
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
-import { GENERATED_MARK, PkgError, ROOT, packageModules, parseModule, splitEquation } from "./lib.ts";
+import { GENERATED_MARK, PkgError, ROOT, packageModules, parseModule, splitEquation, twinEquation } from "./lib.ts";
 
 const USAGE = "usage: bun tools/mathlib/twins.ts [pkgdir] [--check]";
 const usage = (msg: string): never => { console.error(`twins: ${msg}\n${USAGE}`); process.exit(2); };
@@ -32,11 +33,7 @@ for (const file of files) {
   const out: string[] = [];
   const twinned = new Set<string>();
   for (const law of mod.laws) {
-    if (law.name.startsWith("internal_") || law.name.endsWith("_sym") || law.exs.length > 0 || !law.proof) continue;
-    if (law.binders.some((b) => b.where) || law.claimLines.length !== 1) continue;
-    // A twin of a conclusion drawn from hypotheses (succ_inj, le_antisymm) is permanent noise.
-    if (law.binders.some((b) => b.type.startsWith("{") || /^([a-z_][A-Za-z0-9_.]*|[A-Z])\(/.test(b.type))) continue;
-    const eq = splitEquation(law.claimLines[0]);
+    const eq = twinEquation(law);
     if (!eq) continue;
     const params = law.binders.map((b) => b.name);
     const callArgs = law.binders.map((b) => (b.mark === "~" ? "~" : "") + b.name);

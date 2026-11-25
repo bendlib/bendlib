@@ -774,6 +774,15 @@ law xor_true_sym:
 def xor_true_sym(a):
   Equal.sym(Bool, Bool.xor(a, True{}), Bool.not(a), xor_true(a))
 
+# A boolean that is not false is true, reversed to rewrite toward the simple side.
+law eq_true_of_ne_false_sym:
+  for a: Bool
+  for h: {a == False{} : Bool} -> Empty
+  {True{} == a : Bool}
+
+def eq_true_of_ne_false_sym(a, h):
+  Equal.sym(Bool, a, True{}, eq_true_of_ne_false(a, h))
+
 # Comparing a boolean with itself gives EQ, reversed to rewrite toward the simple side.
 law cmp_refl_sym:
   for b: Bool
@@ -781,3 +790,65 @@ law cmp_refl_sym:
 
 def cmp_refl_sym(b):
   Equal.sym(Cmp, Bool.cmp(b, b), EQ{}, cmp_refl(b))
+
+# If a and b is true then a is true, reversed to rewrite toward the simple side.
+law eq_true_of_and_left_sym:
+  for a: Bool
+  for -b: Bool
+  for h: {Bool.and(a, b) == True{} : Bool}
+  {True{} == a : Bool}
+
+def eq_true_of_and_left_sym(a, b, h):
+  Equal.sym(Bool, a, True{}, eq_true_of_and_left(a, b, h))
+
+# If a and b is true then b is true, reversed to rewrite toward the simple side.
+law eq_true_of_and_right_sym:
+  for a: Bool
+  for -b: Bool
+  for h: {Bool.and(a, b) == True{} : Bool}
+  {True{} == b : Bool}
+
+def eq_true_of_and_right_sym(a, b, h):
+  Equal.sym(Bool, b, True{}, eq_true_of_and_right(a, b, h))
+
+# If a and b are both true then a and b is true, reversed to rewrite toward the simple side.
+law and_eq_true_sym:
+  for a: Bool
+  for -b: Bool
+  for ha: {a == True{} : Bool}
+  for hb: {b == True{} : Bool}
+  {True{} == Bool.and(a, b) : Bool}
+
+def and_eq_true_sym(a, b, ha, hb):
+  Equal.sym(Bool, Bool.and(a, b), True{}, and_eq_true(a, b, ha, hb))
+
+# If a or b is true and b is false then a is true, reversed to rewrite toward the simple side.
+law eq_true_of_or_eq_false_right_sym:
+  for a: Bool
+  for -b: Bool
+  for h: {Bool.or(a, b) == True{} : Bool}
+  for hb: {b == False{} : Bool}
+  {True{} == a : Bool}
+
+def eq_true_of_or_eq_false_right_sym(a, b, h, hb):
+  Equal.sym(Bool, a, True{}, eq_true_of_or_eq_false_right(a, b, h, hb))
+
+# If a or b is true and a is false then b is true, reversed to rewrite toward the simple side.
+law eq_true_of_or_eq_false_left_sym:
+  for a: Bool
+  for -b: Bool
+  for h: {Bool.or(a, b) == True{} : Bool}
+  for ha: {a == False{} : Bool}
+  {True{} == b : Bool}
+
+def eq_true_of_or_eq_false_left_sym(a, b, h, ha):
+  Equal.sym(Bool, b, True{}, eq_true_of_or_eq_false_left(a, b, h, ha))
+
+# If not b is true then b is false, reversed to rewrite toward the simple side.
+law eq_false_of_not_eq_true_sym:
+  for b: Bool
+  for h: {Bool.not(b) == True{} : Bool}
+  {False{} == b : Bool}
+
+def eq_false_of_not_eq_true_sym(b, h):
+  Equal.sym(Bool, b, False{}, eq_false_of_not_eq_true(b, h))

@@ -96,10 +96,10 @@ def internal_nat_le_total(a: Nat, b: Nat) -> {Bool.or(Nat.is_le(a, b), Nat.is_le
     case 1n+p 1n+q:
       internal_nat_le_total(p, q)
 
-def internal_nat_le_trans3(+a: Nat, +b: Nat, +c: Nat, +d: Nat, ab: MNat.le(a, b), bc: MNat.le(b, c), cd: MNat.le(c, d)) -> MNat.le(a, d):
+def internal_nat_le_trans3(+a: Nat, +b: Nat, +c: Nat, +d: Nat, ab: MNat.le(a, b), bc: MNat.le(b, c), cd: MNat.le(c, d)) -> {Nat.is_le(a, d) == True{} : Bool}:
   le_trans3(~Nat, ~Nat.is_le, ~MNat.le_trans, a, b, c, d, ab, bc, cd)
 
-def internal_nat_le_trans4(+a: Nat, +b: Nat, +c: Nat, +d: Nat, +e: Nat, ab: MNat.le(a, b), bc: MNat.le(b, c), cd: MNat.le(c, d), de: MNat.le(d, e)) -> MNat.le(a, e):
+def internal_nat_le_trans4(+a: Nat, +b: Nat, +c: Nat, +d: Nat, +e: Nat, ab: MNat.le(a, b), bc: MNat.le(b, c), cd: MNat.le(c, d), de: MNat.le(d, e)) -> {Nat.is_le(a, e) == True{} : Bool}:
   le_trans4(~Nat, ~Nat.is_le, ~MNat.le_trans, a, b, c, d, e, ab, bc, cd, de)
 
 def internal_nat_le_antisymm_eq(+a: Nat, +b: Nat, ab: MNat.le(a, b), ba: MNat.le(b, a)) -> {a == b : Nat}:
@@ -108,10 +108,46 @@ def internal_nat_le_antisymm_eq(+a: Nat, +b: Nat, ab: MNat.le(a, b), ba: MNat.le
 def internal_nat_le_total_true(+a: Nat, +b: Nat) -> {Bool.or(Nat.is_le(a, b), Nat.is_le(b, a)) == True{} : Bool}:
   le_total_true(~Nat, ~Nat.is_le, ~internal_nat_le_total, a, b)
 
-def internal_nat_le_total_of_not_le(+a: Nat, +b: Nat, h: {Nat.is_le(a, b) == False{} : Bool}) -> MNat.le(b, a):
+def internal_nat_le_total_of_not_le(+a: Nat, +b: Nat, h: {Nat.is_le(a, b) == False{} : Bool}) -> {Nat.is_le(b, a) == True{} : Bool}:
   le_total_of_not_le(~Nat, ~Nat.is_le, ~internal_nat_le_total, a, b, h)
 
 # --- generated: _sym twins (tools/mathlib/twins.ts), do not edit ---
+
+# A chain of three comparisons composes, reversed to rewrite toward the simple side.
+law le_trans3_sym:
+  for ~A: Data
+  for ~le: A -> A -> Bool
+  for ~le_trans: @x: A -> @y: A -> @z: A -> {le(x, y) == True{} : Bool} -> {le(y, z) == True{} : Bool} -> {le(x, z) == True{} : Bool}
+  for +a: A
+  for +b: A
+  for +c: A
+  for +d: A
+  for ab: {le(a, b) == True{} : Bool}
+  for bc: {le(b, c) == True{} : Bool}
+  for cd: {le(c, d) == True{} : Bool}
+  {True{} == le(a, d) : Bool}
+
+def le_trans3_sym(A, le, le_trans, a, b, c, d, ab, bc, cd):
+  Equal.sym(Bool, le(a, d), True{}, le_trans3(~A, ~le, ~le_trans, a, b, c, d, ab, bc, cd))
+
+# A chain of four comparisons composes, reversed to rewrite toward the simple side.
+law le_trans4_sym:
+  for ~A: Data
+  for ~le: A -> A -> Bool
+  for ~le_trans: @x: A -> @y: A -> @z: A -> {le(x, y) == True{} : Bool} -> {le(y, z) == True{} : Bool} -> {le(x, z) == True{} : Bool}
+  for +a: A
+  for +b: A
+  for +c: A
+  for +d: A
+  for +e: A
+  for ab: {le(a, b) == True{} : Bool}
+  for bc: {le(b, c) == True{} : Bool}
+  for cd: {le(c, d) == True{} : Bool}
+  for de: {le(d, e) == True{} : Bool}
+  {True{} == le(a, e) : Bool}
+
+def le_trans4_sym(A, le, le_trans, a, b, c, d, e, ab, bc, cd, de):
+  Equal.sym(Bool, le(a, e), True{}, le_trans4(~A, ~le, ~le_trans, a, b, c, d, e, ab, bc, cd, de))
 
 # Totality as a Bool disjunction, reversed to rewrite toward the simple side.
 law le_total_true_sym:
@@ -125,6 +161,28 @@ law le_total_true_sym:
 def le_total_true_sym(A, le, le_total, a, b):
   Equal.sym(Bool, Bool.or(le(a, b), le(b, a)), True{}, le_total_true(~A, ~le, ~le_total, a, b))
 
+# The other side of a total order holds when one side fails, reversed to rewrite toward the simple side.
+law le_total_of_not_le_sym:
+  for ~A: Data
+  for ~le: A -> A -> Bool
+  for ~le_total: @x: A -> @y: A -> {Bool.or(le(x, y), le(y, x)) == True{} : Bool}
+  for +a: A
+  for +b: A
+  for h: {le(a, b) == False{} : Bool}
+  {True{} == le(b, a) : Bool}
+
+def le_total_of_not_le_sym(A, le, le_total, a, b, h):
+  Equal.sym(Bool, le(b, a), True{}, le_total_of_not_le(~A, ~le, ~le_total, a, b, h))
+
 # Calls of the twins, as the calls above the generated section make of their laws (PLAN F38).
+def internal_nat_le_trans3_sym(+a: Nat, +b: Nat, +c: Nat, +d: Nat, ab: MNat.le(a, b), bc: MNat.le(b, c), cd: MNat.le(c, d)) -> {True{} == Nat.is_le(a, d) : Bool}:
+  le_trans3_sym(~Nat, ~Nat.is_le, ~MNat.le_trans, a, b, c, d, ab, bc, cd)
+
+def internal_nat_le_trans4_sym(+a: Nat, +b: Nat, +c: Nat, +d: Nat, +e: Nat, ab: MNat.le(a, b), bc: MNat.le(b, c), cd: MNat.le(c, d), de: MNat.le(d, e)) -> {True{} == Nat.is_le(a, e) : Bool}:
+  le_trans4_sym(~Nat, ~Nat.is_le, ~MNat.le_trans, a, b, c, d, e, ab, bc, cd, de)
+
 def internal_nat_le_total_true_sym(+a: Nat, +b: Nat) -> {True{} == Bool.or(Nat.is_le(a, b), Nat.is_le(b, a)) : Bool}:
   le_total_true_sym(~Nat, ~Nat.is_le, ~internal_nat_le_total, a, b)
+
+def internal_nat_le_total_of_not_le_sym(+a: Nat, +b: Nat, h: {Nat.is_le(a, b) == False{} : Bool}) -> {True{} == Nat.is_le(b, a) : Bool}:
+  le_total_of_not_le_sym(~Nat, ~Nat.is_le, ~internal_nat_le_total, a, b, h)

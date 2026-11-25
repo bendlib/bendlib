@@ -1,6 +1,6 @@
 # bend-mathlib
 
-Machine-checked lemmas for Bend 2, checked with `bend 2.0.40`: 491 lemmas, 331 generated
+Machine-checked lemmas for Bend 2, checked with `bend 2.0.40`: 491 lemmas, 360 generated
 `_sym` twins, 6 predicates and 39 typed defs (theorems stated by their type, and the
 functions they are about). Import a module instead of re-proving a basic fact; every statement is
 locked, so a later version never changes one you use.
@@ -23,16 +23,16 @@ the README is part of the package that the hash covers.
 | module | scope | lemmas | `_sym` twins | predicates | typed defs |
 |---|---|---|---|---|---|
 | `algebra` | Abstract associativity/commutativity theorems and their Nat/Bool/List instances. | 18 | 18 | 0 | 0 |
-| `bool` | Bool algebra (not, and, or, xor). | 40 | 29 | 0 | 0 |
-| `equal` | Equality lemmas (congruence, substitution, chains). | 4 | 0 | 0 | 0 |
+| `bool` | Bool algebra (not, and, or, xor). | 40 | 36 | 0 | 0 |
+| `equal` | Equality lemmas (congruence, substitution, chains). | 4 | 2 | 0 | 0 |
 | `list` | List lemmas (append, reverse, length, take, drop, map, fold, filter, zip, head, last, get, all, any, find, contains, mem, sorted_by). | 113 | 95 | 2 | 0 |
 | `maybe` | Maybe monad and map laws over &2. | 15 | 15 | 0 | 0 |
-| `nat` | Nat arithmetic (add, mul, sub, div, mod, min, max, pow, double) and order (le, lt, ge, gt). | 233 | 118 | 4 | 0 |
-| `order` | Abstract preorder/total-order facts over a Bool comparator ~le. | 5 | 1 | 0 | 0 |
+| `nat` | Nat arithmetic (add, mul, sub, div, mod, min, max, pow, double) and order (le, lt, ge, gt). | 233 | 134 | 4 | 0 |
+| `order` | Abstract preorder/total-order facts over a Bool comparator ~le. | 5 | 4 | 0 | 0 |
 | `perm` | Step-list permutations over bendlib-kernel-list, plus sort value defs and proofs. | 0 | 0 | 0 | 30 |
 | `sort` | Insertion and merge sort proved sorted over perm.bend's value defs (generic ~le). | 0 | 0 | 0 | 9 |
 | `string` | String append, reverse and length, and comparison. | 27 | 24 | 0 | 0 |
-| `u32` | Machine words as naturals; Word(n) and U32 operations agree with Nat arithmetic (compare, add, sub, inc, not, min, max, div, from_nat). | 36 | 31 | 0 | 0 |
+| `u32` | Machine words as naturals; Word(n) and U32 operations agree with Nat arithmetic (compare, add, sub, inc, not, min, max, div, from_nat). | 36 | 32 | 0 | 0 |
 
 ## Find a lemma
 

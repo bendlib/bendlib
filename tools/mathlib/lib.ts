@@ -197,6 +197,18 @@ export async function baseNames(): Promise<Set<string>> {
   return names;
 }
 
+/** The equation a law's generated `_sym` twin reverses (PLAN §3.1.6), or null when the law gets none. */
+export function twinEquation(law: Law): { lhs: string; rhs: string; type: string } | null {
+  if (law.name.startsWith("internal_") || law.name.endsWith("_sym") || law.exs.length > 0 || !law.proof) return null;
+  if (law.binders.some((b) => b.where) || law.claimLines.length !== 1) return null;
+  const eq = splitEquation(law.claimLines[0]);
+  if (!eq) return null;
+  // Every one-line equation, hypotheses or not, except `a == b` between two bare binder names:
+  // reversing a rewrite of one name into another simplifies nothing (succ_inj, le_antisymm).
+  const names = new Set(law.binders.map((b) => b.name));
+  return names.has(eq.lhs) && names.has(eq.rhs) ? null : eq;
+}
+
 export const GENERATED_MARK = "# --- generated: _sym twins (tools/mathlib/twins.ts), do not edit ---";
 
 /** How `treeRssKb` measures: /proc where it exists (Linux), else `ps` (macOS); `BENDLIB_RSS=ps` forces `ps` for tests. */

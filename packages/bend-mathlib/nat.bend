@@ -4052,6 +4052,16 @@ law add_sub_cancel_left_sym:
 def add_sub_cancel_left_sym(n, m):
   Equal.sym(Nat, Nat.sub(Nat.add(n, m), n), m, add_sub_cancel_left(n, m))
 
+# If m <= n, subtracting and adding m back gives n: (n - m) + m = n, reversed to rewrite toward the simple side.
+law sub_add_cancel_sym:
+  for n: Nat
+  for m: Nat
+  for h: le(m, n)
+  {n == Nat.add(Nat.sub(n, m), m) : Nat}
+
+def sub_add_cancel_sym(n, m, h):
+  Equal.sym(Nat, Nat.add(Nat.sub(n, m), m), n, sub_add_cancel(n, m, h))
+
 # Subtracting twice is subtracting the sum: (n - m) - k = n - (m + k), reversed to rewrite toward the simple side.
 law sub_sub_sym:
   for n: Nat
@@ -4070,6 +4080,16 @@ law div_mod_eq_sym:
 
 def div_mod_eq_sym(a, b):
   Equal.sym(Nat, Nat.add(Nat.mul(Nat.div(a, 1n+b), 1n+b), Nat.mod(a, 1n+b)), a, div_mod_eq(a, b))
+
+# A number at most b divides by 1 + b to zero: a <= b implies a / (1 + b) = 0, reversed to rewrite toward the simple side.
+law div_eq_zero_of_le_sym:
+  for +a: Nat
+  for +b: Nat
+  for h: le(a, b)
+  {0n == Nat.div(a, 1n+b) : Nat}
+
+def div_eq_zero_of_le_sym(a, b, h):
+  Equal.sym(Nat, Nat.div(a, 1n+b), 0n, div_eq_zero_of_le(a, b, h))
 
 # Adding the divisor adds one to the quotient: ((1 + b) + a) / (1 + b) = 1 + a / (1 + b), reversed to rewrite toward the simple side.
 law add_div_left_sym:
@@ -4318,6 +4338,35 @@ law le_and_le_sub_iff_add_le_sym:
 def le_and_le_sub_iff_add_le_sym(a, b, c):
   Equal.sym(Bool, Bool.and(Nat.is_le(a, c), Nat.is_le(b, Nat.sub(c, a))), Nat.is_le(Nat.add(a, b), c), le_and_le_sub_iff_add_le(a, b, c))
 
+# The only natural at most zero is zero, reversed to rewrite toward the simple side.
+law le_zero_eq_sym:
+  for n: Nat
+  for h: le(n, 0n)
+  {0n == n : Nat}
+
+def le_zero_eq_sym(n, h):
+  Equal.sym(Nat, n, 0n, le_zero_eq(n, h))
+
+# A strict inequality rules out the reverse weak one: a < b implies b <= a is false, reversed to rewrite toward the simple side.
+law not_le_of_lt_sym:
+  for a: Nat
+  for b: Nat
+  for h: lt(a, b)
+  {False{} == Nat.is_le(b, a) : Bool}
+
+def not_le_of_lt_sym(a, b, h):
+  Equal.sym(Bool, Nat.is_le(b, a), False{}, not_le_of_lt(a, b, h))
+
+# A weak inequality rules out the reverse strict one: a <= b implies b < a is false, reversed to rewrite toward the simple side.
+law not_lt_of_le_sym:
+  for a: Nat
+  for b: Nat
+  for h: le(a, b)
+  {False{} == Nat.is_lt(b, a) : Bool}
+
+def not_lt_of_le_sym(a, b, h):
+  Equal.sym(Bool, Nat.is_lt(b, a), False{}, not_lt_of_le(a, b, h))
+
 # The minimum is at most c exactly when one argument is: min a b <= c tests as a <= c or b <= c, reversed to rewrite toward the simple side.
 law min_le_iff_sym:
   for a: Nat
@@ -4337,6 +4386,36 @@ law lt_max_iff_sym:
 
 def lt_max_iff_sym(a, b, c):
   Equal.sym(Bool, Nat.is_lt(a, Nat.max(b, c)), Bool.or(Nat.is_lt(a, b), Nat.is_lt(a, c)), lt_max_iff(a, b, c))
+
+# Subtracting a larger number gives zero: a <= b implies a - b = 0, reversed to rewrite toward the simple side.
+law sub_eq_zero_of_le_sym:
+  for a: Nat
+  for b: Nat
+  for h: le(a, b)
+  {0n == Nat.sub(a, b) : Nat}
+
+def sub_eq_zero_of_le_sym(a, b, h):
+  Equal.sym(Nat, Nat.sub(a, b), 0n, sub_eq_zero_of_le(a, b, h))
+
+# Above the subtrahend, a successor subtracts to a successor: b <= a implies (a + 1) - b = (a - b) + 1, reversed to rewrite toward the simple side.
+law succ_sub_sym:
+  for a: Nat
+  for b: Nat
+  for h: le(b, a)
+  {1n+Nat.sub(a, b) == Nat.sub(1n+a, b) : Nat}
+
+def succ_sub_sym(a, b, h):
+  Equal.sym(Nat, Nat.sub(1n+a, b), 1n+Nat.sub(a, b), succ_sub(a, b, h))
+
+# Adding back what was subtracted restores the number: a <= b implies a + (b - a) = b, reversed to rewrite toward the simple side.
+law add_sub_of_le_sym:
+  for a: Nat
+  for b: Nat
+  for h: le(a, b)
+  {b == Nat.add(a, Nat.sub(b, a)) : Nat}
+
+def add_sub_of_le_sym(a, b, h):
+  Equal.sym(Nat, Nat.add(a, Nat.sub(b, a)), b, add_sub_of_le(a, b, h))
 
 # Comparing against a difference is comparing the sum: a < c - b tests as b + a < c, reversed to rewrite toward the simple side.
 law lt_sub_iff_add_lt_sym:
@@ -4395,6 +4474,16 @@ law div_self_sym:
 
 def div_self_sym(b):
   Equal.sym(Nat, Nat.div(1n+b, 1n+b), 1n, div_self(b))
+
+# A number below the divisor is its own remainder: a < b implies a % b = a, reversed to rewrite toward the simple side.
+law mod_eq_of_lt_sym:
+  for a: Nat
+  for b: Nat
+  for h: lt(a, b)
+  {a == Nat.mod(a, b) : Nat}
+
+def mod_eq_of_lt_sym(a, b, h):
+  Equal.sym(Nat, Nat.mod(a, b), a, mod_eq_of_lt(a, b, h))
 
 # Taking a remainder twice is taking it once: (a % n) % n = a % n, reversed to rewrite toward the simple side.
 law mod_mod_sym:
@@ -4538,6 +4627,27 @@ law add_sub_add_right_sym:
 def add_sub_add_right_sym(n, k, m):
   Equal.sym(Nat, Nat.sub(Nat.add(n, k), Nat.add(m, k)), Nat.sub(n, m), add_sub_add_right(n, k, m))
 
+# Subtracting a part of the right summand: k <= m implies (n + m) - k = n + (m - k), reversed to rewrite toward the simple side.
+law add_sub_assoc_sym:
+  for k: Nat
+  for m: Nat
+  for h: le(k, m)
+  for n: Nat
+  {Nat.add(n, Nat.sub(m, k)) == Nat.sub(Nat.add(n, m), k) : Nat}
+
+def add_sub_assoc_sym(k, m, h, n):
+  Equal.sym(Nat, Nat.sub(Nat.add(n, m), k), Nat.add(n, Nat.sub(m, k)), add_sub_assoc(k, m, h, n))
+
+# Subtracting a difference from its minuend: m <= n implies n - (n - m) = m, reversed to rewrite toward the simple side.
+law sub_sub_self_sym:
+  for n: Nat
+  for m: Nat
+  for h: le(m, n)
+  {m == Nat.sub(n, Nat.sub(n, m)) : Nat}
+
+def sub_sub_self_sym(n, m, h):
+  Equal.sym(Nat, Nat.sub(n, Nat.sub(n, m)), m, sub_sub_self(n, m, h))
+
 # Multiplication distributes over subtraction on the right: (n - m) * k = n * k - m * k, reversed to rewrite toward the simple side.
 law sub_mul_sym:
   for n: Nat
@@ -4557,6 +4667,46 @@ law mul_sub_sym:
 
 def mul_sub_sym(n, m, k):
   Equal.sym(Nat, Nat.mul(n, Nat.sub(m, k)), Nat.sub(Nat.mul(n, m), Nat.mul(n, k)), mul_sub(n, m, k))
+
+# The minimum is the smaller argument on the left: a <= b implies min a b = a, reversed to rewrite toward the simple side.
+law min_eq_left_sym:
+  for a: Nat
+  for b: Nat
+  for h: le(a, b)
+  {a == Nat.min(a, b) : Nat}
+
+def min_eq_left_sym(a, b, h):
+  Equal.sym(Nat, Nat.min(a, b), a, min_eq_left(a, b, h))
+
+# The minimum is the smaller argument on the right: b <= a implies min a b = b, reversed to rewrite toward the simple side.
+law min_eq_right_sym:
+  for a: Nat
+  for b: Nat
+  for h: le(b, a)
+  {b == Nat.min(a, b) : Nat}
+
+def min_eq_right_sym(a, b, h):
+  Equal.sym(Nat, Nat.min(a, b), b, min_eq_right(a, b, h))
+
+# The maximum is the larger argument on the left: b <= a implies max a b = a, reversed to rewrite toward the simple side.
+law max_eq_left_sym:
+  for a: Nat
+  for b: Nat
+  for h: le(b, a)
+  {a == Nat.max(a, b) : Nat}
+
+def max_eq_left_sym(a, b, h):
+  Equal.sym(Nat, Nat.max(a, b), a, max_eq_left(a, b, h))
+
+# The maximum is the larger argument on the right: a <= b implies max a b = b, reversed to rewrite toward the simple side.
+law max_eq_right_sym:
+  for a: Nat
+  for b: Nat
+  for h: le(a, b)
+  {b == Nat.max(a, b) : Nat}
+
+def max_eq_right_sym(a, b, h):
+  Equal.sym(Nat, Nat.max(a, b), b, max_eq_right(a, b, h))
 
 # A number is at most the minimum exactly when it is at most both: a <= min b c tests as a <= b and a <= c (Mathlib's le_min_iff; the implication is le_min_of_le_of_le), reversed to rewrite toward the simple side.
 law le_min_sym:
@@ -4871,6 +5021,17 @@ law add_right_cancel_iff_sym:
 
 def add_right_cancel_iff_sym(a, b, k):
   Equal.sym(Bool, Nat.is_eq(a, b), Nat.is_eq(Nat.add(a, k), Nat.add(b, k)), add_right_cancel_iff(a, b, k))
+
+# Subtracting from the left summand commutes with adding the right one: k <= n implies (n + m) - k = (n - k) + m, reversed to rewrite toward the simple side.
+law sub_add_comm_sym:
+  for n: Nat
+  for m: Nat
+  for k: Nat
+  for h: le(k, n)
+  {Nat.add(Nat.sub(n, k), m) == Nat.sub(Nat.add(n, m), k) : Nat}
+
+def sub_add_comm_sym(n, m, k, h):
+  Equal.sym(Nat, Nat.sub(Nat.add(n, m), k), Nat.add(Nat.sub(n, k), m), sub_add_comm(n, m, k, h))
 
 # Multiplying n by two gives n + n, reversed to rewrite toward the simple side.
 law mul_two_sym:

@@ -1266,3 +1266,15 @@ law u32_div_to_nat_sym:
 
 def u32_div_to_nat_sym(a, b):
   Equal.sym(Nat, U32.to_nat(U32.div(a, b)), Nat.div(U32.to_nat(a), U32.to_nat(b)), u32_div_to_nat(a, b))
+
+# U32 division is antitone in a positive divisor: 0 < s and s <= t imply a / t <= a / s, reversed to rewrite toward the simple side.
+law u32_div_le_div_left_sym:
+  for a: U32
+  for s: U32
+  for t: U32
+  for hs: {U32.is_lt(0, s) == True{} : Bool}
+  for h: {U32.is_le(s, t) == True{} : Bool}
+  {True{} == U32.is_le(U32.div(a, t), U32.div(a, s)) : Bool}
+
+def u32_div_le_div_left_sym(a, s, t, hs, h):
+  Equal.sym(Bool, U32.is_le(U32.div(a, t), U32.div(a, s)), True{}, u32_div_le_div_left(a, s, t, hs, h))

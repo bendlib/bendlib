@@ -176,8 +176,9 @@ package; a version bump that breaks it breaks one adapter, not every tool.
    with a composed closed template (F28).
 6. **Orientation and `_sym` twins.** `%e : P` replaces the equation's right side with its left side,
    so the Mathlib-style statement (big side left) *expands*, and its reversed form *simplifies* — the
-   direction most rewrite steps want (F28). Therefore every public equational lemma `name` gets a
-   generated twin `name_sym : {r == l}` (proof `Equal.sym(T, l, r, name(..))`), in a generated
+   direction most rewrite steps want (F28). Therefore every public one-line equational lemma `name`,
+   with hypotheses or without, gets a generated twin `name_sym : {r == l}` unless both sides are bare
+   binder names (`a == b`: `succ_inj`, `le_antisymm`), where neither direction simplifies (proof `Equal.sym(T, l, r, name(..))`), in a generated
    trailing section of the **same module** (`# --- generated: _sym twins, do not edit ---`),
    regenerated and diffed in CI. Docs state the rule in one line: "`name` expands, `name_sym`
    simplifies". Claims are one line each (lint) so `tools/twins` is a small text splitter.

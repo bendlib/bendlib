@@ -61,3 +61,32 @@ law cong_succ:
 def cong_succ(a, b, e):
   %e : {1n+a == 1n+_ : Nat}
   {==}
+
+# --- generated: _sym twins (tools/mathlib/twins.ts), do not edit ---
+
+# Applying a two-argument function to equal arguments gives equal results, reversed to rewrite toward the simple side.
+law cong2_sym:
+  for -A: Type
+  for -B: Type
+  for -C: Type
+  for -f: A -> B -> C
+  for -a1: A
+  for -a2: A
+  for -b1: B
+  for -b2: B
+  for ea: {a1 == a2 : A}
+  for eb: {b1 == b2 : B}
+  {f(a2, b2) == f(a1, b1) : C}
+
+def cong2_sym(A, B, C, f, a1, a2, b1, b2, ea, eb):
+  Equal.sym(C, f(a1, b1), f(a2, b2), cong2(A, B, C, f, a1, a2, b1, b2, ea, eb))
+
+# Equal naturals have equal successors, reversed to rewrite toward the simple side.
+law cong_succ_sym:
+  for -a: Nat
+  for -b: Nat
+  for e: {a == b : Nat}
+  {1n+b == 1n+a : Nat}
+
+def cong_succ_sym(a, b, e):
+  Equal.sym(Nat, 1n+a, 1n+b, cong_succ(a, b, e))
