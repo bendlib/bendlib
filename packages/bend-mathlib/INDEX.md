@@ -5,18 +5,16 @@ Every lemma of bend-mathlib with its statement, checked with `bend 2.0.40`.
 Rewriting: `%e : P` replaces the right side of `e` with its left side, so `name` expands the simple
 side into the compound one and `name_sym` simplifies the compound side.
 
-bend-mathlib@0.8.1.1 is `0x15432fae482a0916f1cfffa8b5e1a335`; to pin its bytes, import by hash instead of name:
+bend-mathlib@0.8.2.0 is `0x922883dfb92864314351fac0bbd64a8f`; to pin its bytes, import by hash instead of name:
 
 ```python
-import 0x15432fae482a0916f1cfffa8b5e1a335/nat.bend as MNat
+import 0x922883dfb92864314351fac0bbd64a8f/nat.bend as MNat
 ```
-
-Rows marked `next` are proved in this repository but not yet published: the import lines below do not contain them yet.
 
 ## algebra
 
 ```python
-import bend-mathlib@0.8.1.1/algebra.bend as MAlgebra
+import bend-mathlib@0.8.2.0/algebra.bend as MAlgebra
 ```
 
 | lemma | statement | meaning | since |
@@ -61,7 +59,7 @@ import bend-mathlib@0.8.1.1/algebra.bend as MAlgebra
 ## bool
 
 ```python
-import bend-mathlib@0.8.1.1/bool.bend as MBool
+import bend-mathlib@0.8.2.0/bool.bend as MBool
 ```
 
 | lemma | statement | meaning | since |
@@ -134,19 +132,19 @@ import bend-mathlib@0.8.1.1/bool.bend as MBool
 | `xor_self_sym(a)` | `∀ a: Bool. {False{} == Bool.xor(a, a) : Bool}` | A boolean xor itself is false, reversed to rewrite toward the simple side. | 0.2.0.0 |
 | `xor_false_sym(a)` | `∀ a: Bool. {a == Bool.xor(a, False{}) : Bool}` | False is an identity for xor: a xor false is a, reversed to rewrite toward the simple side. | 0.2.0.0 |
 | `xor_true_sym(a)` | `∀ a: Bool. {Bool.not(a) == Bool.xor(a, True{}) : Bool}` | Xor with true negates: a xor true is not a, reversed to rewrite toward the simple side. | 0.2.0.0 |
-| `eq_true_of_ne_false_sym(a, h)` | `∀ a: Bool, h: {a == False{} : Bool} -> Empty. {True{} == a : Bool}` | A boolean that is not false is true, reversed to rewrite toward the simple side. | next |
+| `eq_true_of_ne_false_sym(a, h)` | `∀ a: Bool, h: {a == False{} : Bool} -> Empty. {True{} == a : Bool}` | A boolean that is not false is true, reversed to rewrite toward the simple side. | 0.8.2.0 |
 | `cmp_refl_sym(b)` | `∀ b: Bool. {EQ{} == Bool.cmp(b, b) : Cmp}` | Comparing a boolean with itself gives EQ, reversed to rewrite toward the simple side. | 0.4.0.0 |
-| `eq_true_of_and_left_sym(a, b, h)` | `∀ a: Bool, -b: Bool, h: {Bool.and(a, b) == True{} : Bool}. {True{} == a : Bool}` | If a and b is true then a is true, reversed to rewrite toward the simple side. | next |
-| `eq_true_of_and_right_sym(a, b, h)` | `∀ a: Bool, -b: Bool, h: {Bool.and(a, b) == True{} : Bool}. {True{} == b : Bool}` | If a and b is true then b is true, reversed to rewrite toward the simple side. | next |
-| `and_eq_true_sym(a, b, ha, hb)` | `∀ a: Bool, -b: Bool, ha: {a == True{} : Bool}, hb: {b == True{} : Bool}. {True{} == Bool.and(a, b) : Bool}` | If a and b are both true then a and b is true, reversed to rewrite toward the simple side. | next |
-| `eq_true_of_or_eq_false_right_sym(a, b, h, hb)` | `∀ a: Bool, -b: Bool, h: {Bool.or(a, b) == True{} : Bool}, hb: {b == False{} : Bool}. {True{} == a : Bool}` | If a or b is true and b is false then a is true, reversed to rewrite toward the simple side. | next |
-| `eq_true_of_or_eq_false_left_sym(a, b, h, ha)` | `∀ a: Bool, -b: Bool, h: {Bool.or(a, b) == True{} : Bool}, ha: {a == False{} : Bool}. {True{} == b : Bool}` | If a or b is true and a is false then b is true, reversed to rewrite toward the simple side. | next |
-| `eq_false_of_not_eq_true_sym(b, h)` | `∀ b: Bool, h: {Bool.not(b) == True{} : Bool}. {False{} == b : Bool}` | If not b is true then b is false, reversed to rewrite toward the simple side. | next |
+| `eq_true_of_and_left_sym(a, b, h)` | `∀ a: Bool, -b: Bool, h: {Bool.and(a, b) == True{} : Bool}. {True{} == a : Bool}` | If a and b is true then a is true, reversed to rewrite toward the simple side. | 0.8.2.0 |
+| `eq_true_of_and_right_sym(a, b, h)` | `∀ a: Bool, -b: Bool, h: {Bool.and(a, b) == True{} : Bool}. {True{} == b : Bool}` | If a and b is true then b is true, reversed to rewrite toward the simple side. | 0.8.2.0 |
+| `and_eq_true_sym(a, b, ha, hb)` | `∀ a: Bool, -b: Bool, ha: {a == True{} : Bool}, hb: {b == True{} : Bool}. {True{} == Bool.and(a, b) : Bool}` | If a and b are both true then a and b is true, reversed to rewrite toward the simple side. | 0.8.2.0 |
+| `eq_true_of_or_eq_false_right_sym(a, b, h, hb)` | `∀ a: Bool, -b: Bool, h: {Bool.or(a, b) == True{} : Bool}, hb: {b == False{} : Bool}. {True{} == a : Bool}` | If a or b is true and b is false then a is true, reversed to rewrite toward the simple side. | 0.8.2.0 |
+| `eq_true_of_or_eq_false_left_sym(a, b, h, ha)` | `∀ a: Bool, -b: Bool, h: {Bool.or(a, b) == True{} : Bool}, ha: {a == False{} : Bool}. {True{} == b : Bool}` | If a or b is true and a is false then b is true, reversed to rewrite toward the simple side. | 0.8.2.0 |
+| `eq_false_of_not_eq_true_sym(b, h)` | `∀ b: Bool, h: {Bool.not(b) == True{} : Bool}. {False{} == b : Bool}` | If not b is true then b is false, reversed to rewrite toward the simple side. | 0.8.2.0 |
 
 ## equal
 
 ```python
-import bend-mathlib@0.8.1.1/equal.bend as MEqual
+import bend-mathlib@0.8.2.0/equal.bend as MEqual
 ```
 
 | lemma | statement | meaning | since |
@@ -155,13 +153,13 @@ import bend-mathlib@0.8.1.1/equal.bend as MEqual
 | `subst(A, P, a, b, e, p)` | `∀ -A: Type, -P: A -> Type, -a: A, -b: A, e: {a == b : A}, p: P(a). P(b)` | If a equals b, any property of a is also a property of b. | 0.1.0.0 |
 | `trans3(A, a, b, c, d, ab, bc, cd)` | `∀ -A: Type, -a: A, -b: A, -c: A, -d: A, ab: {a == b : A}, bc: {b == c : A}, cd: {c == d : A}. {a == d : A}` | Equality chains through three steps: a = b, b = c and c = d give a = d. | 0.1.0.0 |
 | `cong_succ(a, b, e)` | `∀ -a: Nat, -b: Nat, e: {a == b : Nat}. {1n+a == 1n+b : Nat}` | Equal naturals have equal successors. | 0.1.0.0 |
-| `cong2_sym(A, B, C, f, a1, a2, b1, b2, ea, eb)` | `∀ -A: Type, -B: Type, -C: Type, -f: A -> B -> C, -a1: A, -a2: A, -b1: B, -b2: B, ea: {a1 == a2 : A}, eb: {b1 == b2 : B}. {f(a2, b2) == f(a1, b1) : C}` | Applying a two-argument function to equal arguments gives equal results, reversed to rewrite toward the simple side. | next |
-| `cong_succ_sym(a, b, e)` | `∀ -a: Nat, -b: Nat, e: {a == b : Nat}. {1n+b == 1n+a : Nat}` | Equal naturals have equal successors, reversed to rewrite toward the simple side. | next |
+| `cong2_sym(A, B, C, f, a1, a2, b1, b2, ea, eb)` | `∀ -A: Type, -B: Type, -C: Type, -f: A -> B -> C, -a1: A, -a2: A, -b1: B, -b2: B, ea: {a1 == a2 : A}, eb: {b1 == b2 : B}. {f(a2, b2) == f(a1, b1) : C}` | Applying a two-argument function to equal arguments gives equal results, reversed to rewrite toward the simple side. | 0.8.2.0 |
+| `cong_succ_sym(a, b, e)` | `∀ -a: Nat, -b: Nat, e: {a == b : Nat}. {1n+b == 1n+a : Nat}` | Equal naturals have equal successors, reversed to rewrite toward the simple side. | 0.8.2.0 |
 
 ## list
 
 ```python
-import bend-mathlib@0.8.1.1/list.bend as MList
+import bend-mathlib@0.8.2.0/list.bend as MList
 ```
 
 | predicate | definition | since |
@@ -383,7 +381,7 @@ import bend-mathlib@0.8.1.1/list.bend as MList
 ## maybe
 
 ```python
-import bend-mathlib@0.8.1.1/maybe.bend as MMaybe
+import bend-mathlib@0.8.2.0/maybe.bend as MMaybe
 ```
 
 | lemma | statement | meaning | since |
@@ -422,7 +420,7 @@ import bend-mathlib@0.8.1.1/maybe.bend as MMaybe
 ## nat
 
 ```python
-import bend-mathlib@0.8.1.1/nat.bend as MNat
+import bend-mathlib@0.8.2.0/nat.bend as MNat
 ```
 
 | predicate | definition | since |
@@ -692,10 +690,10 @@ import bend-mathlib@0.8.1.1/nat.bend as MNat
 | `succ_sub_succ_sym(n, m)` | `∀ -n: Nat, -m: Nat. {Nat.sub(n, m) == Nat.sub(1n+n, 1n+m) : Nat}` | Subtracting successors: (n + 1) - (m + 1) = n - m, reversed to rewrite toward the simple side. | 0.2.0.0 |
 | `add_sub_cancel_sym(n, m)` | `∀ n: Nat, m: Nat. {n == Nat.sub(Nat.add(n, m), m) : Nat}` | Adding then subtracting m cancels: (n + m) - m = n, reversed to rewrite toward the simple side. | 0.2.0.0 |
 | `add_sub_cancel_left_sym(n, m)` | `∀ n: Nat, m: Nat. {m == Nat.sub(Nat.add(n, m), n) : Nat}` | Adding then subtracting n cancels: (n + m) - n = m, reversed to rewrite toward the simple side. | 0.2.0.0 |
-| `sub_add_cancel_sym(n, m, h)` | `∀ n: Nat, m: Nat, h: le(m, n). {n == Nat.add(Nat.sub(n, m), m) : Nat}` | If m <= n, subtracting and adding m back gives n: (n - m) + m = n, reversed to rewrite toward the simple side. | next |
+| `sub_add_cancel_sym(n, m, h)` | `∀ n: Nat, m: Nat, h: le(m, n). {n == Nat.add(Nat.sub(n, m), m) : Nat}` | If m <= n, subtracting and adding m back gives n: (n - m) + m = n, reversed to rewrite toward the simple side. | 0.8.2.0 |
 | `sub_sub_sym(n, m, k)` | `∀ n: Nat, m: Nat, k: Nat. {Nat.sub(n, Nat.add(m, k)) == Nat.sub(Nat.sub(n, m), k) : Nat}` | Subtracting twice is subtracting the sum: (n - m) - k = n - (m + k), reversed to rewrite toward the simple side. | 0.2.0.0 |
 | `div_mod_eq_sym(a, b)` | `∀ +a: Nat, +b: Nat. {a == Nat.add(Nat.mul(Nat.div(a, 1n+b), 1n+b), Nat.mod(a, 1n+b)) : Nat}` | The division equation, for a positive divisor 1 + b: (a / (1 + b)) * (1 + b) + a % (1 + b) = a, reversed to rewrite toward the simple side. | 0.4.0.0 |
-| `div_eq_zero_of_le_sym(a, b, h)` | `∀ +a: Nat, +b: Nat, h: le(a, b). {0n == Nat.div(a, 1n+b) : Nat}` | A number at most b divides by 1 + b to zero: a <= b implies a / (1 + b) = 0, reversed to rewrite toward the simple side. | next |
+| `div_eq_zero_of_le_sym(a, b, h)` | `∀ +a: Nat, +b: Nat, h: le(a, b). {0n == Nat.div(a, 1n+b) : Nat}` | A number at most b divides by 1 + b to zero: a <= b implies a / (1 + b) = 0, reversed to rewrite toward the simple side. | 0.8.2.0 |
 | `add_div_left_sym(a, b)` | `∀ +a: Nat, +b: Nat. {1n+Nat.div(a, 1n+b) == Nat.div(Nat.add(1n+b, a), 1n+b) : Nat}` | Adding the divisor adds one to the quotient: ((1 + b) + a) / (1 + b) = 1 + a / (1 + b), reversed to rewrite toward the simple side. | 0.4.0.0 |
 | `le_div_iff_mul_le_sym(n, a, b)` | `∀ n: Nat, +a: Nat, +b: Nat. {Nat.is_le(Nat.mul(n, 1n+b), a) == Nat.is_le(n, Nat.div(a, 1n+b)) : Bool}` | A quotient is compared by multiplying back: n <= a / (1 + b) tests as n * (1 + b) <= a, reversed to rewrite toward the simple side. | 0.4.0.0 |
 | `min_comm_sym(a, b)` | `∀ a: Nat, b: Nat. {Nat.min(b, a) == Nat.min(a, b) : Nat}` | Minimum is commutative, reversed to rewrite toward the simple side. | 0.2.0.0 |
@@ -724,14 +722,14 @@ import bend-mathlib@0.8.1.1/nat.bend as MNat
 | `not_is_lt_sym(a, b)` | `∀ a: Nat, b: Nat. {Nat.is_le(b, a) == Bool.not(Nat.is_lt(a, b)) : Bool}` | Not (a < b) tests the same as b <= a, reversed to rewrite toward the simple side. | 0.2.0.0 |
 | `add_le_add_iff_left_sym(k, a, b)` | `∀ k: Nat, -a: Nat, -b: Nat. {Nat.is_le(Nat.add(k, a), Nat.add(k, b)) == Nat.is_le(a, b) : Bool}` | Adding the same amount on the left does not change the order test: a <= b tests as k + a <= k + b, reversed to rewrite toward the simple side. | 0.5.0.0 |
 | `le_and_le_sub_iff_add_le_sym(a, b, c)` | `∀ a: Nat, -b: Nat, c: Nat. {Nat.is_le(Nat.add(a, b), c) == Bool.and(Nat.is_le(a, c), Nat.is_le(b, Nat.sub(c, a))) : Bool}` | A sum is at most c exactly when a <= c and b <= c - a: a + b <= c tests as both, reversed to rewrite toward the simple side. | 0.5.0.0 |
-| `le_zero_eq_sym(n, h)` | `∀ n: Nat, h: le(n, 0n). {0n == n : Nat}` | The only natural at most zero is zero, reversed to rewrite toward the simple side. | next |
-| `not_le_of_lt_sym(a, b, h)` | `∀ a: Nat, b: Nat, h: lt(a, b). {False{} == Nat.is_le(b, a) : Bool}` | A strict inequality rules out the reverse weak one: a < b implies b <= a is false, reversed to rewrite toward the simple side. | next |
-| `not_lt_of_le_sym(a, b, h)` | `∀ a: Nat, b: Nat, h: le(a, b). {False{} == Nat.is_lt(b, a) : Bool}` | A weak inequality rules out the reverse strict one: a <= b implies b < a is false, reversed to rewrite toward the simple side. | next |
+| `le_zero_eq_sym(n, h)` | `∀ n: Nat, h: le(n, 0n). {0n == n : Nat}` | The only natural at most zero is zero, reversed to rewrite toward the simple side. | 0.8.2.0 |
+| `not_le_of_lt_sym(a, b, h)` | `∀ a: Nat, b: Nat, h: lt(a, b). {False{} == Nat.is_le(b, a) : Bool}` | A strict inequality rules out the reverse weak one: a < b implies b <= a is false, reversed to rewrite toward the simple side. | 0.8.2.0 |
+| `not_lt_of_le_sym(a, b, h)` | `∀ a: Nat, b: Nat, h: le(a, b). {False{} == Nat.is_lt(b, a) : Bool}` | A weak inequality rules out the reverse strict one: a <= b implies b < a is false, reversed to rewrite toward the simple side. | 0.8.2.0 |
 | `min_le_iff_sym(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Bool.or(Nat.is_le(a, c), Nat.is_le(b, c)) == Nat.is_le(Nat.min(a, b), c) : Bool}` | The minimum is at most c exactly when one argument is: min a b <= c tests as a <= c or b <= c, reversed to rewrite toward the simple side. | 0.4.0.0 |
 | `lt_max_iff_sym(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Bool.or(Nat.is_lt(a, b), Nat.is_lt(a, c)) == Nat.is_lt(a, Nat.max(b, c)) : Bool}` | The maximum is above a exactly when one argument is: a < max b c tests as a < b or a < c, reversed to rewrite toward the simple side. | 0.4.0.0 |
-| `sub_eq_zero_of_le_sym(a, b, h)` | `∀ a: Nat, b: Nat, h: le(a, b). {0n == Nat.sub(a, b) : Nat}` | Subtracting a larger number gives zero: a <= b implies a - b = 0, reversed to rewrite toward the simple side. | next |
-| `succ_sub_sym(a, b, h)` | `∀ a: Nat, b: Nat, h: le(b, a). {1n+Nat.sub(a, b) == Nat.sub(1n+a, b) : Nat}` | Above the subtrahend, a successor subtracts to a successor: b <= a implies (a + 1) - b = (a - b) + 1, reversed to rewrite toward the simple side. | next |
-| `add_sub_of_le_sym(a, b, h)` | `∀ a: Nat, b: Nat, h: le(a, b). {b == Nat.add(a, Nat.sub(b, a)) : Nat}` | Adding back what was subtracted restores the number: a <= b implies a + (b - a) = b, reversed to rewrite toward the simple side. | next |
+| `sub_eq_zero_of_le_sym(a, b, h)` | `∀ a: Nat, b: Nat, h: le(a, b). {0n == Nat.sub(a, b) : Nat}` | Subtracting a larger number gives zero: a <= b implies a - b = 0, reversed to rewrite toward the simple side. | 0.8.2.0 |
+| `succ_sub_sym(a, b, h)` | `∀ a: Nat, b: Nat, h: le(b, a). {1n+Nat.sub(a, b) == Nat.sub(1n+a, b) : Nat}` | Above the subtrahend, a successor subtracts to a successor: b <= a implies (a + 1) - b = (a - b) + 1, reversed to rewrite toward the simple side. | 0.8.2.0 |
+| `add_sub_of_le_sym(a, b, h)` | `∀ a: Nat, b: Nat, h: le(a, b). {b == Nat.add(a, Nat.sub(b, a)) : Nat}` | Adding back what was subtracted restores the number: a <= b implies a + (b - a) = b, reversed to rewrite toward the simple side. | 0.8.2.0 |
 | `lt_sub_iff_add_lt_sym(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Nat.is_lt(Nat.add(b, a), c) == Nat.is_lt(a, Nat.sub(c, b)) : Bool}` | Comparing against a difference is comparing the sum: a < c - b tests as b + a < c, reversed to rewrite toward the simple side. | 0.4.0.0 |
 | `zero_div_sym(b)` | `∀ b: Nat. {0n == Nat.div(0n, b) : Nat}` | Zero divided by anything is zero: 0 / b = 0, reversed to rewrite toward the simple side. | 0.6.0.0 |
 | `zero_mod_sym(b)` | `∀ b: Nat. {0n == Nat.mod(0n, b) : Nat}` | Zero modulo anything is zero: 0 % b = 0, reversed to rewrite toward the simple side. | 0.6.0.0 |
@@ -739,7 +737,7 @@ import bend-mathlib@0.8.1.1/nat.bend as MNat
 | `mod_one_sym(a)` | `∀ a: Nat. {0n == Nat.mod(a, 1n) : Nat}` | Any natural modulo one is zero: a % 1 = 0, reversed to rewrite toward the simple side. | 0.6.0.0 |
 | `mod_self_sym(n)` | `∀ n: Nat. {0n == Nat.mod(n, n) : Nat}` | A natural modulo itself is zero: n % n = 0, reversed to rewrite toward the simple side. | 0.6.0.0 |
 | `div_self_sym(b)` | `∀ b: Nat. {1n == Nat.div(1n+b, 1n+b) : Nat}` | A positive natural divided by itself is one: (1 + b) / (1 + b) = 1, reversed to rewrite toward the simple side. | 0.6.0.0 |
-| `mod_eq_of_lt_sym(a, b, h)` | `∀ a: Nat, b: Nat, h: lt(a, b). {a == Nat.mod(a, b) : Nat}` | A number below the divisor is its own remainder: a < b implies a % b = a, reversed to rewrite toward the simple side. | next |
+| `mod_eq_of_lt_sym(a, b, h)` | `∀ a: Nat, b: Nat, h: lt(a, b). {a == Nat.mod(a, b) : Nat}` | A number below the divisor is its own remainder: a < b implies a % b = a, reversed to rewrite toward the simple side. | 0.8.2.0 |
 | `mod_mod_sym(a, n)` | `∀ a: Nat, n: Nat. {Nat.mod(a, n) == Nat.mod(Nat.mod(a, n), n) : Nat}` | Taking a remainder twice is taking it once: (a % n) % n = a % n, reversed to rewrite toward the simple side. | 0.6.0.0 |
 | `add_mod_left_sym(a, b)` | `∀ a: Nat, b: Nat. {Nat.mod(a, b) == Nat.mod(Nat.add(b, a), b) : Nat}` | Adding the divisor does not change the remainder: (b + a) % b = a % b, reversed to rewrite toward the simple side. | 0.6.0.0 |
 | `mul_div_cancel_sym(a, b)` | `∀ a: Nat, b: Nat. {a == Nat.div(Nat.mul(a, 1n+b), 1n+b) : Nat}` | Multiplying by a positive divisor then dividing by it cancels: (a * (1 + b)) / (1 + b) = a, reversed to rewrite toward the simple side. | 0.6.0.0 |
@@ -755,14 +753,14 @@ import bend-mathlib@0.8.1.1/nat.bend as MNat
 | `pow_mul_sym(a, m, n)` | `∀ a: Nat, m: Nat, n: Nat. {Nat.pow(Nat.pow(a, m), n) == Nat.pow(a, Nat.mul(m, n)) : Nat}` | Exponents multiply under repeated powers: a^(m * n) = (a^m)^n, reversed to rewrite toward the simple side. | 0.6.0.0 |
 | `add_sub_add_left_sym(k, n, m)` | `∀ k: Nat, -n: Nat, -m: Nat. {Nat.sub(n, m) == Nat.sub(Nat.add(k, n), Nat.add(k, m)) : Nat}` | A common left summand cancels in a difference: (k + n) - (k + m) = n - m, reversed to rewrite toward the simple side. | 0.6.0.0 |
 | `add_sub_add_right_sym(n, k, m)` | `∀ n: Nat, k: Nat, m: Nat. {Nat.sub(n, m) == Nat.sub(Nat.add(n, k), Nat.add(m, k)) : Nat}` | A common right summand cancels in a difference: (n + k) - (m + k) = n - m, reversed to rewrite toward the simple side. | 0.6.0.0 |
-| `add_sub_assoc_sym(k, m, h, n)` | `∀ k: Nat, m: Nat, h: le(k, m), n: Nat. {Nat.add(n, Nat.sub(m, k)) == Nat.sub(Nat.add(n, m), k) : Nat}` | Subtracting a part of the right summand: k <= m implies (n + m) - k = n + (m - k), reversed to rewrite toward the simple side. | next |
-| `sub_sub_self_sym(n, m, h)` | `∀ n: Nat, m: Nat, h: le(m, n). {m == Nat.sub(n, Nat.sub(n, m)) : Nat}` | Subtracting a difference from its minuend: m <= n implies n - (n - m) = m, reversed to rewrite toward the simple side. | next |
+| `add_sub_assoc_sym(k, m, h, n)` | `∀ k: Nat, m: Nat, h: le(k, m), n: Nat. {Nat.add(n, Nat.sub(m, k)) == Nat.sub(Nat.add(n, m), k) : Nat}` | Subtracting a part of the right summand: k <= m implies (n + m) - k = n + (m - k), reversed to rewrite toward the simple side. | 0.8.2.0 |
+| `sub_sub_self_sym(n, m, h)` | `∀ n: Nat, m: Nat, h: le(m, n). {m == Nat.sub(n, Nat.sub(n, m)) : Nat}` | Subtracting a difference from its minuend: m <= n implies n - (n - m) = m, reversed to rewrite toward the simple side. | 0.8.2.0 |
 | `sub_mul_sym(n, m, k)` | `∀ n: Nat, m: Nat, k: Nat. {Nat.sub(Nat.mul(n, k), Nat.mul(m, k)) == Nat.mul(Nat.sub(n, m), k) : Nat}` | Multiplication distributes over subtraction on the right: (n - m) * k = n * k - m * k, reversed to rewrite toward the simple side. | 0.6.0.0 |
 | `mul_sub_sym(n, m, k)` | `∀ n: Nat, m: Nat, k: Nat. {Nat.sub(Nat.mul(n, m), Nat.mul(n, k)) == Nat.mul(n, Nat.sub(m, k)) : Nat}` | Multiplication distributes over subtraction on the left: n * (m - k) = n * m - n * k, reversed to rewrite toward the simple side. | 0.6.0.0 |
-| `min_eq_left_sym(a, b, h)` | `∀ a: Nat, b: Nat, h: le(a, b). {a == Nat.min(a, b) : Nat}` | The minimum is the smaller argument on the left: a <= b implies min a b = a, reversed to rewrite toward the simple side. | next |
-| `min_eq_right_sym(a, b, h)` | `∀ a: Nat, b: Nat, h: le(b, a). {b == Nat.min(a, b) : Nat}` | The minimum is the smaller argument on the right: b <= a implies min a b = b, reversed to rewrite toward the simple side. | next |
-| `max_eq_left_sym(a, b, h)` | `∀ a: Nat, b: Nat, h: le(b, a). {a == Nat.max(a, b) : Nat}` | The maximum is the larger argument on the left: b <= a implies max a b = a, reversed to rewrite toward the simple side. | next |
-| `max_eq_right_sym(a, b, h)` | `∀ a: Nat, b: Nat, h: le(a, b). {b == Nat.max(a, b) : Nat}` | The maximum is the larger argument on the right: a <= b implies max a b = b, reversed to rewrite toward the simple side. | next |
+| `min_eq_left_sym(a, b, h)` | `∀ a: Nat, b: Nat, h: le(a, b). {a == Nat.min(a, b) : Nat}` | The minimum is the smaller argument on the left: a <= b implies min a b = a, reversed to rewrite toward the simple side. | 0.8.2.0 |
+| `min_eq_right_sym(a, b, h)` | `∀ a: Nat, b: Nat, h: le(b, a). {b == Nat.min(a, b) : Nat}` | The minimum is the smaller argument on the right: b <= a implies min a b = b, reversed to rewrite toward the simple side. | 0.8.2.0 |
+| `max_eq_left_sym(a, b, h)` | `∀ a: Nat, b: Nat, h: le(b, a). {a == Nat.max(a, b) : Nat}` | The maximum is the larger argument on the left: b <= a implies max a b = a, reversed to rewrite toward the simple side. | 0.8.2.0 |
+| `max_eq_right_sym(a, b, h)` | `∀ a: Nat, b: Nat, h: le(a, b). {b == Nat.max(a, b) : Nat}` | The maximum is the larger argument on the right: a <= b implies max a b = b, reversed to rewrite toward the simple side. | 0.8.2.0 |
 | `le_min_sym(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Bool.and(Nat.is_le(a, b), Nat.is_le(a, c)) == Nat.is_le(a, Nat.min(b, c)) : Bool}` | A number is at most the minimum exactly when it is at most both: a <= min b c tests as a <= b and a <= c (Mathlib's le_min_iff; the implication is le_min_of_le_of_le), reversed to rewrite toward the simple side. | 0.6.0.0 |
 | `max_le_sym(a, b, c)` | `∀ a: Nat, b: Nat, c: Nat. {Bool.and(Nat.is_le(a, c), Nat.is_le(b, c)) == Nat.is_le(Nat.max(a, b), c) : Bool}` | The maximum is at most c exactly when both arguments are: max a b <= c tests as a <= c and b <= c (Mathlib's max_le_iff; the implication is max_le_of_le_of_le), reversed to rewrite toward the simple side. | 0.6.0.0 |
 | `lt_succ_iff_sym(m, n)` | `∀ m: Nat, n: Nat. {Nat.is_le(m, n) == Nat.is_lt(m, 1n+n) : Bool}` | Below a successor means at most: m < n + 1 tests as m <= n, reversed to rewrite toward the simple side. | 0.7.0.0 |
@@ -796,7 +794,7 @@ import bend-mathlib@0.8.1.1/nat.bend as MNat
 | `add_le_add_iff_right_sym(a, b, k)` | `∀ a: Nat, b: Nat, k: Nat. {Nat.is_le(Nat.add(a, k), Nat.add(b, k)) == Nat.is_le(a, b) : Bool}` | Adding the same amount on the right does not change the order test: a <= b tests as a + k <= b + k, reversed to rewrite toward the simple side. | 0.7.1.0 |
 | `add_left_cancel_iff_sym(k, a, b)` | `∀ k: Nat, -a: Nat, -b: Nat. {Nat.is_eq(Nat.add(k, a), Nat.add(k, b)) == Nat.is_eq(a, b) : Bool}` | Adding the same amount on the left does not change the equality test: a = b tests as k + a = k + b, reversed to rewrite toward the simple side. | 0.7.1.0 |
 | `add_right_cancel_iff_sym(a, b, k)` | `∀ a: Nat, b: Nat, k: Nat. {Nat.is_eq(Nat.add(a, k), Nat.add(b, k)) == Nat.is_eq(a, b) : Bool}` | Adding the same amount on the right does not change the equality test: a = b tests as a + k = b + k, reversed to rewrite toward the simple side. | 0.7.1.0 |
-| `sub_add_comm_sym(n, m, k, h)` | `∀ n: Nat, m: Nat, k: Nat, h: le(k, n). {Nat.add(Nat.sub(n, k), m) == Nat.sub(Nat.add(n, m), k) : Nat}` | Subtracting from the left summand commutes with adding the right one: k <= n implies (n + m) - k = (n - k) + m, reversed to rewrite toward the simple side. | next |
+| `sub_add_comm_sym(n, m, k, h)` | `∀ n: Nat, m: Nat, k: Nat, h: le(k, n). {Nat.add(Nat.sub(n, k), m) == Nat.sub(Nat.add(n, m), k) : Nat}` | Subtracting from the left summand commutes with adding the right one: k <= n implies (n + m) - k = (n - k) + m, reversed to rewrite toward the simple side. | 0.8.2.0 |
 | `mul_two_sym(n)` | `∀ n: Nat. {Nat.add(n, n) == Nat.mul(n, 2n) : Nat}` | Multiplying n by two gives n + n, reversed to rewrite toward the simple side. | 0.7.2.0 |
 | `pow_two_sym(n)` | `∀ n: Nat. {Nat.mul(n, n) == Nat.pow(n, 2n) : Nat}` | Squaring n gives n times n, reversed to rewrite toward the simple side. | 0.7.2.0 |
 | `min_le_max_sym(a, b)` | `∀ a: Nat, b: Nat. {True{} == Nat.is_le(Nat.min(a, b), Nat.max(a, b)) : Bool}` | The minimum of two numbers is at most their maximum, reversed to rewrite toward the simple side. | 0.7.2.0 |
@@ -805,7 +803,7 @@ import bend-mathlib@0.8.1.1/nat.bend as MNat
 ## order
 
 ```python
-import bend-mathlib@0.8.1.1/order.bend as MOrder
+import bend-mathlib@0.8.2.0/order.bend as MOrder
 ```
 
 | lemma | statement | meaning | since |
@@ -815,15 +813,15 @@ import bend-mathlib@0.8.1.1/order.bend as MOrder
 | `le_antisymm_eq(~A, ~le, ~le_antisymm, a, b, ab, ba)` | `∀ ~A: Data, ~le: A -> A -> Bool, ~le_antisymm: @x: A -> @y: A -> {le(x, y) == True{} : Bool} -> {le(y, x) == True{} : Bool} -> {x == y : A}, +a: A, +b: A, ab: {le(a, b) == True{} : Bool}, ba: {le(b, a) == True{} : Bool}. {a == b : A}` | Antisymmetry gives equality. | 0.4.0.0 |
 | `le_total_true(~A, ~le, ~le_total, a, b)` | `∀ ~A: Data, ~le: A -> A -> Bool, ~le_total: @x: A -> @y: A -> {Bool.or(le(x, y), le(y, x)) == True{} : Bool}, +a: A, +b: A. {Bool.or(le(a, b), le(b, a)) == True{} : Bool}` | Totality as a Bool disjunction. | 0.4.0.0 |
 | `le_total_of_not_le(~A, ~le, ~le_total, a, b, h)` | `∀ ~A: Data, ~le: A -> A -> Bool, ~le_total: @x: A -> @y: A -> {Bool.or(le(x, y), le(y, x)) == True{} : Bool}, +a: A, +b: A, h: {le(a, b) == False{} : Bool}. {le(b, a) == True{} : Bool}` | The other side of a total order holds when one side fails. | 0.4.0.0 |
-| `le_trans3_sym(~A, ~le, ~le_trans, a, b, c, d, ab, bc, cd)` | `∀ ~A: Data, ~le: A -> A -> Bool, ~le_trans: @x: A -> @y: A -> @z: A -> {le(x, y) == True{} : Bool} -> {le(y, z) == True{} : Bool} -> {le(x, z) == True{} : Bool}, +a: A, +b: A, +c: A, +d: A, ab: {le(a, b) == True{} : Bool}, bc: {le(b, c) == True{} : Bool}, cd: {le(c, d) == True{} : Bool}. {True{} == le(a, d) : Bool}` | A chain of three comparisons composes, reversed to rewrite toward the simple side. | next |
-| `le_trans4_sym(~A, ~le, ~le_trans, a, b, c, d, e, ab, bc, cd, de)` | `∀ ~A: Data, ~le: A -> A -> Bool, ~le_trans: @x: A -> @y: A -> @z: A -> {le(x, y) == True{} : Bool} -> {le(y, z) == True{} : Bool} -> {le(x, z) == True{} : Bool}, +a: A, +b: A, +c: A, +d: A, +e: A, ab: {le(a, b) == True{} : Bool}, bc: {le(b, c) == True{} : Bool}, cd: {le(c, d) == True{} : Bool}, de: {le(d, e) == True{} : Bool}. {True{} == le(a, e) : Bool}` | A chain of four comparisons composes, reversed to rewrite toward the simple side. | next |
+| `le_trans3_sym(~A, ~le, ~le_trans, a, b, c, d, ab, bc, cd)` | `∀ ~A: Data, ~le: A -> A -> Bool, ~le_trans: @x: A -> @y: A -> @z: A -> {le(x, y) == True{} : Bool} -> {le(y, z) == True{} : Bool} -> {le(x, z) == True{} : Bool}, +a: A, +b: A, +c: A, +d: A, ab: {le(a, b) == True{} : Bool}, bc: {le(b, c) == True{} : Bool}, cd: {le(c, d) == True{} : Bool}. {True{} == le(a, d) : Bool}` | A chain of three comparisons composes, reversed to rewrite toward the simple side. | 0.8.2.0 |
+| `le_trans4_sym(~A, ~le, ~le_trans, a, b, c, d, e, ab, bc, cd, de)` | `∀ ~A: Data, ~le: A -> A -> Bool, ~le_trans: @x: A -> @y: A -> @z: A -> {le(x, y) == True{} : Bool} -> {le(y, z) == True{} : Bool} -> {le(x, z) == True{} : Bool}, +a: A, +b: A, +c: A, +d: A, +e: A, ab: {le(a, b) == True{} : Bool}, bc: {le(b, c) == True{} : Bool}, cd: {le(c, d) == True{} : Bool}, de: {le(d, e) == True{} : Bool}. {True{} == le(a, e) : Bool}` | A chain of four comparisons composes, reversed to rewrite toward the simple side. | 0.8.2.0 |
 | `le_total_true_sym(~A, ~le, ~le_total, a, b)` | `∀ ~A: Data, ~le: A -> A -> Bool, ~le_total: @x: A -> @y: A -> {Bool.or(le(x, y), le(y, x)) == True{} : Bool}, +a: A, +b: A. {True{} == Bool.or(le(a, b), le(b, a)) : Bool}` | Totality as a Bool disjunction, reversed to rewrite toward the simple side. | 0.4.0.0 |
-| `le_total_of_not_le_sym(~A, ~le, ~le_total, a, b, h)` | `∀ ~A: Data, ~le: A -> A -> Bool, ~le_total: @x: A -> @y: A -> {Bool.or(le(x, y), le(y, x)) == True{} : Bool}, +a: A, +b: A, h: {le(a, b) == False{} : Bool}. {True{} == le(b, a) : Bool}` | The other side of a total order holds when one side fails, reversed to rewrite toward the simple side. | next |
+| `le_total_of_not_le_sym(~A, ~le, ~le_total, a, b, h)` | `∀ ~A: Data, ~le: A -> A -> Bool, ~le_total: @x: A -> @y: A -> {Bool.or(le(x, y), le(y, x)) == True{} : Bool}, +a: A, +b: A, h: {le(a, b) == False{} : Bool}. {True{} == le(b, a) : Bool}` | The other side of a total order holds when one side fails, reversed to rewrite toward the simple side. | 0.8.2.0 |
 
 ## perm
 
 ```python
-import bend-mathlib@0.8.1.1/perm.bend as MPerm
+import bend-mathlib@0.8.2.0/perm.bend as MPerm
 ```
 
 | typed def | signature | meaning | since |
@@ -862,7 +860,7 @@ import bend-mathlib@0.8.1.1/perm.bend as MPerm
 ## sort
 
 ```python
-import bend-mathlib@0.8.1.1/sort.bend as MSort
+import bend-mathlib@0.8.2.0/sort.bend as MSort
 ```
 
 | typed def | signature | meaning | since |
@@ -880,7 +878,7 @@ import bend-mathlib@0.8.1.1/sort.bend as MSort
 ## string
 
 ```python
-import bend-mathlib@0.8.1.1/string.bend as MString
+import bend-mathlib@0.8.2.0/string.bend as MString
 ```
 
 | lemma | statement | meaning | since |
@@ -940,7 +938,7 @@ import bend-mathlib@0.8.1.1/string.bend as MString
 ## u32
 
 ```python
-import bend-mathlib@0.8.1.1/u32.bend as MU32
+import bend-mathlib@0.8.2.0/u32.bend as MU32
 ```
 
 | lemma | statement | meaning | since |
@@ -1012,6 +1010,6 @@ import bend-mathlib@0.8.1.1/u32.bend as MU32
 | `u32_min_to_nat_sym(a, b)` | `∀ a: U32, b: U32. {Nat.min(U32.to_nat(a), U32.to_nat(b)) == U32.to_nat(U32.min(a, b)) : Nat}` | The U32 minimum is the minimum of the values: to_nat (min a b) = min (to_nat a) (to_nat b), reversed to rewrite toward the simple side. | 0.8.0.0 |
 | `u32_max_to_nat_sym(a, b)` | `∀ a: U32, b: U32. {Nat.max(U32.to_nat(a), U32.to_nat(b)) == U32.to_nat(U32.max(a, b)) : Nat}` | The U32 maximum is the maximum of the values: to_nat (max a b) = max (to_nat a) (to_nat b), reversed to rewrite toward the simple side. | 0.8.0.0 |
 | `u32_div_to_nat_sym(a, b)` | `∀ a: U32, b: U32. {Nat.div(U32.to_nat(a), U32.to_nat(b)) == U32.to_nat(U32.div(a, b)) : Nat}` | U32 division is the division of the values, also for a zero divisor: to_nat (a / b) = to_nat a / to_nat b, reversed to rewrite toward the simple side. | 0.8.1.0 |
-| `u32_div_le_div_left_sym(a, s, t, hs, h)` | `∀ a: U32, s: U32, t: U32, hs: {U32.is_lt(0, s) == True{} : Bool}, h: {U32.is_le(s, t) == True{} : Bool}. {True{} == U32.is_le(U32.div(a, t), U32.div(a, s)) : Bool}` | U32 division is antitone in a positive divisor: 0 < s and s <= t imply a / t <= a / s, reversed to rewrite toward the simple side. | next |
+| `u32_div_le_div_left_sym(a, s, t, hs, h)` | `∀ a: U32, s: U32, t: U32, hs: {U32.is_lt(0, s) == True{} : Bool}, h: {U32.is_le(s, t) == True{} : Bool}. {True{} == U32.is_le(U32.div(a, t), U32.div(a, s)) : Bool}` | U32 division is antitone in a positive divisor: 0 < s and s <= t imply a / t <= a / s, reversed to rewrite toward the simple side. | 0.8.2.0 |
 
 491 lemmas + 360 generated _sym twins, 6 predicates, 39 typed defs. Generated by `tools/mathlib/index.ts`.
